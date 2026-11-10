@@ -1,0 +1,40 @@
+version: 1
+diagram: flow
+title: Checkout platform
+description: Services behind checkout and how they talk.
+direction: down
+nodes:
+  - {id: user, label: Shopper, kind: actor}
+  - {id: web, label: Web app, kind: client}
+  - {id: gw, label: API gateway, kind: service, emphasis: true}
+  - {id: auth, label: Auth service, kind: service}
+  - {id: orders, label: Order service, kind: service}
+  - {id: pay, label: Payment service, kind: service}
+  - {id: stripe, label: Card processor, kind: external}
+  - {id: odb, label: Orders DB, kind: datastore}
+  - {id: bus, label: Event bus, kind: queue}
+  - {id: mail, label: "Notification\nworker", kind: box}
+  - {id: ok, label: Paid?, kind: decision}
+  - {id: doc, label: Invoice PDF, kind: document}
+groups:
+  - {id: edge, label: Edge, members: [gw, auth]}
+  - {id: core, label: Core services, members: [orders, pay, ok, data]}
+  - {id: data, label: Data, members: [odb, bus]}
+edges:
+  - {from: user, to: web}
+  - {from: web, to: gw, label: HTTPS}
+  - {from: gw, to: auth, label: verify}
+  - {from: gw, to: orders, label: place order}
+  - {from: orders, to: pay, label: charge}
+  - {from: pay, to: stripe, label: capture, style: dependency}
+  - {from: pay, to: ok}
+  - {from: ok, to: orders, label: "yes", id: paid-yes}
+  - {from: orders, to: odb, label: insert}
+  - {from: orders, to: bus, label: publish, style: async}
+  - {from: bus, to: mail, style: async}
+  - {from: mail, to: doc, label: render}
+  - {from: mail, to: mail, label: retry, id: mail-retry}
+notes:
+  - {attach: bus, text: At-least-once delivery}
+  - {attach: paid-yes, text: Only after capture succeeds, side: left}
+  - {attach: core, text: Deployed as one unit, side: bottom}

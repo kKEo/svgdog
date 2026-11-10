@@ -94,3 +94,54 @@ pub fn classify(font_family: Option<&str>) -> (Class, bool) {
     let exact = first == "inter" || first == "jetbrains mono";
     (class, exact)
 }
+
+struct Outline {
+    d: String,
+    x: f64,
+    y: f64,
+    scale: f64,
+}
+
+impl Outline {
+    fn pt(&self, x: f32, y: f32) -> String {
+        format!("{} {}", crate::util::fmt(self.x + x as f64 * self.scale), crate::util::fmt(self.y - y as f64 * self.scale))
+    }
+}
+
+impl rustybuzz::ttf_parser::OutlineBuilder for Outline {
+    fn move_to(&mut self, x: f32, y: f32) {
+        self.d.push_str(&format!("M{}", self.pt(x, y)));
+    }
+    fn line_to(&mut self, x: f32, y: f32) {
+        self.d.push_str(&format!("L{}", self.pt(x, y)));
+    }
+    fn quad_to(&mut self, x1: f32, y1: f32, x: f32, y: f32) {
+        self.d.push_str(&format!("Q{} {}", self.pt(x1, y1), self.pt(x, y)));
+    }
+    fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
+        self.d.push_str(&format!("C{} {} {}", self.pt(x1, y1), self.pt(x2, y2), self.pt(x, y)));
+    }
+    fn close(&mut self) {
+        self.d.push('Z');
+    }
+}
+
+/// Path data for a line of text set in the bundled sans face, starting at `x` on `baseline`.
+pub fn outline(text: &str, size: f64, x: f64, baseline: f64) -> String {
+    FONTS.with(|f| {
+        let face = f.face(Class::Sans, false);
+        let mut buf = rustybuzz::UnicodeBuffer::new();
+        buf.push_str(text);
+        let shaped = rustybuzz::shape(face, &[], buf);
+        let scale = size / face.units_per_em() as f64;
+        let mut pen = 0.0;
+        let mut d = String::new();
+        for (info, pos) in shaped.glyph_infos().iter().zip(shaped.glyph_positions()) {
+            let mut o = Outline { d: String::new(), x: x + (pen + pos.x_offset as f64) * scale, y: baseline - pos.y_offset as f64 * scale, scale };
+            face.outline_glyph(rustybuzz::ttf_parser::GlyphId(info.glyph_id as u16), &mut o);
+            d.push_str(&o.d);
+            pen += pos.x_advance as f64;
+        }
+        d
+    })
+}

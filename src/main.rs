@@ -5,7 +5,10 @@ mod config;
 mod diff;
 mod envelope;
 mod ops;
+mod render;
 mod rules;
+mod spec;
+mod spec_edit;
 mod svg;
 mod util;
 
@@ -15,7 +18,7 @@ use clap::Parser;
 use clap::error::{ContextKind, ContextValue, ErrorKind};
 
 use cli::{Cli, Command, Format};
-use envelope::{AppError, EXIT_INTERNAL, EXIT_OK, EXIT_USAGE, Output};
+use envelope::{AppError, EXIT_INTERNAL, EXIT_OK, Output};
 
 fn default_format() -> Format {
     if std::io::stdout().is_terminal() { Format::Text } else { Format::Json }
@@ -121,13 +124,14 @@ fn run(args: &[String]) -> i32 {
         };
         let paint = commands::validate::Paint { color };
         let mut loader = match &cli.command {
-            Command::Validate { .. } | Command::Edit { .. } | Command::Fix { .. } => Some(config::Loader::new(cli.global.config.as_deref(), cli.global.no_config)?),
+            Command::Validate { .. } | Command::Edit { .. } | Command::Fix { .. } | Command::Render { .. } => Some(config::Loader::new(cli.global.config.as_deref(), cli.global.no_config)?),
             _ => None,
         };
         let out = match &cli.command {
             Command::Validate { files, rules, skip, fail_on, max_findings } => commands::validate::run(files, rules, skip, *fail_on, *max_findings, loader.as_mut().unwrap(), profile, &paint),
             Command::Edit { file, set, ops, dry_run, output, in_place } => commands::edit::run(file, set, ops.as_deref(), *dry_run, output.as_deref(), *in_place, loader.as_mut().unwrap(), profile, &paint),
             Command::Fix { file, rules, allow_unsafe, dry_run, output, in_place } => commands::fix::run(file, rules, *allow_unsafe, *dry_run, output.as_deref(), *in_place, loader.as_mut().unwrap(), profile, &paint),
+            Command::Render { spec, output, theme, no_validate, force, text_as_paths } => commands::render::run(spec, output, theme.as_deref(), *no_validate, *force, *text_as_paths, loader.as_mut().unwrap(), profile, &paint),
             Command::Inspect { file, select, depth, fields } => commands::inspect::run(file, select.as_deref(), *depth, fields),
             Command::Schema { name } => commands::schema::run(*name),
             Command::Rules { explain } => commands::rules::run(explain.as_deref()),
@@ -164,6 +168,5 @@ fn main() {
             fail(format_from_args(&args), command, &err)
         }
     };
-    let _ = EXIT_USAGE;
     std::process::exit(code);
 }

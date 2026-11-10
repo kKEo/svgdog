@@ -64,6 +64,28 @@ pub enum SchemaName {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
+    /// Compile a spec to SVG and validate the result
+    #[command(after_help = "Example:\n  svgdoc render fig/orders.yaml -o fig/orders.svg")]
+    Render {
+        /// Diagram spec, YAML or JSON; - reads stdin
+        #[arg(value_name = "SPEC")]
+        spec: String,
+        /// Where to write the SVG; - writes it to stdout in place of the report
+        #[arg(short = 'o', value_name = "OUT")]
+        output: String,
+        /// Theme: docs-light or docs-dark [default: the spec's, else docs-light]
+        #[arg(long, value_name = "NAME")]
+        theme: Option<String>,
+        /// Skip the checks on the result
+        #[arg(long)]
+        no_validate: bool,
+        /// Replace an existing output file
+        #[arg(long)]
+        force: bool,
+        /// Convert text to outlines: exact everywhere, but not searchable
+        #[arg(long)]
+        text_as_paths: bool,
+    },
     /// Run rules on one or more SVG files
     #[command(after_help = "Example:\n  svgdoc validate 'docs/**/*.svg' --fail-on warning")]
     Validate {
@@ -161,6 +183,7 @@ pub enum Command {
 impl Command {
     pub fn name(&self) -> &'static str {
         match self {
+            Command::Render { .. } => "render",
             Command::Validate { .. } => "validate",
             Command::Inspect { .. } => "inspect",
             Command::Edit { .. } => "edit",
@@ -171,6 +194,6 @@ impl Command {
     }
 }
 
-pub const COMMANDS: &[&str] = &["validate", "inspect", "edit", "fix", "schema", "rules"];
+pub const COMMANDS: &[&str] = &["render", "validate", "inspect", "edit", "fix", "schema", "rules"];
 /// Specified commands that later phases add.
-pub const PLANNED: &[&str] = &["render", "preview", "mcp"];
+pub const PLANNED: &[&str] = &["preview", "mcp"];

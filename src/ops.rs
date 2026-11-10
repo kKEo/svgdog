@@ -21,7 +21,9 @@ pub enum Op {
     RemoveStyle { target: String, prop: String },
     Move { target: String, dx: f64, dy: f64 },
     RenameId { target: String, to: String },
-    AddNode { target: String, tag: String, attrs: Vec<(String, String)>, text: Option<String>, at_start: bool },
+    AddNode { target: String, tag: Option<String>, attrs: Vec<(String, String)>, text: Option<String>, at_start: bool },
+    /// Spec only: a new edge between two ids.
+    AddEdge { from: String, to: String, attrs: Vec<(String, String)> },
 }
 
 pub const OP_NAMES: &[&str] = &["set", "remove", "add-node", "add-edge", "move", "rename-id"];
@@ -64,7 +66,7 @@ pub fn parse_ops(doc: &Value) -> Result<Vec<Op>, AppError> {
             "move" => &["op", "target", "dx", "dy"],
             "rename-id" => &["op", "target", "to"],
             "add-node" => &["op", "target", "tag", "attrs", "text", "at"],
-            "add-edge" => return Err(bad(i, "op", "add-edge applies to a diagram spec, which arrives with the render command.".into())),
+            "add-edge" => &["op", "from", "to", "attrs"],
             other => {
                 return Err(AppError::input("unknown-op", format!("ops[{i}]: unknown operation '{other}'."))
                     .path(format!("ops[{i}].op"))
@@ -80,7 +82,7 @@ pub fn parse_ops(doc: &Value) -> Result<Vec<Op>, AppError> {
         }
         let text = |k: &str| obj.get(k).and_then(|v| v.as_str()).map(|s| s.to_string());
         let need = |k: &str| text(k).ok_or_else(|| bad(i, k, format!("a {name} operation needs a string '{k}'.")));
-        let target = need("target")?;
+        let target = if name == "add-edge" { String::new() } else { need("target")? };
         let (attr, style) = (text("attr"), text("style"));
         if attr.is_some() && style.is_some() {
             return Err(bad(i, "style", "give 'attr' or 'style', not both.".into()));
@@ -120,9 +122,11 @@ pub fn parse_ops(doc: &Value) -> Result<Vec<Op>, AppError> {
                 }
                 Op::RenameId { target, to }
             }
-            "add-node" => {
-                let tag = need("tag")?;
-                if !is_xml_name(&tag) {
+            "add-node" | "add-edge" => {
+                let tag = text("tag");
+                if let Some(tag) = &tag
+                    && !is_xml_name(tag)
+                {
                     return Err(bad(i, "tag", format!("'{tag}' is not an element name.")));
                 }
                 let mut attrs = Vec::new();
@@ -132,7 +136,9 @@ pub fn parse_ops(doc: &Value) -> Result<Vec<Op>, AppError> {
                         if !is_xml_name(k) {
                             return Err(bad(i, "attrs", format!("'{k}' is not an attribute name.")));
                         }
-                        attrs.push((k.clone(), scalar(v).ok_or_else(|| bad(i, "attrs", format!("attribute '{k}' must be a string or number.")))?));
+                        // A spec field may be a list, such as at: [x, y]; it travels as JSON text.
+                        let value = scalar(v).or_else(|| v.is_array().then(|| v.to_string()));
+                        attrs.push((k.clone(), value.ok_or_else(|| bad(i, "attrs", format!("attribute '{k}' must be a string or number.")))?));
                     }
                 }
                 let at_start = match text("at").as_deref() {
@@ -140,7 +146,11 @@ pub fn parse_ops(doc: &Value) -> Result<Vec<Op>, AppError> {
                     Some("start") => true,
                     Some(other) => return Err(bad(i, "at", format!("'at' is start or end, not '{other}'."))),
                 };
-                Op::AddNode { target, tag, attrs, text: text("text"), at_start }
+                if name == "add-edge" {
+                    Op::AddEdge { from: need("from")?, to: need("to")?, attrs }
+                } else {
+                    Op::AddNode { target, tag, attrs, text: text("text"), at_start }
+                }
             }
             _ => unreachable!(),
         });
@@ -592,7 +602,9 @@ fn patches_for<'a, 'i>(src: &str, doc: &'a Document<'i>, ids: &IdIndex<'a, 'i>, 
             }
             rename_id(src, doc, hits[0], to, &mut p);
         }
+        Op::AddEdge { .. } => return Err(bad(i, "op", "add-edge applies to a diagram spec, not to an SVG.".into())),
         Op::AddNode { target, tag, attrs, text, at_start } => {
+            let tag = tag.as_ref().ok_or_else(|| bad(i, "tag", "on an SVG, add-node needs 'tag'.".into()))?;
             let hits = resolve(doc, ids, target, i, false)?;
             if hits.len() != 1 {
                 return Err(bad(i, "target", format!("add-node needs exactly one parent; '{target}' matches {}.", hits.len())));

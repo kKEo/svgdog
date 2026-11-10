@@ -2,6 +2,7 @@ pub mod change;
 pub mod edit;
 pub mod fix;
 pub mod inspect;
+pub mod render;
 pub mod rules;
 pub mod schema;
 pub mod validate;

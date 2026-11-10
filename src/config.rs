@@ -122,7 +122,6 @@ pub struct Config {
     profile: Option<Profile>,
     render_width: f64,
     backgrounds: Vec<(String, Rgba)>,
-    #[allow(dead_code)] // consumed by render themes in a later phase
     fonts: Vec<String>,
     palette: Vec<Rgba>,
     stroke_widths: Vec<f64>,
@@ -313,6 +312,11 @@ impl Config {
             c.overrides.push(Override { patterns, rules: parse_rules(&o.rules, &format!("{at}.rules"), path)? });
         }
         Ok(c)
+    }
+
+    /// `[style] fonts`, the font-family list render writes.
+    pub fn fonts(&self) -> &[String] {
+        &self.fonts
     }
 
     /// Resolve the precedence chain for one input file: flags, then overrides

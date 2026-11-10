@@ -1,0 +1,629 @@
+//! The create path: a spec in, deterministic SVG out.
+
+pub mod layout;
+pub mod route;
+pub mod theme;
+
+use std::collections::BTreeMap;
+
+use kurbo::{BezPath, Point, Rect, Shape as _, Vec2};
+
+use crate::envelope::AppError;
+use crate::spec::{Arrow, Diagram, Direction, EdgeStyle, Kind, Ref, Side, Spec};
+use crate::svg::text::{self, Class};
+use crate::svg::{self, SVG_NS};
+use crate::util::{did_you_mean, fmt};
+use layout::{Geometry, Measured};
+use route::{Dir, Grid};
+use theme::{FONT, SMALL, STROKE, THIN};
+
+pub struct Options<'a> {
+    /// Theme from the command line; wins over the spec's.
+    pub theme: Option<&'a str>,
+    /// `[style] fonts` from the config; empty uses the bundled family.
+    pub fonts: &'a [String],
+    pub text_as_paths: bool,
+}
+
+const STUB: f64 = 16.0;
+
+enum Part {
+    Rect { r: Rect, rx: f64, dashed: bool },
+    Path { d: String, filled: bool },
+    Polygon(Vec<Point>),
+    Line(Point, Point),
+}
+
+struct Shape {
+    /// Flattened silhouette, for landing connectors exactly on the edge.
+    outline: Vec<Vec<Point>>,
+    parts: Vec<Part>,
+}
+
+fn p2(x: f64, y: f64) -> String {
+    format!("{} {}", fmt(x), fmt(y))
+}
+
+fn shape(kind: Kind, r: Rect) -> Shape {
+    let (x0, y0, x1, y1) = (r.x0, r.y0, r.x1, r.y1);
+    let (w, h) = (r.width(), r.height());
+    let rounded = |rx: f64, dashed: bool, extra: Vec<Part>| {
+        let outline = svg::flatten(&kurbo::RoundedRect::from_rect(r, rx).to_path(0.05));
+        let mut parts = vec![Part::Rect { r, rx, dashed }];
+        parts.extend(extra);
+        Shape { outline, parts }
+    };
+    let from_d = |d: String, extra: Vec<Part>| {
+        let outline = svg::flatten(&BezPath::from_svg(&d).expect("shape path data is valid"));
+        let mut parts = vec![Part::Path { d, filled: true }];
+        parts.extend(extra);
+        Shape { outline, parts }
+    };
+    match kind {
+        Kind::Box => rounded(0.0, false, vec![]),
+        Kind::Service => rounded(8.0, false, vec![]),
+        Kind::External => rounded(4.0, true, vec![]),
+        Kind::Actor => rounded(h / 2.0, false, vec![]),
+        Kind::Client => rounded(8.0, false, vec![Part::Line(Point::new(x0, y0 + 16.0), Point::new(x1, y0 + 16.0))]),
+        Kind::Decision => {
+            let pts = vec![Point::new(x0 + w / 2.0, y0), Point::new(x1, y0 + h / 2.0), Point::new(x0 + w / 2.0, y1), Point::new(x0, y0 + h / 2.0)];
+            let mut closed = pts.clone();
+            closed.push(pts[0]);
+            Shape { outline: vec![closed], parts: vec![Part::Polygon(pts)] }
+        }
+        Kind::Datastore => {
+            let (rx, ry) = (w / 2.0, 8.0);
+            let arc = format!("A{} 0 0 1", p2(rx, ry));
+            let d = format!("M{} {arc} {} L{} {arc} {} Z", p2(x0, y0 + ry), p2(x1, y0 + ry), p2(x1, y1 - ry), p2(x0, y1 - ry));
+            let lid = format!("M{} A{} 0 0 0 {}", p2(x0, y0 + ry), p2(rx, ry), p2(x1, y0 + ry));
+            from_d(d, vec![Part::Path { d: lid, filled: false }])
+        }
+        Kind::Queue => {
+            let (rx, ry) = (8.0, h / 2.0);
+            let arc = format!("A{} 0 0 1", p2(rx, ry));
+            let d = format!("M{} L{} {arc} {} L{} {arc} {} Z", p2(x0 + rx, y0), p2(x1 - rx, y0), p2(x1 - rx, y1), p2(x0 + rx, y1), p2(x0 + rx, y0));
+            let lid = format!("M{} A{} 0 0 0 {}", p2(x1 - rx, y0), p2(rx, ry), p2(x1 - rx, y1));
+            from_d(d, vec![Part::Path { d: lid, filled: false }])
+        }
+        Kind::Document => {
+            let b = y1 - 8.0;
+            let d = format!("M{} L{} L{} Q{} {} Q{} {} Z", p2(x0, y0), p2(x1, y0), p2(x1, b), p2(x0 + w * 0.75, b - 12.0), p2(x0 + w / 2.0, b), p2(x0 + w * 0.25, b + 12.0), p2(x0, b));
+            from_d(d, vec![])
+        }
+    }
+}
+
+/// Slide a point on a box side inwards until it meets the outline.
+fn land(outline: &[Vec<Point>], p: Point, outward: Dir) -> Point {
+    let inward = outward.opposite().vec();
+    let mut best: Option<f64> = None;
+    for poly in outline {
+        for w in poly.windows(2) {
+            let (a, b) = (w[0], w[1]);
+            let t = if inward.x != 0.0 {
+                // Horizontal ray: the segment must straddle p.y.
+                if (a.y - p.y) * (b.y - p.y) > 0.0 || (a.y - b.y).abs() < 1e-12 {
+                    continue;
+                }
+                let x = a.x + (b.x - a.x) * (p.y - a.y) / (b.y - a.y);
+                (x - p.x) * inward.x
+            } else {
+                if (a.x - p.x) * (b.x - p.x) > 0.0 || (a.x - b.x).abs() < 1e-12 {
+                    continue;
+                }
+                let y = a.y + (b.y - a.y) * (p.x - a.x) / (b.x - a.x);
+                (y - p.y) * inward.y
+            };
+            if t >= -1e-6 && best.is_none_or(|b| t < b) {
+                best = Some(t.max(0.0));
+            }
+        }
+    }
+    match best {
+        Some(t) => p + inward * t,
+        None => p,
+    }
+}
+
+/// Which sides two boxes use for an edge between them. Boxes apart along one axis
+/// only use that axis. Boxes apart along both follow the diagram: a flow keeps to its
+/// direction, bands connect across it, and pinned boxes take the wider gap.
+fn sides(a: Rect, b: Rect, dir: Direction, diagram: Diagram) -> (Dir, Dir) {
+    let (fwd, back, across, back_across) = if dir == Direction::Right { (Dir::E, Dir::W, Dir::S, Dir::N) } else { (Dir::S, Dir::N, Dir::E, Dir::W) };
+    let main = |r: Rect| if dir == Direction::Right { (r.x0, r.x1) } else { (r.y0, r.y1) };
+    let cross = |r: Rect| if dir == Direction::Right { (r.y0, r.y1) } else { (r.x0, r.x1) };
+    let gap = |p: (f64, f64), q: (f64, f64)| (q.0 - p.1).max(p.0 - q.1);
+    let (mg, cg) = (gap(main(a), main(b)), gap(cross(a), cross(b)));
+    let along_main = if main(b).0 >= main(a).1 { (fwd, back) } else { (back, fwd) };
+    let along_cross = if cross(b).0 >= cross(a).1 { (across, back_across) } else { (back_across, across) };
+    match (mg >= 0.0, cg >= 0.0) {
+        (true, false) => along_main,
+        (false, true) => along_cross,
+        (true, true) => match diagram {
+            Diagram::Flow => along_main,
+            Diagram::Layers => along_cross,
+            Diagram::Free => if mg >= cg { along_main } else { along_cross },
+        },
+        (false, false) => (fwd, back),
+    }
+}
+
+fn side_point(r: Rect, side: Dir, offset: f64) -> Point {
+    match side {
+        Dir::E => Point::new(r.x1, r.y0 + offset),
+        Dir::W => Point::new(r.x0, r.y0 + offset),
+        Dir::S => Point::new(r.x0 + offset, r.y1),
+        Dir::N => Point::new(r.x0 + offset, r.y0),
+    }
+}
+
+fn esc(s: &str) -> String {
+    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
+}
+
+fn esc_attr(s: &str) -> String {
+    esc(s).replace('"', "&quot;")
+}
+
+struct Label {
+    rect: Rect,
+    text: String,
+}
+
+struct Drawn {
+    geo: Geometry,
+    routes: Vec<Vec<Point>>,
+    labels: Vec<Option<Label>>,
+    leaders: Vec<Option<(Point, Point)>>,
+    size: (f64, f64),
+}
+
+fn box_of(geo: &Geometry, r: Ref) -> Rect {
+    match r {
+        Ref::Node(i) => geo.nodes[i],
+        Ref::Group(g) => geo.groups[g],
+        Ref::Edge(_) => Rect::ZERO,
+    }
+}
+
+fn group_label_rect(frame: Rect, width: f64) -> Rect {
+    Rect::new(frame.x0 + 8.0, frame.y0 + 8.0, frame.x0 + 16.0 + width, frame.y0 + 32.0)
+}
+
+fn segments(route: &[Point]) -> impl Iterator<Item = (Point, Point)> + '_ {
+    route.windows(2).map(|w| (w[0], w[1]))
+}
+
+fn midpoint(route: &[Point]) -> Point {
+    let total: f64 = segments(route).map(|(a, b)| a.distance(b)).sum();
+    let mut left = total / 2.0;
+    for (a, b) in segments(route) {
+        let len = a.distance(b);
+        if left <= len && len > 0.0 {
+            return a.lerp(b, left / len);
+        }
+        left -= len;
+    }
+    route.first().copied().unwrap_or(Point::ZERO)
+}
+
+fn arrange(spec: &Spec, m: &Measured, shapes_of: &dyn Fn(usize, Rect) -> Shape) -> Drawn {
+    let mut geo = layout::layout(spec, m);
+
+    // Work in positive coordinates with room around the content for routes.
+    let all = |geo: &Geometry| geo.nodes.iter().chain(&geo.groups).chain(geo.notes.iter().flatten()).copied().reduce(|a, b| a.union(b)).unwrap_or(Rect::ZERO);
+    let b = all(&geo);
+    let shift = Vec2::new(64.0 - b.x0, 64.0 - b.y0);
+    for r in geo.nodes.iter_mut().chain(geo.groups.iter_mut()).chain(geo.notes.iter_mut().flatten()) {
+        *r = *r + shift;
+    }
+    let b = all(&geo);
+    let mut grid = Grid::new(b.inflate(64.0, 64.0), Point::ZERO);
+    for r in geo.nodes.iter().chain(geo.notes.iter().flatten()) {
+        grid.block(r.inflate(8.0, 8.0));
+    }
+    for (g, frame) in geo.groups.iter().enumerate() {
+        grid.outline(*frame);
+        if spec.groups[g].label.is_some() {
+            grid.penalise(group_label_rect(*frame, m.group_label[g]).inflate(8.0, 8.0), 80);
+        }
+    }
+
+    // Ports: each side shares its length among the edges that use it, ordered to avoid crossings.
+    let ends: Vec<(Ref, Ref)> = spec.edges.iter().map(|e| (spec.lookup(&e.from).unwrap(), spec.lookup(&e.to).unwrap())).collect();
+    let mut using: BTreeMap<(Ref, usize), Vec<(usize, bool)>> = BTreeMap::new();
+    let mut chosen: Vec<Option<(Dir, Dir)>> = Vec::new();
+    for (i, (a, b)) in ends.iter().enumerate() {
+        if a == b {
+            chosen.push(None);
+            continue;
+        }
+        let (sa, sb) = sides(box_of(&geo, *a), box_of(&geo, *b), spec.direction, spec.diagram);
+        using.entry((*a, sa as usize)).or_default().push((i, true));
+        using.entry((*b, sb as usize)).or_default().push((i, false));
+        chosen.push(Some((sa, sb)));
+    }
+    // Each port aims straight at the other end, so aligned boxes get a straight edge;
+    // ports that want the same spot are spread along the side. The second pass aims at
+    // the ports the first one chose.
+    // A box with a loop keeps its top right corner for it.
+    let looped: Vec<Ref> = ends.iter().filter(|(a, b)| a == b).map(|(a, _)| *a).collect();
+    for r in &looped {
+        let b = box_of(&geo, *r);
+        grid.mark(&[Point::new(b.x1 - 24.0, b.y0 - 16.0), Point::new(b.x1 + 16.0, b.y0 - 16.0), Point::new(b.x1 + 16.0, b.y0 + 16.0)]);
+    }
+    let mut port: BTreeMap<(usize, bool), Point> = BTreeMap::new();
+    for pass in 0..2 {
+        let before = port.clone();
+        for ((r, side), list) in &using {
+            let rect = box_of(&geo, *r);
+            let side = [Dir::E, Dir::S, Dir::W, Dir::N][*side];
+            let upright = matches!(side, Dir::E | Dir::W);
+            let (lo, len) = if upright { (rect.y0, rect.height()) } else { (rect.x0, rect.width()) };
+            let k = list.len() as f64;
+            let spacing = if (k - 1.0) * 16.0 <= len - 32.0 { 16.0 } else if (k - 1.0) * 8.0 <= len - 16.0 { 8.0 } else { 0.0 };
+            let inset: f64 = if spacing == 16.0 { 16.0 } else { 8.0 };
+            let has_loop = looped.contains(r);
+            let (first, last) = (if has_loop && side == Dir::E { inset.max(40.0) } else { inset }, if has_loop && side == Dir::N { (len - 48.0).max(inset) } else { len - inset });
+            let mut wants: Vec<(f64, usize, bool)> = list
+                .iter()
+                .map(|(edge, is_from)| {
+                    let other = if *is_from { ends[*edge].1 } else { ends[*edge].0 };
+                    let aim = match before.get(&(*edge, !*is_from)) {
+                        Some(p) if pass > 0 => *p,
+                        _ => box_of(&geo, other).center(),
+                    };
+                    (layout::snap((if upright { aim.y } else { aim.x }) - lo), *edge, *is_from)
+                })
+                .collect();
+            wants.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
+            let mut at: Vec<f64> = Vec::new();
+            for (n, w) in wants.iter().enumerate() {
+                let floor = if n == 0 { first } else { at[n - 1] + spacing };
+                at.push(w.0.max(floor));
+            }
+            // Whatever ran past the end is pushed back, keeping the spacing.
+            let mut ceiling = last;
+            for v in at.iter_mut().rev() {
+                *v = v.min(ceiling).max(first.min(len / 2.0));
+                ceiling = *v - spacing;
+            }
+            if spacing == 0.0 {
+                at.iter_mut().for_each(|v| *v = layout::snap(len / 2.0));
+            }
+            for (w, off) in wants.iter().zip(at) {
+                port.insert((w.1, w.2), side_point(rect, side, off));
+            }
+        }
+    }
+    let tip = |r: Ref, p: Point, side: Dir| match r {
+        Ref::Node(i) => land(&shapes_of(i, geo.nodes[i]).outline, p, side),
+        _ => p,
+    };
+
+    let mut routes: Vec<Vec<Point>> = Vec::new();
+    for (i, (a, b)) in ends.iter().enumerate() {
+        let Some((sa, sb)) = chosen[i] else {
+            // A loop from a box back to itself, round its top right corner.
+            let r = box_of(&geo, *a);
+            let (start, end) = (Point::new(r.x1 - 24.0, r.y0), Point::new(r.x1, r.y0 + 16.0));
+            routes.push(vec![tip(*a, start, Dir::N), Point::new(start.x, r.y0 - 16.0), Point::new(r.x1 + 16.0, r.y0 - 16.0), Point::new(r.x1 + 16.0, end.y), tip(*a, end, Dir::E)]);
+            continue;
+        };
+        let (pa, pb) = (port[&(i, true)], port[&(i, false)]);
+        let (s, t) = (pa + sa.vec() * STUB, pb + sb.vec() * STUB);
+        // Frames that hold neither end are walls for this edge.
+        let mut inside: Vec<usize> = spec.ancestors(*a);
+        inside.extend(spec.ancestors(*b));
+        for r in [a, b] {
+            if let Ref::Group(g) = r {
+                inside.push(*g);
+            }
+        }
+        let walls: Vec<Rect> = (0..spec.groups.len()).filter(|g| !inside.contains(g)).map(|g| geo.groups[g]).collect();
+        let mid = grid.route(s, sa, t, sb.opposite(), &walls).or_else(|| grid.route(s, sa, t, sb.opposite(), &[])).unwrap_or_else(|| vec![s, t]);
+        let mut pts = vec![tip(*a, pa, sa)];
+        pts.extend(mid);
+        pts.push(tip(*b, pb, sb));
+        routes.push(route::simplify(pts));
+    }
+
+    // Edge labels: beside the longest segment that has room.
+    // How badly a rectangle collides with what is already drawn; 0 means free.
+    let trouble = |rect: Rect, routes: &[Vec<Point>], taken: &[Rect], geo: &Geometry| -> usize {
+        let probe = rect.inflate(2.0, 2.0);
+        let boxes = geo.nodes.iter().chain(geo.notes.iter().flatten()).chain(taken).filter(|r| r.intersect(probe).area() > 0.0).count();
+        let captions = (0..spec.groups.len()).filter(|g| spec.groups[*g].label.is_some() && group_label_rect(geo.groups[*g], m.group_label[*g]).intersect(probe).area() > 0.0).count();
+        let frames = geo.groups.iter().filter(|f| f.intersect(probe).area() > 0.0 && !(probe.x0 > f.x0 && probe.y0 > f.y0 && probe.x1 < f.x1 && probe.y1 < f.y1)).count();
+        let lines = routes.iter().filter(|r| segments(r).any(|(a, b)| svg::segment_hits_rect(a, b, probe))).count();
+        (boxes + captions) * 100 + frames * 10 + lines
+    };
+    let mut taken: Vec<Rect> = Vec::new();
+    let mut labels: Vec<Option<Label>> = Vec::new();
+    for (i, e) in spec.edges.iter().enumerate() {
+        let (Some(text), Some((w, h))) = (&e.label, m.edge_label[i]) else {
+            labels.push(None);
+            continue;
+        };
+        let mut segs: Vec<(usize, Point, Point)> = segments(&routes[i]).enumerate().map(|(k, (a, b))| (k, a, b)).collect();
+        segs.sort_by(|x, y| y.1.distance(y.2).total_cmp(&x.1.distance(x.2)).then(x.0.cmp(&y.0)));
+        let mut options: Vec<Rect> = Vec::new();
+        for t in [0.5, 0.25, 0.75, 0.125, 0.875] {
+            for (_, a, b) in &segs {
+                let c = a.lerp(*b, t);
+                if (a.y - b.y).abs() < 1e-9 {
+                    options.push(Rect::new(c.x - w / 2.0, c.y - 5.0 - h, c.x + w / 2.0, c.y - 5.0));
+                    options.push(Rect::new(c.x - w / 2.0, c.y + 5.0, c.x + w / 2.0, c.y + 5.0 + h));
+                } else {
+                    options.push(Rect::new(c.x + 6.0, c.y - h / 2.0, c.x + 6.0 + w, c.y + h / 2.0));
+                    options.push(Rect::new(c.x - 6.0 - w, c.y - h / 2.0, c.x - 6.0, c.y + h / 2.0));
+                }
+            }
+        }
+        // The first free spot, or failing that the least crowded one.
+        let rect = options.iter().enumerate().min_by_key(|(k, r)| (trouble(**r, &routes, &taken, &geo), *k)).map(|(_, r)| *r).unwrap_or(Rect::ZERO);
+        taken.push(rect);
+        labels.push(Some(Label { rect, text: text.clone() }));
+    }
+
+    // Notes on edges go in free space near the middle of the route.
+    for (i, n) in spec.notes.iter().enumerate() {
+        let Some(Ref::Edge(e)) = spec.lookup(&n.attach) else { continue };
+        let mid = midpoint(&routes[e]);
+        let (w, h) = (m.notes[i].w, m.notes[i].h);
+        let order: Vec<Side> = [n.side, Side::Right, Side::Bottom, Side::Top, Side::Left].into_iter().fold(Vec::new(), |mut v, s| {
+            if !v.contains(&s) {
+                v.push(s)
+            }
+            v
+        });
+        // Widening rings round the middle of the edge, the preferred side first.
+        let mut best: Option<(usize, Rect)> = None;
+        'search: for ring in 0..14 {
+            let gap = 24.0 + 16.0 * ring as f64;
+            for side in &order {
+                for slide in (0..=ring * 2).map(|k| if k % 2 == 0 { 16.0 * (k / 2) as f64 } else { -16.0 * (k / 2 + 1) as f64 }) {
+                    let (x, y) = match side {
+                        Side::Right => (mid.x + gap, mid.y - h / 2.0 + slide),
+                        Side::Left => (mid.x - gap - w, mid.y - h / 2.0 + slide),
+                        Side::Top => (mid.x - w / 2.0 + slide, mid.y - gap - h),
+                        Side::Bottom => (mid.x - w / 2.0 + slide, mid.y + gap),
+                    };
+                    let (x, y) = (layout::snap(x), layout::snap(y));
+                    let r = Rect::new(x, y, x + w, y + h);
+                    // The leader should not run through a box on its way to the edge.
+                    let from = Point::new(mid.x.clamp(r.x0, r.x1), mid.y.clamp(r.y0, r.y1));
+                    let through = geo.nodes.iter().chain(geo.notes.iter().flatten()).filter(|b| svg::segment_hits_rect(from, mid, b.inflate(-1.0, -1.0))).count();
+                    let score = trouble(r.inflate(8.0, 8.0), &routes, &taken, &geo) + through * 100;
+                    if best.is_none_or(|(s, _)| score < s) {
+                        best = Some((score, r));
+                    }
+                    if score == 0 {
+                        break 'search;
+                    }
+                }
+            }
+        }
+        geo.notes[i] = best.map(|(_, r)| r);
+    }
+
+    // Leaders: a short line from each note to what it points at.
+    let mut leaders = Vec::new();
+    for (i, n) in spec.notes.iter().enumerate() {
+        let Some(note) = geo.notes[i] else {
+            leaders.push(None);
+            continue;
+        };
+        let target = spec.lookup(&n.attach).unwrap();
+        let line = match target {
+            Ref::Edge(e) => {
+                let mid = midpoint(&routes[e]);
+                let from = Point::new(mid.x.clamp(note.x0, note.x1), mid.y.clamp(note.y0, note.y1));
+                (from, mid)
+            }
+            _ => {
+                let own = box_of(&geo, target);
+                let c = note.center();
+                let (from, to, side) = if note.x0 >= own.x1 {
+                    (Point::new(note.x0, c.y), Point::new(own.x1, c.y.clamp(own.y0 + 8.0, own.y1 - 8.0)), Dir::E)
+                } else if note.x1 <= own.x0 {
+                    (Point::new(note.x1, c.y), Point::new(own.x0, c.y.clamp(own.y0 + 8.0, own.y1 - 8.0)), Dir::W)
+                } else if note.y1 <= own.y0 {
+                    (Point::new(c.x, note.y1), Point::new(c.x.clamp(own.x0 + 8.0, own.x1 - 8.0), own.y0), Dir::N)
+                } else {
+                    (Point::new(c.x, note.y0), Point::new(c.x.clamp(own.x0 + 8.0, own.x1 - 8.0), own.y1), Dir::S)
+                };
+                (from, tip(target, to, side))
+            }
+        };
+        leaders.push(Some(line));
+    }
+
+    // Fit the canvas to everything drawn, with a margin that scales down for small diagrams.
+    let mut b = all(&geo);
+    for r in &routes {
+        for p in r {
+            b = b.union(Rect::from_center_size(*p, (4.0, 4.0)));
+        }
+    }
+    for l in labels.iter().flatten() {
+        b = b.union(l.rect);
+    }
+    let (left, top) = ((b.x0 / 8.0).floor() * 8.0, (b.y0 / 8.0).floor() * 8.0);
+    let (cw, ch) = (layout::up(b.x1 - left, 8.0), layout::up(b.y1 - top, 8.0));
+    // The widest margin on the grid that keeps each side, rounding slack included, under
+    // the excess-margin limit; small drawings get a narrow one.
+    let margin = |c: f64, slack: f64| [24.0, 16.0, 8.0].into_iter().find(|m| (m + slack) / (c + 2.0 * m) <= 0.13).unwrap_or(8.0);
+    let mx = margin(cw, (b.x0 - left).max(cw - (b.x1 - left)));
+    let my = margin(ch, (b.y0 - top).max(ch - (b.y1 - top)));
+    let shift = Vec2::new(mx - left, my - top);
+    for r in geo.nodes.iter_mut().chain(geo.groups.iter_mut()).chain(geo.notes.iter_mut().flatten()) {
+        *r = *r + shift;
+    }
+    for r in routes.iter_mut() {
+        for p in r.iter_mut() {
+            *p += shift;
+        }
+    }
+    for l in labels.iter_mut().flatten() {
+        l.rect = l.rect + shift;
+    }
+    for l in leaders.iter_mut().flatten() {
+        *l = (l.0 + shift, l.1 + shift);
+    }
+    Drawn { geo, routes, labels, leaders, size: (cw + 2.0 * mx, ch + 2.0 * my) }
+}
+
+struct Writer {
+    out: String,
+    as_paths: bool,
+}
+
+impl Writer {
+    /// Lines of text centred on (cx, cy); `anchor` is start or middle.
+    #[allow(clippy::too_many_arguments)]
+    fn text(&mut self, indent: &str, lines: &[String], x: f64, cy: f64, size: f64, leading: f64, fill: &str, anchor: &str) {
+        let (asc, desc) = text::vmetrics(Class::Sans, false);
+        let n = lines.len() as f64;
+        let baseline = |i: usize| cy + (i as f64 - (n - 1.0) / 2.0) * leading + (asc - desc) / 2.0 * size;
+        if self.as_paths {
+            for (i, line) in lines.iter().enumerate() {
+                let w = layout::text_width(line, size);
+                let start = if anchor == "middle" { x - w / 2.0 } else { x };
+                let d = text::outline(line, size, start, baseline(i));
+                if !d.is_empty() {
+                    self.out.push_str(&format!("{indent}<path d=\"{d}\" fill=\"{fill}\"/>\n"));
+                }
+            }
+            return;
+        }
+        let anchor_attr = if anchor == "middle" { " text-anchor=\"middle\"" } else { "" };
+        if lines.len() == 1 {
+            self.out.push_str(&format!("{indent}<text x=\"{}\" y=\"{}\"{anchor_attr} font-size=\"{}\" fill=\"{fill}\">{}</text>\n", fmt(x), fmt(baseline(0)), fmt(size), esc(&lines[0])));
+        } else {
+            self.out.push_str(&format!("{indent}<text{anchor_attr} font-size=\"{}\" fill=\"{fill}\">", fmt(size)));
+            for (i, line) in lines.iter().enumerate() {
+                self.out.push_str(&format!("<tspan x=\"{}\" y=\"{}\">{}</tspan>", fmt(x), fmt(baseline(i)), esc(line)));
+            }
+            self.out.push_str("</text>\n");
+        }
+    }
+
+    fn part(&mut self, p: &Part, fill: &str, stroke: &str) {
+        let pen = format!("stroke=\"{stroke}\" stroke-width=\"{}\"", fmt(STROKE));
+        match p {
+            Part::Rect { r, rx, dashed } => {
+                let rx = if *rx > 0.0 { format!(" rx=\"{}\"", fmt(*rx)) } else { String::new() };
+                let dash = if *dashed { " stroke-dasharray=\"6 4\"" } else { "" };
+                self.out.push_str(&format!("    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\"{rx} fill=\"{fill}\" {pen}{dash}/>\n", fmt(r.x0), fmt(r.y0), fmt(r.width()), fmt(r.height())));
+            }
+            Part::Path { d, filled } => {
+                let f = if *filled { fill } else { "none" };
+                self.out.push_str(&format!("    <path d=\"{d}\" fill=\"{f}\" {pen}/>\n"));
+            }
+            Part::Polygon(pts) => {
+                let list: Vec<String> = pts.iter().map(|p| format!("{},{}", fmt(p.x), fmt(p.y))).collect();
+                self.out.push_str(&format!("    <polygon points=\"{}\" fill=\"{fill}\" {pen}/>\n", list.join(" ")));
+            }
+            Part::Line(a, b) => {
+                self.out.push_str(&format!("    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" {pen}/>\n", fmt(a.x), fmt(a.y), fmt(b.x), fmt(b.y)));
+            }
+        }
+    }
+}
+
+pub fn render(spec: &Spec, opt: &Options) -> Result<String, AppError> {
+    let name = opt.theme.or(spec.theme.as_deref()).unwrap_or("docs-light");
+    let theme = theme::find(name).ok_or_else(|| {
+        let e = if opt.theme.is_some() { AppError::usage("unknown-theme", format!("Unknown theme '{name}'.")) } else { AppError::input("unknown-theme", format!("Unknown theme '{name}'.")).path("theme") };
+        e.suggest(did_you_mean(name, theme::names()).or(Some(format!("Themes: {}.", theme::names().collect::<Vec<_>>().join(", ")))))
+    })?;
+    let m = layout::measure(spec);
+    let kinds: Vec<Kind> = spec.nodes.iter().map(|n| n.kind).collect();
+    let d = arrange(spec, &m, &|i, r| shape(kinds[i], r));
+    let (w, h) = d.size;
+    if w > spec.max_width + 1e-6 {
+        let hint = if spec.diagram != Diagram::Free && spec.direction == Direction::Right { "Try 'direction: down', shorter labels, or a larger max_width." } else { "Try shorter labels, fewer boxes side by side, or a larger max_width." };
+        return Err(AppError::input("too-wide", format!("The drawing is {} px wide; max_width allows {}.", fmt(w), fmt(spec.max_width))).path("max_width").suggest(Some(hint.into())));
+    }
+
+    let family = if opt.fonts.is_empty() { "Inter, sans-serif".to_string() } else { opt.fonts.join(", ") };
+    let mut wr = Writer { out: String::new(), as_paths: opt.text_as_paths };
+    let font_attr = if opt.text_as_paths { String::new() } else { format!(" font-family=\"{}\"", esc_attr(&family)) };
+    wr.out.push_str(&format!("<svg xmlns=\"{SVG_NS}\" viewBox=\"0 0 {} {}\" data-svgdoc=\"1\"{font_attr}>\n", fmt(w), fmt(h)));
+    wr.out.push_str(&format!("  <title>{}</title>\n", esc(&spec.title)));
+    if let Some(desc) = &spec.description {
+        wr.out.push_str(&format!("  <desc>{}</desc>\n", esc(desc)));
+    }
+    let need_end = spec.edges.iter().any(|e| e.arrow != Arrow::None);
+    let need_start = spec.edges.iter().any(|e| e.arrow == Arrow::Both);
+    if need_end || need_start {
+        wr.out.push_str("  <defs>\n");
+        if need_end {
+            wr.out.push_str(&format!("    <marker id=\"arrow\" markerWidth=\"10\" markerHeight=\"8\" refX=\"10\" refY=\"4\" orient=\"auto\" markerUnits=\"userSpaceOnUse\"><path d=\"M0 0L10 4L0 8Z\" fill=\"{}\"/></marker>\n", theme.edge));
+        }
+        if need_start {
+            wr.out.push_str(&format!("    <marker id=\"arrow-start\" markerWidth=\"10\" markerHeight=\"8\" refX=\"0\" refY=\"4\" orient=\"auto\" markerUnits=\"userSpaceOnUse\"><path d=\"M10 0L0 4L10 8Z\" fill=\"{}\"/></marker>\n", theme.edge));
+        }
+        wr.out.push_str("  </defs>\n");
+    }
+    wr.out.push_str(&format!("  <rect x=\"0\" y=\"0\" width=\"{}\" height=\"{}\" fill=\"{}\"/>\n", fmt(w), fmt(h), theme.background));
+
+    // Frames first, outermost first, so everything else paints over them.
+    let mut order: Vec<usize> = (0..spec.groups.len()).collect();
+    order.sort_by_key(|g| (spec.ancestors(Ref::Group(*g)).len(), *g));
+    for g in order {
+        let f = d.geo.groups[g];
+        wr.out.push_str(&format!("  <g id=\"group-{}\">\n", spec.groups[g].id));
+        wr.out.push_str(&format!("    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"8\" fill=\"none\" stroke=\"{}\" stroke-width=\"{}\"/>\n", fmt(f.x0), fmt(f.y0), fmt(f.width()), fmt(f.height()), theme.muted, fmt(THIN)));
+        if let Some(label) = &spec.groups[g].label {
+            wr.text("    ", std::slice::from_ref(label), f.x0 + 12.0, f.y0 + 20.0, SMALL, 16.0, theme.muted, "start");
+        }
+        wr.out.push_str("  </g>\n");
+    }
+    for (i, n) in spec.nodes.iter().enumerate() {
+        let r = d.geo.nodes[i];
+        let (fill, ink) = if n.emphasis { (theme.accent_fill, theme.accent_text) } else { (theme.node_fill, theme.text) };
+        wr.out.push_str(&format!("  <g id=\"node-{}\">\n", n.id));
+        for p in &shape(n.kind, r).parts {
+            wr.part(p, fill, theme.node_stroke);
+        }
+        wr.text("    ", &m.nodes[i].text.lines, r.center().x, r.center().y + m.nodes[i].text_dy, FONT, 20.0, ink, "middle");
+        wr.out.push_str("  </g>\n");
+    }
+    for (i, e) in spec.edges.iter().enumerate() {
+        let pts = &d.routes[i];
+        let mut path = String::new();
+        for (k, p) in pts.iter().enumerate() {
+            path.push_str(&format!("{}{}", if k == 0 { "M" } else { " L" }, p2(p.x, p.y)));
+        }
+        let dash = match e.style {
+            EdgeStyle::Sync => "",
+            EdgeStyle::Async => " stroke-dasharray=\"6 4\"",
+            EdgeStyle::Dependency => " stroke-dasharray=\"2 4\"",
+        };
+        let markers = match e.arrow {
+            Arrow::End => " marker-end=\"url(#arrow)\"",
+            Arrow::Both => " marker-start=\"url(#arrow-start)\" marker-end=\"url(#arrow)\"",
+            Arrow::None => "",
+        };
+        wr.out.push_str(&format!("  <g id=\"edge-{}\">\n", e.id));
+        wr.out.push_str(&format!("    <path d=\"{path}\" fill=\"none\" stroke=\"{}\" stroke-width=\"{}\"{dash}{markers}/>\n", theme.edge, fmt(STROKE)));
+        if let Some(l) = &d.labels[i] {
+            wr.text("    ", std::slice::from_ref(&l.text), l.rect.center().x, l.rect.center().y, SMALL, 16.0, theme.text, "middle");
+        }
+        wr.out.push_str("  </g>\n");
+    }
+    for (i, _) in spec.notes.iter().enumerate() {
+        let Some(r) = d.geo.notes[i] else { continue };
+        wr.out.push_str(&format!("  <g id=\"note-{}\">\n", i + 1));
+        if let Some((a, b)) = d.leaders[i] {
+            wr.out.push_str(&format!("    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-dasharray=\"2 3\"/>\n", fmt(a.x), fmt(a.y), fmt(b.x), fmt(b.y), theme.muted, fmt(THIN)));
+        }
+        wr.out.push_str(&format!("    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"4\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\"/>\n", fmt(r.x0), fmt(r.y0), fmt(r.width()), fmt(r.height()), theme.note_fill, theme.muted, fmt(THIN)));
+        wr.text("    ", &m.notes[i].text.lines, r.center().x, r.center().y, SMALL, 16.0, theme.text, "middle");
+        wr.out.push_str("  </g>\n");
+    }
+    wr.out.push_str("</svg>\n");
+    Ok(wr.out)
+}

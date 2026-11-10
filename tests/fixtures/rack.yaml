@@ -1,0 +1,17 @@
+version: 1
+diagram: free
+title: Rack layout
+nodes:
+  - {id: sw, label: Switch, at: [100, 20]}
+  - {id: a, label: Node A, at: [20, 150], kind: service}
+  - {id: b, label: Node B, at: [203, 150], kind: service}
+  - {id: nas, label: NAS, at: [110, 290], kind: datastore}
+groups:
+  - {id: rack, label: Rack 12, members: [a, b]}
+edges:
+  - {from: sw, to: a}
+  - {from: sw, to: b}
+  - {from: a, to: nas, arrow: both, label: NFS}
+  - {from: b, to: nas, arrow: none, style: dependency}
+notes:
+  - {attach: sw, text: 10 GbE uplink, side: right}

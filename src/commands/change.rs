@@ -43,7 +43,7 @@ pub fn dest(input: &str, dry_run: bool, output: Option<&str>, in_place: bool) ->
     }
 }
 
-fn write(path: &Path, text: &str) -> Result<(), AppError> {
+pub fn write(path: &Path, text: &str) -> Result<(), AppError> {
     let fail = |e: std::io::Error| AppError::new(EXIT_OUTPUT, "write-failed", format!("Cannot write {}: {e}.", path.display())).path(path.display().to_string());
     // Write beside the target and rename, so a failure never leaves half a file.
     let tmp = path.with_extension(format!("{}.svgdoc-tmp", path.extension().and_then(|e| e.to_str()).unwrap_or("out")));
@@ -57,12 +57,13 @@ fn write(path: &Path, text: &str) -> Result<(), AppError> {
 /// Write the result as `dest` says and build the envelope: the findings of the
 /// changed text, the diff, and the files written.
 #[allow(clippy::too_many_arguments)]
-pub fn finish(command: &'static str, input: &str, before: &str, after: String, dest: Dest, settings: &Settings, extra: Vec<(&'static str, Value)>, note: String, paint: &Paint) -> Result<Output, AppError> {
+pub fn finish(command: &'static str, input: &str, before: &str, after: String, dest: Dest, settings: &Settings, extra: Vec<(&'static str, Value)>, note: String, paint: &Paint, check: Option<&str>) -> Result<Output, AppError> {
     let label = match &dest {
         Dest::File(p) => p.to_string_lossy().into_owned(),
         _ => input.to_string(),
     };
-    let findings = rules::analyze(&label, &after, settings);
+    // `check` is the SVG to validate when the edited file is a spec, not the drawing itself.
+    let findings = rules::analyze(&label, check.unwrap_or(&after), settings);
     let mut r = report(command, findings, 1, 50, FailOn::Error, paint);
     let d = diff::unified(&label, before, &after);
     let changed = before != after;

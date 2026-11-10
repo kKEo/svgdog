@@ -47,7 +47,7 @@
             "target": {
               "type": "string",
               "minLength": 1,
-              "description": "Selector: #id, tag, tag[attr=\"value\"], :nth-of-type(n), joined by ' > '. Every match is changed. comment(N) addresses the N-th comment for remove. Targets refer to the file as it was before the batch."
+              "description": "Selector: #id, tag, tag[attr=\"value\"], :nth-of-type(n), joined by ' > '. Every match is changed. comment(N) addresses the N-th comment for remove. Targets refer to the file as it was before the batch. On a spec a target is '#id' (a node, group or edge) or ':root'."
             },
             "attr": {
               "type": "string"
@@ -159,12 +159,11 @@
         },
         {
           "type": "object",
-          "description": "Insert an element under the target. On an SVG this adds one element; on a diagram spec (with render) it adds a node",
+          "description": "Insert under the target. On an SVG: one element, with tag, attrs, text and at. On a spec: a node, with its fields in attrs and the target a group ('#id') or ':root'",
           "additionalProperties": false,
           "required": [
             "op",
-            "target",
-            "tag"
+            "target"
           ],
           "properties": {
             "op": {
@@ -183,7 +182,9 @@
               "additionalProperties": {
                 "type": [
                   "string",
-                  "number"
+                  "number",
+                  "boolean",
+                  "array"
                 ]
               }
             },
@@ -197,6 +198,37 @@
               ],
               "default": "end",
               "description": "start places it before the first drawn child, so it paints underneath"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "Spec only: add an edge between two ids, with its other fields in attrs",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "from",
+            "to"
+          ],
+          "properties": {
+            "op": {
+              "const": "add-edge"
+            },
+            "from": {
+              "type": "string"
+            },
+            "to": {
+              "type": "string"
+            },
+            "attrs": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              }
             }
           }
         }

@@ -69,5 +69,5 @@ pub fn run(file: &str, only: &[String], allow_unsafe: bool, dry_run: bool, outpu
     let list: Vec<String> = fixed.iter().map(|(r, n)| format!("{r} x{n}")).collect();
     let note = if total == 0 { String::new() } else { format!("Applied {total} fix{}: {}.\n", if total == 1 { "" } else { "es" }, list.join(", ")) };
     let extra = vec![("fixed", json!(fixed.iter().map(|(r, n)| json!({ "rule": r, "count": n })).collect::<Vec<_>>()))];
-    finish("fix", file, &src, text, dest, &settings, extra, note, paint)
+    finish("fix", file, &src, text, dest, &settings, extra, note, paint, None)
 }

@@ -360,6 +360,19 @@ pub fn run(ctx: &mut Ctx) {
                 if inside_len > 2.0 {
                     let msg = format!("Connector crosses {}, which is not one of its endpoints, for about {} px.", name(bi), fmt(inside_len));
                     ctx.push("edge-through-node", c.node, c.bbox, msg, vec![("crossed", json!(name(bi))), ("length", num(inside_len))]);
+                    // Route round every shape that does not hold one of the connector's ends.
+                    let walls: Vec<Rect> = bodies
+                        .iter()
+                        .filter(|&&k| !backings.contains(&k))
+                        .filter_map(|&k| {
+                            let b = &elems[k];
+                            let (path, bb) = (b.closed_shape()?, b.bbox?);
+                            let holds = pair.iter().any(|(p, reach, _)| svg::contains_point(path, *p) || svg::distance_to(&b.outline, *p) <= max_gap + reach + 0.01);
+                            (!holds).then_some(bb)
+                        })
+                        .collect();
+                    let ops = reroute_ops(ctx, c, &walls);
+                    ctx.fix(false, ops);
                 }
             }
         }
@@ -553,5 +566,55 @@ fn snap_ops(ctx: &Ctx, e: &Elem, start: bool, q: Point) -> Vec<Value> {
             vec![set("d", json!(path.to_svg()))]
         }
         _ => vec![],
+    }
+}
+
+/// Operations that redraw a connector as an orthogonal route clear of `walls`.
+fn reroute_ops(ctx: &Ctx, e: &Elem, walls: &[Rect]) -> Vec<Value> {
+    use crate::render::route::{Dir, Grid, simplify};
+    let Some(poly) = e.outline.first().filter(|_| e.outline.len() == 1) else { return vec![] };
+    if poly.len() < 2 || e.tf.determinant().abs() < 1e-12 || !matches!(e.tag, "path" | "polyline") {
+        return vec![];
+    }
+    if e.tag == "path" && e.node.attribute("d").is_some_and(|d| d.contains(['A', 'a'])) {
+        return vec![];
+    }
+    let heading = |a: Point, b: Point| {
+        let d = b - a;
+        if d.x.abs() >= d.y.abs() { if d.x >= 0.0 { Dir::E } else { Dir::W } } else if d.y >= 0.0 { Dir::S } else { Dir::N }
+    };
+    let (start, end) = (poly[0], poly[poly.len() - 1]);
+    let (out, arrive) = (heading(poly[0], poly[1]), heading(poly[poly.len() - 2], end));
+    let mut bounds = Rect::from_points(start, end);
+    for w in walls {
+        bounds = bounds.union(*w);
+    }
+    // The grid passes through the start point, so the route leaves it squarely.
+    let mut grid = Grid::new(bounds.inflate(48.0, 48.0), start);
+    for w in walls {
+        grid.block(w.inflate(8.0, 8.0));
+    }
+    let near = grid.point(grid.cell(end).0, grid.cell(end).1);
+    let Some(mut pts) = grid.route(start, out, near, arrive, &[]) else { return vec![] };
+    if near.distance(end) > 1e-6 {
+        // The end is off the grid: square the last step along the arrival direction.
+        if let Some(last) = pts.last_mut() {
+            *last = if matches!(arrive, Dir::E | Dir::W) { Point::new(last.x, end.y) } else { Point::new(end.x, last.y) };
+        }
+        if pts.len() >= 2 {
+            let k = pts.len() - 2;
+            pts[k] = if matches!(arrive, Dir::E | Dir::W) { Point::new(pts[k].x, end.y) } else { Point::new(end.x, pts[k].y) };
+        }
+        pts.push(end);
+    }
+    let inv = e.tf.inverse();
+    let local: Vec<Point> = simplify(pts).into_iter().map(|p| inv * p).collect();
+    let t = ctx.target(e.node);
+    if e.tag == "polyline" {
+        let text: Vec<String> = local.iter().map(|p| format!("{},{}", fmt(p.x), fmt(p.y))).collect();
+        vec![json!({ "op": "set", "target": t, "attr": "points", "value": text.join(" ") })]
+    } else {
+        let d: Vec<String> = local.iter().enumerate().map(|(k, p)| format!("{}{} {}", if k == 0 { "M" } else { "L" }, fmt(p.x), fmt(p.y))).collect();
+        vec![json!({ "op": "set", "target": t, "attr": "d", "value": d.join(" ") })]
     }
 }

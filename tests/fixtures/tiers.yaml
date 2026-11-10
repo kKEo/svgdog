@@ -1,0 +1,22 @@
+version: 1
+diagram: layers
+title: Deployment tiers
+nodes:
+  - {id: cdn, label: CDN, kind: external}
+  - {id: spa, label: Single-page app, kind: client}
+  - {id: api, label: REST API, kind: service}
+  - {id: jobs, label: Job runner, kind: service}
+  - {id: pg, label: PostgreSQL, kind: datastore}
+  - {id: redis, label: Redis, kind: datastore}
+  - {id: s3, label: Object storage, kind: datastore}
+groups:
+  - {id: presentation, label: Presentation, members: [cdn, spa]}
+  - {id: application, label: Application, members: [api, jobs]}
+  - {id: storage, label: Storage, members: [pg, redis, s3]}
+edges:
+  - {from: cdn, to: spa}
+  - {from: spa, to: api, label: JSON}
+  - {from: api, to: pg}
+  - {from: api, to: redis, label: cache}
+  - {from: jobs, to: s3, label: upload}
+  - {from: api, to: jobs, label: enqueue, style: async}

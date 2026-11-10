@@ -196,7 +196,7 @@ fn r4_exit_codes() {
     assert_eq!(usage.json()["error"]["code"], "unknown-flag");
     assert_eq!(run(&["frobnicate"]).code, 2);
     assert_eq!(run(&[]).code, 2);
-    let planned = run(&["render", "spec.yaml", "-o", "x.svg"]);
+    let planned = run(&["preview", "x.svg", "-o", "x.png"]);
     assert_eq!(planned.code, 2);
     assert!(planned.json()["error"]["message"].as_str().unwrap().contains("not built yet"));
 
@@ -222,7 +222,7 @@ fn malformed_xml_is_a_finding_for_validate_and_an_input_error_for_inspect() {
 
 #[test]
 fn r6_help_is_short_and_has_an_example() {
-    for args in [vec!["--help"], vec!["validate", "--help"], vec!["inspect", "--help"], vec!["edit", "--help"], vec!["fix", "--help"], vec!["schema", "--help"], vec!["rules", "--help"]] {
+    for args in [vec!["--help"], vec!["render", "--help"], vec!["validate", "--help"], vec!["inspect", "--help"], vec!["edit", "--help"], vec!["fix", "--help"], vec!["schema", "--help"], vec!["rules", "--help"]] {
         let r = run(&args);
         assert_eq!(r.code, 0);
         let lines = r.stdout.lines().count();
@@ -511,7 +511,7 @@ fn copy_fixture(name: &str) -> (tempfile::TempDir, String) {
 /// Rules whose catalogue entry lists an autofix that this build generates.
 const FIXABLE: &[(&str, bool)] = &[
     ("svg-root", true), ("viewbox-missing", true), ("unused-def", true), ("duplicate-id", false), ("text-overflow", true),
-    ("content-clipped", true), ("excess-margin", true), ("edge-detached", true), ("label-on-line", false),
+    ("content-clipped", true), ("excess-margin", true), ("edge-detached", true), ("edge-through-node", false), ("label-on-line", false),
     ("font-too-small", false), ("stroke-too-thin", true), ("off-grid", true), ("script-content", true), ("animation", true),
     ("font-not-portable", true), ("fixed-size", true), ("editor-metadata", true), ("low-contrast", false),
     ("background-missing", true), ("palette", false), ("stroke-width-style", true),
@@ -672,7 +672,6 @@ fn edit_and_fix_usage_input_and_output_errors() {
     assert_eq!(code(&["edit", "d.svg", "--dry-run"], None), (2, "missing-argument".into()));
     assert_eq!(code(&["edit", "d.svg", "--set", "nonsense", "--dry-run"], None), (2, "invalid-argument".into()));
     assert_eq!(code(&["edit", "d.svg", "--set", "#a.x=1", "--in-place", "-o", "x.svg"], None), (2, "argument-conflict".into()));
-    assert_eq!(code(&["edit", "spec.yaml", "--set", "#a.x=1", "--dry-run"], None), (2, "not-implemented".into()));
     assert_eq!(code(&["fix", "d.svg"], None), (2, "missing-argument".into()));
     assert_eq!(code(&["fix", "d.svg", "--rules", "nope", "--dry-run"], None), (2, "unknown-rule".into()));
     // input errors
@@ -712,4 +711,260 @@ fn duplicate_ids_get_distinct_targets() {
     assert_eq!(f["fix"]["ops"][0]["to"], "a-2");
     let hit = run(&["inspect", BROKEN, "--select", f["target"].as_str().unwrap()]).json();
     assert_eq!(hit["summary"]["returned"], 1);
+}
+
+// ------------------------------------------------------------- phase 3: render
+
+const ORDERS: &str = "tests/fixtures/orders.yaml";
+
+fn render_fixture(name: &str, extra: &[&str]) -> (Value, String) {
+    let dir = tempfile::tempdir().unwrap();
+    let spec = Path::new(env!("CARGO_MANIFEST_DIR")).join(name);
+    let mut args = vec!["render", spec.to_str().unwrap(), "-o", "out.svg", "--no-config"];
+    args.extend(extra);
+    let r = run_in(dir.path(), &args, None);
+    assert!(r.code <= 1, "{name}: {}{}", r.stdout, r.stderr);
+    (r.json(), fs::read_to_string(dir.path().join("out.svg")).unwrap())
+}
+
+fn ids_in(svg: &str) -> Vec<String> {
+    svg.split(" id=\"").skip(1).map(|s| s.split('"').next().unwrap().to_string()).collect()
+}
+
+#[test]
+fn the_spec_example_renders_clean() {
+    let (v, svg) = render_fixture(ORDERS, &[]);
+    assert_eq!(v["ok"], true);
+    assert_eq!(v["findings"], serde_json::json!([]), "{v:#}");
+    assert_eq!(v["outputs"][0]["bytes"].as_u64().unwrap() as usize, svg.len());
+    assert!(svg.contains("<title>Order placement</title>") && svg.contains("<desc>How an order moves from the storefront to fulfilment.</desc>"));
+    for id in ["node-web", "node-api", "node-db", "node-queue", "group-backend", "edge-web--api", "edge-api--db", "edge-api--queue", "note-1"] {
+        assert!(ids_in(&svg).contains(&id.to_string()), "missing {id}");
+    }
+    for word in ["Storefront", "Order API", "Orders DB", "Fulfilment queue", "Backend", "POST /orders", "insert", "publish", "At-least-once delivery"] {
+        assert!(svg.contains(&format!(">{word}<")), "missing text {word}");
+    }
+    assert!(svg.contains("stroke-dasharray=\"6 4\""), "the async edge is dashed");
+    assert!(svg.contains("fill=\"#2563eb\""), "the emphasised node uses the accent");
+}
+
+#[test]
+fn every_fixture_and_theme_renders_without_errors_or_warnings() {
+    for name in [ORDERS, "tests/fixtures/checkout.yaml", "tests/fixtures/tiers.yaml", "tests/fixtures/rack.yaml"] {
+        for theme in ["docs-light", "docs-dark"] {
+            let (v, _) = render_fixture(name, &["--theme", theme]);
+            let bad: Vec<&Value> = v["findings"].as_array().unwrap().iter().filter(|f| f["rule"] != "desc-missing" && f["rule"] != "label-on-line").collect();
+            assert!(bad.is_empty(), "{name} {theme}: {bad:#?}");
+            assert_eq!(v["summary"]["errors"], 0, "{name} {theme}");
+        }
+    }
+}
+
+#[test]
+fn every_node_kind_renders_clean_in_both_directions() {
+    let kinds = ["box", "service", "client", "datastore", "queue", "actor", "external", "decision", "document"];
+    for direction in ["right", "down"] {
+        let mut spec = format!("version: 1\ndiagram: flow\ntitle: Kinds\ndescription: Every node kind.\ndirection: {direction}\nmax_width: 2000\nnodes:\n");
+        for k in kinds {
+            spec.push_str(&format!("  - {{id: n-{k}, label: \"A {k} node\", kind: {k}}}\n"));
+        }
+        spec.push_str("edges:\n");
+        for w in kinds.windows(2) {
+            spec.push_str(&format!("  - {{from: n-{}, to: n-{}}}\n", w[0], w[1]));
+        }
+        spec.push_str("  - {from: n-box, to: n-queue, label: skip}\n  - {from: n-decision, to: n-service, label: back}\n");
+        let dir = tempfile::tempdir().unwrap();
+        // A wide drawing shrinks on the page; this test is about geometry, not rendered size.
+        fs::write(dir.path().join("svgdoc.toml"), "[target]\nrender_width = 2000\n").unwrap();
+        fs::write(dir.path().join("k.yaml"), &spec).unwrap();
+        let r = run_in(dir.path(), &["render", "k.yaml", "-o", "k.svg"], None);
+        let v = r.json();
+        assert_eq!(v["findings"], serde_json::json!([]), "{direction}: {v:#}");
+    }
+}
+
+#[test]
+fn rendered_svg_uses_only_the_portable_subset() {
+    let allowed = ["svg", "g", "rect", "circle", "ellipse", "line", "polyline", "polygon", "path", "text", "tspan", "defs", "marker", "title", "desc"];
+    for name in [ORDERS, "tests/fixtures/checkout.yaml", "tests/fixtures/tiers.yaml", "tests/fixtures/rack.yaml"] {
+        let (_, svg) = render_fixture(name, &[]);
+        for tag in svg.split('<').skip(1).filter(|t| !t.starts_with('/')) {
+            let tag = tag.split(|c: char| c.is_whitespace() || c == '>' || c == '/').next().unwrap();
+            assert!(allowed.contains(&tag), "{name}: element <{tag}>");
+        }
+        assert!(!svg.contains("style=") && !svg.contains("class=") && !svg.contains("<!--"), "{name}");
+        let root = svg.lines().next().unwrap();
+        assert!(root.contains("viewBox=\"0 0 ") && !root.contains(" width=") && !root.contains(" height="), "{root}");
+        assert!(!svg.contains('\r') && !svg.starts_with('\u{feff}') && svg.ends_with("</svg>\n"));
+        // numbers carry at most two decimals
+        for num in svg.split(|c: char| !(c.is_ascii_digit() || c == '.')).filter(|s| s.contains('.')) {
+            assert!(num.split('.').nth(1).unwrap().len() <= 2, "{name}: {num}");
+        }
+    }
+}
+
+/// R8 in part: the same spec gives the same bytes. (The cross-platform half needs CI.)
+#[test]
+fn r8_render_is_deterministic() {
+    for name in [ORDERS, "tests/fixtures/checkout.yaml"] {
+        assert_eq!(render_fixture(name, &[]).1, render_fixture(name, &[]).1);
+    }
+    // YAML and JSON forms of one spec give the same drawing.
+    let yaml = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(ORDERS)).unwrap();
+    let doc: Value = serde_yaml_ng::from_str(&yaml).unwrap();
+    let from_json = run_in(Path::new(env!("CARGO_MANIFEST_DIR")), &["render", "-", "-o", "-", "--no-config"], Some(&doc.to_string()));
+    assert_eq!(from_json.code, 0);
+    assert_eq!(from_json.stdout, render_fixture(ORDERS, &[]).1);
+}
+
+/// R16: adding a node to a spec changes no existing element id.
+#[test]
+fn r16_ids_survive_adding_a_node() {
+    let (_, before) = render_fixture(ORDERS, &[]);
+    let dir = tempfile::tempdir().unwrap();
+    let yaml = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(ORDERS)).unwrap();
+    let grown = yaml.replace("direction: right", "direction: right\nmax_width: 1200").replace("\ngroups:", "\n  - id: cache\n    label: Cache\n    kind: datastore\n\ngroups:").replace("    style: async\n", "    style: async\n  - from: api\n    to: cache\n");
+    assert_ne!(grown, yaml);
+    fs::write(dir.path().join("s.yaml"), grown).unwrap();
+    let r = run_in(dir.path(), &["render", "s.yaml", "-o", "s.svg"], None);
+    assert!(r.code <= 1, "{}", r.stdout);
+    let after = ids_in(&fs::read_to_string(dir.path().join("s.svg")).unwrap());
+    for id in ids_in(&before) {
+        assert!(after.contains(&id), "{id} vanished");
+    }
+    assert!(after.contains(&"node-cache".to_string()) && after.contains(&"edge-api--cache".to_string()));
+}
+
+#[test]
+fn spec_fixtures_satisfy_the_published_schema() {
+    let v = schema("spec");
+    for name in [ORDERS, "tests/fixtures/checkout.yaml", "tests/fixtures/tiers.yaml", "tests/fixtures/rack.yaml"] {
+        let doc: Value = serde_yaml_ng::from_str(&fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(name)).unwrap()).unwrap();
+        assert_valid(&v, &doc);
+    }
+}
+
+fn render_err(spec: &str) -> Value {
+    let r = run_in(Path::new(env!("CARGO_MANIFEST_DIR")), &["render", "-", "-o", "-", "--no-config"], Some(spec));
+    assert_eq!(r.code, 3, "{spec}\n{}", r.stdout);
+    r.json()["error"].clone()
+}
+
+#[test]
+fn spec_errors_name_the_path_and_suggest_a_fix() {
+    let base = "version: 1\ndiagram: flow\ntitle: T\nnodes:\n  - {id: a, label: A}\n  - {id: b, label: B}\n";
+    // the example from the specification
+    let e = render_err("version: 1\ndiagram: flow\ntitle: T\nnodes:\n  - {id: a, label: A}\n  - {id: b, label: B}\n  - {id: c, lable: C}\n");
+    assert_eq!(e, serde_json::json!({ "code": "unknown-field", "message": "Unknown field 'lable' in nodes[2].", "path": "nodes[2].lable", "suggestion": "Did you mean 'label'?" }));
+
+    let cases: Vec<(String, &str, &str)> = vec![
+        (base.replace("diagram: flow", "diagram: flwo"), "invalid-value", "diagram"),
+        (base.replace("title: T\n", ""), "missing-field", "title"),
+        (base.replace("version: 1", "version: 2"), "invalid-value", "version"),
+        (base.replace("{id: b, label: B}", "{id: a, label: B}"), "duplicate-id", "nodes[1].id"),
+        (base.replace("{id: b, label: B}", "{id: B_2, label: B}"), "invalid-value", "nodes[1].id"),
+        (base.replace("{id: b, label: B}", "{id: b, label: B, kind: databse}"), "invalid-value", "nodes[1].kind"),
+        (format!("{base}edges:\n  - {{from: a, to: c}}\n"), "unknown-reference", "edges[0].to"),
+        (format!("{base}edges:\n  - {{from: a, to: b}}\n  - {{from: a, to: b}}\n"), "duplicate-id", "edges[1].id"),
+        (format!("{base}groups:\n  - {{id: g, members: [a, zz]}}\n"), "unknown-reference", "groups[0].members[1]"),
+        (format!("{base}groups:\n  - {{id: g, members: [a]}}\n  - {{id: h, members: [a]}}\n"), "group-overlap", "groups[1].members"),
+        (format!("{base}groups:\n  - {{id: g, members: [a, h]}}\n  - {{id: h, members: [g]}}\n"), "group-cycle", "groups[0].members"),
+        (base.replace("{id: b, label: B}", "{id: b, label: B, at: [1, 2]}"), "at-outside-free", "nodes[1].at"),
+        (base.replace("diagram: flow", "diagram: free"), "missing-field", "nodes[0].at"),
+        (base.replace("diagram: flow", "diagram: sequence"), "not-implemented", "diagram"),
+        (format!("{base}notes:\n  - {{attach: nope, text: hi}}\n"), "unknown-reference", "notes[0].attach"),
+        (format!("{base}theme: neon\n"), "unknown-theme", "theme"),
+        ("nodes: [".to_string(), "malformed-spec", "-"),
+    ];
+    for (spec, code, path) in cases {
+        let e = render_err(&spec);
+        assert_eq!((e["code"].as_str().unwrap(), e["path"].as_str().unwrap()), (code, path), "{spec}\n{e:#}");
+    }
+    // nested groups are fine: a node may sit in a group and in that group's parent
+    let nested = format!("{base}groups:\n  - {{id: inner, members: [a]}}\n  - {{id: outer, members: [inner, a, b]}}\n");
+    assert!(run_in(Path::new(env!("CARGO_MANIFEST_DIR")), &["render", "-", "-o", "-", "--no-config"], Some(&nested)).code <= 1);
+}
+
+#[test]
+fn render_output_rules() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::copy(Path::new(env!("CARGO_MANIFEST_DIR")).join(ORDERS), dir.path().join("o.yaml")).unwrap();
+    assert_eq!(run_in(dir.path(), &["render", "o.yaml", "-o", "o.svg"], None).code, 0);
+    // an existing file is replaced only with --force
+    let again = run_in(dir.path(), &["render", "o.yaml", "-o", "o.svg"], None);
+    assert_eq!((again.code, again.json()["error"]["code"].as_str()), (4, Some("output-exists")));
+    assert_eq!(run_in(dir.path(), &["render", "o.yaml", "-o", "o.svg", "--force"], None).code, 0);
+    // -o - writes the SVG itself
+    let raw = run_in(dir.path(), &["render", "o.yaml", "-o", "-"], None);
+    assert_eq!(raw.stdout, fs::read_to_string(dir.path().join("o.svg")).unwrap());
+    let skipped = run_in(dir.path(), &["render", "o.yaml", "-o", "n.svg", "--no-validate"], None).json();
+    assert_eq!((skipped["validated"].as_bool(), skipped["findings"].as_array().unwrap().len()), (Some(false), 0));
+    assert_eq!(run_in(dir.path(), &["render", "o.yaml"], None).code, 2);
+    assert_eq!(run_in(dir.path(), &["render", "o.yaml", "-o", "x.svg", "--theme", "neon"], None).code, 2);
+    assert_eq!(run_in(dir.path(), &["render", "missing.yaml", "-o", "x.svg"], None).code, 3);
+    // outlines in place of text
+    let paths = run_in(dir.path(), &["render", "o.yaml", "-o", "-", "--text-as-paths"], None).stdout;
+    assert!(!paths.contains("<text") && paths.matches("<path").count() > 10 && paths.contains("<title>Order placement</title>"));
+    // too wide for max_width is an input error with advice
+    let wide = fs::read_to_string(dir.path().join("o.yaml")).unwrap().replace("direction: right", "direction: right\nmax_width: 400");
+    fs::write(dir.path().join("w.yaml"), wide).unwrap();
+    let e = run_in(dir.path(), &["render", "w.yaml", "-o", "w.svg"], None);
+    assert_eq!((e.code, e.json()["error"]["code"].as_str()), (3, Some("too-wide")));
+    assert!(!dir.path().join("w.svg").exists());
+}
+
+#[test]
+fn config_fonts_and_long_labels() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(dir.path().join("svgdoc.toml"), "[style]\nfonts = [\"Inter\", \"Helvetica\", \"sans-serif\"]\n").unwrap();
+    fs::write(dir.path().join("s.yaml"), "version: 1\ndiagram: flow\ntitle: Wrap\ndescription: d\nnodes:\n  - {id: a, label: \"A service with quite a long descriptive name\"}\n  - {id: b, label: \"Two\\nlines & <more>\"}\nedges:\n  - {from: a, to: b}\n").unwrap();
+    let r = run_in(dir.path(), &["render", "s.yaml", "-o", "s.svg"], None);
+    assert_eq!(r.json()["findings"], serde_json::json!([]), "{}", r.stdout);
+    let svg = fs::read_to_string(dir.path().join("s.svg")).unwrap();
+    assert!(svg.contains("font-family=\"Inter, Helvetica, sans-serif\""));
+    assert!(svg.matches("<tspan").count() >= 4, "long labels wrap onto lines");
+    assert!(svg.contains("lines &amp; &lt;more&gt;"));
+}
+
+#[test]
+fn edit_changes_a_spec_and_reports_on_the_drawing() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::copy(Path::new(env!("CARGO_MANIFEST_DIR")).join(ORDERS), dir.path().join("o.yaml")).unwrap();
+    let ops = serde_json::json!([
+        { "op": "set", "target": "#api", "attr": "label", "value": "Orders API" },
+        { "op": "set", "target": ":root", "attr": "direction", "value": "down" },
+        { "op": "add-node", "target": "#backend", "attrs": { "id": "cache", "label": "Cache", "kind": "datastore" } },
+        { "op": "add-edge", "from": "api", "to": "cache", "attrs": { "label": "read" } },
+        { "op": "rename-id", "target": "#queue", "to": "events" },
+        { "op": "remove", "target": "#web" }
+    ]);
+    assert_valid(&schema("ops"), &ops);
+    fs::write(dir.path().join("ops.json"), ops.to_string()).unwrap();
+    let r = run_in(dir.path(), &["edit", "o.yaml", "--ops", "ops.json", "--in-place"], None);
+    assert!(r.code <= 1, "{}{}", r.stdout, r.stderr);
+    let v = r.json();
+    assert_eq!(v["operations"], serde_json::json!({ "given": 6, "applied": 6 }));
+    assert_eq!(v["summary"]["errors"], 0, "{v:#}");
+    let doc: Value = serde_yaml_ng::from_str(&fs::read_to_string(dir.path().join("o.yaml")).unwrap()).unwrap();
+    let ids: Vec<&str> = doc["nodes"].as_array().unwrap().iter().map(|n| n["id"].as_str().unwrap()).collect();
+    assert_eq!(ids, vec!["api", "db", "events", "cache"]);
+    assert_eq!(doc["direction"], "down");
+    assert_eq!(doc["groups"][0]["members"], serde_json::json!(["api", "db", "events", "cache"]));
+    assert_eq!(doc["notes"][0]["attach"], "events");
+    let edges: Vec<(&str, &str)> = doc["edges"].as_array().unwrap().iter().map(|e| (e["from"].as_str().unwrap(), e["to"].as_str().unwrap())).collect();
+    assert_eq!(edges, vec![("api", "db"), ("api", "events"), ("api", "cache")]);
+    // the edited spec renders
+    assert_eq!(run_in(dir.path(), &["render", "o.yaml", "-o", "o.svg"], None).code, 0);
+
+    // --set works on a spec too, and a dry run writes nothing
+    let before = fs::read(dir.path().join("o.yaml")).unwrap();
+    let d = run_in(dir.path(), &["edit", "o.yaml", "--set", "#cache.emphasis=true", "--dry-run"], None).json();
+    assert!(d["diff"].as_str().unwrap().contains("+  emphasis: true"), "{d:#}");
+    assert_eq!(before, fs::read(dir.path().join("o.yaml")).unwrap());
+    // strict: unknown ids and fields fail with a suggestion; a change that breaks the spec is refused
+    let code = |args: &[&str]| run_in(dir.path(), args, None).json()["error"]["code"].as_str().unwrap_or("").to_string();
+    assert_eq!(code(&["edit", "o.yaml", "--set", "#cahce.label=x", "--dry-run"]), "no-match");
+    assert_eq!(code(&["edit", "o.yaml", "--set", "#cache.lable=x", "--dry-run"]), "unknown-field");
+    assert_eq!(code(&["edit", "o.yaml", "--set", "#cache.kind=databse", "--dry-run"]), "invalid-value");
+    assert_eq!(before, fs::read(dir.path().join("o.yaml")).unwrap());
 }
