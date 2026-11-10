@@ -168,6 +168,8 @@ pub fn analyze(file: &str, src: &str, set: &Settings) -> Vec<Finding> {
     portability::run(&mut ctx);
     accessibility::run(&mut ctx);
 
+    // A finding on a drawn element carries that element's box even when its rule did not measure one.
+    let boxes: HashMap<usize, Rect> = scene.elems.iter().filter(|e| e.node != scene.root).filter_map(|e| Some((e.node.id().get_usize(), e.bbox?))).collect();
     for raw in ctx.out {
         let Some(mut severity) = set.severity(raw.rule) else { continue };
         if raw.node.ancestors().any(|a| suppressed.get(&a.id().get_usize()).is_some_and(|r| r.contains(&raw.rule))) {
@@ -189,7 +191,7 @@ pub fn analyze(file: &str, src: &str, set: &Settings) -> Vec<Finding> {
             file: file.to_string(),
             target: scene.target(raw.node),
             line: scene.line(raw.node),
-            bbox: raw.bbox.map(bbox_json),
+            bbox: raw.bbox.or_else(|| boxes.get(&raw.node.id().get_usize()).copied()).map(bbox_json),
             message: raw.message,
             measured: (!measured.is_empty()).then_some(measured),
             fix: raw.fix,

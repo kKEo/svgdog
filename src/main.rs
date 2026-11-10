@@ -5,6 +5,7 @@ mod config;
 mod diff;
 mod envelope;
 mod ops;
+mod preview;
 mod render;
 mod rules;
 mod spec;
@@ -44,7 +45,7 @@ fn format_from_args(args: &[String]) -> Format {
 fn emit(format: Format, out: &Output) {
     let mut stdout = std::io::stdout().lock();
     let _ = match (&out.raw, format) {
-        (Some(raw), _) => write!(stdout, "{raw}"),
+        (Some(raw), _) => stdout.write_all(raw),
         (None, Format::Json) => writeln!(stdout, "{}", out.json),
         (None, Format::Text) => write!(stdout, "{}", out.text),
     };
@@ -124,7 +125,7 @@ fn run(args: &[String]) -> i32 {
         };
         let paint = commands::validate::Paint { color };
         let mut loader = match &cli.command {
-            Command::Validate { .. } | Command::Edit { .. } | Command::Fix { .. } | Command::Render { .. } => Some(config::Loader::new(cli.global.config.as_deref(), cli.global.no_config)?),
+            Command::Validate { .. } | Command::Edit { .. } | Command::Fix { .. } | Command::Render { .. } | Command::Preview { .. } => Some(config::Loader::new(cli.global.config.as_deref(), cli.global.no_config)?),
             _ => None,
         };
         let out = match &cli.command {
@@ -132,6 +133,7 @@ fn run(args: &[String]) -> i32 {
             Command::Edit { file, set, ops, dry_run, output, in_place } => commands::edit::run(file, set, ops.as_deref(), *dry_run, output.as_deref(), *in_place, loader.as_mut().unwrap(), profile, &paint),
             Command::Fix { file, rules, allow_unsafe, dry_run, output, in_place } => commands::fix::run(file, rules, *allow_unsafe, *dry_run, output.as_deref(), *in_place, loader.as_mut().unwrap(), profile, &paint),
             Command::Render { spec, output, theme, no_validate, force, text_as_paths } => commands::render::run(spec, output, theme.as_deref(), *no_validate, *force, *text_as_paths, loader.as_mut().unwrap(), profile, &paint),
+            Command::Preview { file, output, width, background, annotate, crop, force } => commands::preview::run(file, output, *width, *background, *annotate, crop.as_deref(), *force, loader.as_mut().unwrap(), profile, &paint),
             Command::Inspect { file, select, depth, fields } => commands::inspect::run(file, select.as_deref(), *depth, fields),
             Command::Schema { name } => commands::schema::run(*name),
             Command::Rules { explain } => commands::rules::run(explain.as_deref()),

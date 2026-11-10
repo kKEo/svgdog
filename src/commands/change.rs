@@ -44,6 +44,10 @@ pub fn dest(input: &str, dry_run: bool, output: Option<&str>, in_place: bool) ->
 }
 
 pub fn write(path: &Path, text: &str) -> Result<(), AppError> {
+    write_bytes(path, text.as_bytes())
+}
+
+pub fn write_bytes(path: &Path, text: &[u8]) -> Result<(), AppError> {
     let fail = |e: std::io::Error| AppError::new(EXIT_OUTPUT, "write-failed", format!("Cannot write {}: {e}.", path.display())).path(path.display().to_string());
     // Write beside the target and rename, so a failure never leaves half a file.
     let tmp = path.with_extension(format!("{}.svgdoc-tmp", path.extension().and_then(|e| e.to_str()).unwrap_or("out")));
@@ -106,6 +110,6 @@ pub fn finish(command: &'static str, input: &str, before: &str, after: String, d
     text.push_str(&r.text);
 
     let exit = if r.failed { EXIT_FINDINGS } else { EXIT_OK };
-    let raw = matches!(dest, Dest::Stdout).then_some(after);
+    let raw = matches!(dest, Dest::Stdout).then(|| after.into_bytes());
     Ok(Output { json: Value::Object(r.json), text, exit, raw })
 }

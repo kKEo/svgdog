@@ -24,6 +24,11 @@ thread_local! {
     };
 }
 
+/// The font files compiled into the binary.
+pub fn bundled() -> [&'static [u8]; 3] {
+    [INTER, INTER_BOLD, MONO]
+}
+
 impl Fonts {
     fn face(&self, class: Class, bold: bool) -> &rustybuzz::Face<'static> {
         match (class, bold) {

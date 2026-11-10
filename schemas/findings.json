@@ -136,6 +136,51 @@
           }
         }
       }
+    },
+    "validated": {
+      "type": "boolean",
+      "description": "false when the command skipped the checks"
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "width",
+        "height",
+        "scale",
+        "region",
+        "background",
+        "annotated"
+      ],
+      "description": "preview: the PNG that was made",
+      "properties": {
+        "width": {
+          "type": "integer",
+          "maximum": 2000
+        },
+        "height": {
+          "type": "integer",
+          "maximum": 4000
+        },
+        "scale": {
+          "type": "number",
+          "description": "Output pixels per viewBox unit"
+        },
+        "region": {
+          "$ref": "#/$defs/bbox",
+          "description": "The part of the viewBox shown"
+        },
+        "background": {
+          "enum": [
+            "light",
+            "dark"
+          ]
+        },
+        "annotated": {
+          "type": "integer",
+          "description": "Finding boxes outlined on the image"
+        }
+      }
     }
   },
   "oneOf": [

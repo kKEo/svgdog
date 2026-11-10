@@ -39,5 +39,5 @@ pub fn run(file: &str, output: &str, theme: Option<&str>, no_validate: bool, for
         text_out.push_str(&r.text);
     }
     let exit = if r.failed { EXIT_FINDINGS } else { EXIT_OK };
-    Ok(Output { json: Value::Object(r.json), text: text_out, exit, raw: to_stdout.then_some(svg) })
+    Ok(Output { json: Value::Object(r.json), text: text_out, exit, raw: to_stdout.then(|| svg.into_bytes()) })
 }

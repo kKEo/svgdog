@@ -146,5 +146,5 @@ pub struct Output {
     pub text: String,
     pub exit: i32,
     /// When set, this goes to stdout in place of the envelope (`-o -`).
-    pub raw: Option<String>,
+    pub raw: Option<Vec<u8>>,
 }

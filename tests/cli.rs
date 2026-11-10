@@ -196,7 +196,7 @@ fn r4_exit_codes() {
     assert_eq!(usage.json()["error"]["code"], "unknown-flag");
     assert_eq!(run(&["frobnicate"]).code, 2);
     assert_eq!(run(&[]).code, 2);
-    let planned = run(&["preview", "x.svg", "-o", "x.png"]);
+    let planned = run(&["mcp"]);
     assert_eq!(planned.code, 2);
     assert!(planned.json()["error"]["message"].as_str().unwrap().contains("not built yet"));
 
@@ -222,7 +222,7 @@ fn malformed_xml_is_a_finding_for_validate_and_an_input_error_for_inspect() {
 
 #[test]
 fn r6_help_is_short_and_has_an_example() {
-    for args in [vec!["--help"], vec!["render", "--help"], vec!["validate", "--help"], vec!["inspect", "--help"], vec!["edit", "--help"], vec!["fix", "--help"], vec!["schema", "--help"], vec!["rules", "--help"]] {
+    for args in [vec!["--help"], vec!["render", "--help"], vec!["validate", "--help"], vec!["inspect", "--help"], vec!["preview", "--help"], vec!["edit", "--help"], vec!["fix", "--help"], vec!["schema", "--help"], vec!["rules", "--help"]] {
         let r = run(&args);
         assert_eq!(r.code, 0);
         let lines = r.stdout.lines().count();
@@ -967,4 +967,123 @@ fn edit_changes_a_spec_and_reports_on_the_drawing() {
     assert_eq!(code(&["edit", "o.yaml", "--set", "#cache.lable=x", "--dry-run"]), "unknown-field");
     assert_eq!(code(&["edit", "o.yaml", "--set", "#cache.kind=databse", "--dry-run"]), "invalid-value");
     assert_eq!(before, fs::read(dir.path().join("o.yaml")).unwrap());
+}
+
+// ------------------------------------------------------------ phase 4: preview
+
+use resvg::tiny_skia::Pixmap;
+
+fn preview(dir: &Path, file: &str, out: &str, extra: &[&str]) -> (Run, Option<Pixmap>) {
+    let src = Path::new(env!("CARGO_MANIFEST_DIR")).join(file);
+    let mut args = vec!["preview", src.to_str().unwrap(), "-o", out, "--no-config"];
+    args.extend(extra);
+    let r = run_in(dir, &args, None);
+    let png = fs::read(dir.join(out)).ok().and_then(|b| Pixmap::decode_png(&b).ok());
+    (r, png)
+}
+
+fn rgb(p: &Pixmap, x: u32, y: u32) -> (u8, u8, u8) {
+    let c = p.pixel(x, y).unwrap();
+    (c.red(), c.green(), c.blue())
+}
+
+/// R13: a bounded PNG for vision models.
+#[test]
+fn r13_preview_is_a_png_of_bounded_width() {
+    let dir = tempfile::tempdir().unwrap();
+    let (r, png) = preview(dir.path(), CLEAN, "a.png", &[]);
+    assert_eq!(r.code, 0, "{}{}", r.stdout, r.stderr);
+    let v = r.json();
+    assert_valid(&schema("findings"), &v);
+    let png = png.expect("a decodable PNG");
+    // orders.svg is 720 x 240, so 1200 px wide gives 400 px tall
+    assert_eq!((png.width(), png.height()), (1200, 400));
+    assert_eq!((v["image"]["width"].as_u64(), v["image"]["height"].as_u64()), (Some(1200), Some(400)));
+    assert_eq!(v["outputs"][0]["bytes"].as_u64().unwrap(), fs::metadata(dir.path().join("a.png")).unwrap().len());
+    assert_eq!(v["validated"], false);
+    // the accent node is drawn where the SVG puts it: (360, 120) in the viewBox
+    assert_eq!(rgb(&png, 600, 150), (0x25, 0x63, 0xeb));
+
+    let (wide, png) = preview(dir.path(), CLEAN, "wide.png", &["--width", "5000"]);
+    assert_eq!(wide.code, 0);
+    assert_eq!(png.unwrap().width(), 2000, "never wider than 2000 px");
+    assert_eq!(wide.json()["image"]["width"], 2000);
+    let (small, png) = preview(dir.path(), CLEAN, "small.png", &["--width", "300"]);
+    assert_eq!((small.code, png.unwrap().width()), (0, 300));
+}
+
+#[test]
+fn preview_is_deterministic_and_draws_text_with_the_bundled_font() {
+    let dir = tempfile::tempdir().unwrap();
+    preview(dir.path(), CLEAN, "a.png", &[]);
+    preview(dir.path(), CLEAN, "b.png", &[]);
+    assert_eq!(fs::read(dir.path().join("a.png")).unwrap(), fs::read(dir.path().join("b.png")).unwrap());
+    // Text is really drawn: the label area of a node holds dark ink on the light fill.
+    let png = Pixmap::decode_png(&fs::read(dir.path().join("a.png")).unwrap()).unwrap();
+    let ink = (130..240).flat_map(|x| (185..215).map(move |y| (x, y))).filter(|(x, y)| rgb(&png, *x, *y).0 < 0x60).count();
+    assert!(ink > 100, "expected glyphs in the Storefront label, found {ink} dark pixels");
+}
+
+#[test]
+fn preview_background_annotate_and_crop() {
+    let dir = tempfile::tempdir().unwrap();
+    // broken.svg has no background of its own
+    let (_, light) = preview(dir.path(), BROKEN, "light.png", &[]);
+    let (_, dark) = preview(dir.path(), BROKEN, "dark.png", &["--background", "dark"]);
+    assert_eq!(rgb(&light.unwrap(), 5, 5), (255, 255, 255));
+    assert_eq!(rgb(&dark.unwrap(), 5, 5), (0x0d, 0x11, 0x17));
+
+    let (r, marked) = preview(dir.path(), BROKEN, "marked.png", &["--annotate"]);
+    let v = r.json();
+    assert_eq!(r.code, 0, "a preview succeeds even when the file has findings");
+    assert!(v["image"]["annotated"].as_u64().unwrap() >= 5, "{v:#}");
+    assert!(rules_of(&v).contains(&"text-overflow".to_string()));
+    assert_ne!(fs::read(dir.path().join("marked.png")).unwrap(), fs::read(dir.path().join("light.png")).unwrap());
+    // The foreignObject finding is outlined in the error colour along its box: x=300..380, y=150..180 at 3 px per unit.
+    let marked = marked.unwrap();
+    let red = (890..1150).filter(|x| rgb(&marked, *x, 447) == (0xdc, 0x26, 0x26)).count();
+    assert!(red > 200, "expected the outline of the foreignObject box, found {red} px");
+
+    let (c, png) = preview(dir.path(), CLEAN, "crop.png", &["--crop", "#node-api", "--width", "600"]);
+    let cv = c.json();
+    let region: Vec<f64> = cv["image"]["region"].as_array().unwrap().iter().map(|n| n.as_f64().unwrap()).collect();
+    // the node is 288..432 x 88..152; the crop holds it with a margin and stays inside the drawing
+    assert!(region[0] < 288.0 && region[0] + region[2] > 432.0 && region[1] < 88.0 && region[1] + region[3] > 152.0 && region[2] < 400.0, "{region:?}");
+    let png = png.unwrap();
+    assert_eq!(png.width(), 600);
+    assert_eq!(rgb(&png, 300, png.height() / 2), (0x25, 0x63, 0xeb));
+}
+
+#[test]
+fn preview_errors_and_outputs() {
+    let dir = tempfile::tempdir().unwrap();
+    let (first, _) = preview(dir.path(), CLEAN, "a.png", &[]);
+    assert_eq!(first.code, 0);
+    let (again, _) = preview(dir.path(), CLEAN, "a.png", &[]);
+    assert_eq!((again.code, again.json()["error"]["code"].as_str()), (4, Some("output-exists")));
+    assert_eq!(preview(dir.path(), CLEAN, "a.png", &["--force"]).0.code, 0);
+    let (miss, _) = preview(dir.path(), CLEAN, "b.png", &["--crop", "#nope"]);
+    assert_eq!((miss.code, miss.json()["error"]["code"].as_str()), (3, Some("no-match")));
+    assert_eq!(preview(dir.path(), CLEAN, "c.png", &["--background", "blue"]).0.code, 2);
+    assert_eq!(preview(dir.path(), CLEAN, "c.png", &["--width", "4"]).0.code, 2);
+    assert_eq!(preview(dir.path(), "tests/fixtures/nope.svg", "c.png", &[]).0.code, 3);
+    assert_eq!(run_in(dir.path(), &["preview", "x.svg"], None).code, 2);
+    // -o - writes the PNG itself
+    let src = Path::new(env!("CARGO_MANIFEST_DIR")).join(CLEAN);
+    let out = Command::new(BIN).args(["preview", src.to_str().unwrap(), "-o", "-"]).current_dir(dir.path()).stdin(Stdio::null()).output().unwrap();
+    assert_eq!(&out.stdout[..8], b"\x89PNG\r\n\x1a\n");
+    assert_eq!(out.stdout, fs::read(dir.path().join("a.png")).unwrap());
+    // rendering then previewing a spec works end to end
+    let spec = Path::new(env!("CARGO_MANIFEST_DIR")).join(ORDERS);
+    assert_eq!(run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "o.svg"], None).code, 0);
+    let end = run_in(dir.path(), &["preview", "o.svg", "-o", "o.png", "--annotate"], None).json();
+    assert_eq!(end["image"]["annotated"], 0);
+}
+
+#[test]
+fn findings_on_drawn_elements_carry_a_box() {
+    let v = run(&["validate", BROKEN, "--no-config", "--rules", "duplicate-id,dangling-reference,script-content,title-missing"]).json();
+    for f in v["findings"].as_array().unwrap() {
+        assert_eq!(f["bbox"].is_array(), f["rule"] != "title-missing", "{f:#}");
+    }
 }

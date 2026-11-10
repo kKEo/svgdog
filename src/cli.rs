@@ -48,6 +48,12 @@ pub struct Global {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
+pub enum Page {
+    Light,
+    Dark,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
 pub enum FailOn {
     Error,
     Warning,
@@ -121,6 +127,31 @@ pub enum Command {
         #[arg(long, value_delimiter = ',', default_value = "id,tag,bbox,text", value_name = "id,tag,bbox,text,fill,stroke,refs")]
         fields: Vec<String>,
     },
+    /// Rasterize to PNG
+    #[command(after_help = "Example:\n  svgdoc preview fig/orders.svg -o /tmp/orders.png --annotate")]
+    Preview {
+        /// SVG file; - reads stdin
+        #[arg(value_name = "FILE")]
+        file: String,
+        /// Where to write the PNG; - writes it to stdout in place of the report
+        #[arg(short = 'o', value_name = "OUT")]
+        output: String,
+        /// Image width in px; larger values are cut to 2000 [default: 1200]
+        #[arg(long, value_name = "PX")]
+        width: Option<u32>,
+        /// Page colour behind a transparent drawing
+        #[arg(long, value_enum, default_value = "light", value_name = "light|dark")]
+        background: Page,
+        /// Outline each finding's box and print its rule id beside it
+        #[arg(long)]
+        annotate: bool,
+        /// Show only the matching elements and their surroundings
+        #[arg(long, value_name = "SELECTOR")]
+        crop: Option<String>,
+        /// Replace an existing output file
+        #[arg(long)]
+        force: bool,
+    },
     /// Apply targeted changes by id
     #[command(after_help = "Example:\n  svgdoc edit fig/orders.svg --set '#node-api > rect.fill=#2563eb' --dry-run")]
     Edit {
@@ -186,6 +217,7 @@ impl Command {
             Command::Render { .. } => "render",
             Command::Validate { .. } => "validate",
             Command::Inspect { .. } => "inspect",
+            Command::Preview { .. } => "preview",
             Command::Edit { .. } => "edit",
             Command::Fix { .. } => "fix",
             Command::Schema { .. } => "schema",
@@ -194,6 +226,6 @@ impl Command {
     }
 }
 
-pub const COMMANDS: &[&str] = &["render", "validate", "inspect", "edit", "fix", "schema", "rules"];
+pub const COMMANDS: &[&str] = &["render", "validate", "inspect", "preview", "edit", "fix", "schema", "rules"];
 /// Specified commands that later phases add.
-pub const PLANNED: &[&str] = &["preview", "mcp"];
+pub const PLANNED: &[&str] = &["mcp"];
