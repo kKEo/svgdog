@@ -1,0 +1,199 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://svgdoc.example/schema/scene-1.json",
+  "title": "svgdoc scene",
+  "type": "object",
+  "required": [
+    "tool",
+    "version",
+    "command",
+    "ok"
+  ],
+  "properties": {
+    "tool": {
+      "const": "svgdoc"
+    },
+    "version": {
+      "type": "string"
+    },
+    "command": {
+      "const": "inspect"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "file": {
+      "type": "string"
+    },
+    "viewBox": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/bbox"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The root viewBox as [x, y, w, h]"
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "elements",
+        "returned"
+      ],
+      "properties": {
+        "elements": {
+          "type": "integer",
+          "description": "Visible elements in the file"
+        },
+        "returned": {
+          "type": "integer",
+          "description": "Elements left after --select and --depth"
+        }
+      }
+    },
+    "elements": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/element"
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "suggestion": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "required": [
+        "file",
+        "viewBox",
+        "summary",
+        "elements"
+      ],
+      "not": {
+        "required": [
+          "error"
+        ]
+      }
+    },
+    {
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "ok": {
+          "const": false
+        }
+      },
+      "not": {
+        "required": [
+          "elements"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "bbox": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "items": false,
+      "minItems": 4
+    },
+    "element": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target",
+        "line",
+        "depth"
+      ],
+      "properties": {
+        "target": {
+          "type": "string",
+          "description": "Selector that addresses the element"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "depth": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Nesting level; the root <svg> is 0"
+        },
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tag": {
+          "type": "string"
+        },
+        "bbox": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/bbox"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Resolved box in viewBox units"
+        },
+        "text": {
+          "type": "string",
+          "description": "Text content; lines joined by a newline"
+        },
+        "fill": {
+          "type": "string",
+          "description": "Resolved fill: a hex colour, none or url(#id)"
+        },
+        "stroke": {
+          "type": "string"
+        },
+        "refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ids this element references"
+        }
+      }
+    }
+  }
+}

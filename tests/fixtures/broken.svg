@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="400" height="200" viewBox="0 0 400 200">
+  <style>
+    .label { font-family: Helvetica; font-size: 13px; fill: #9ca3af; }
+    .edge { stroke: #333; marker-end: url(#arrowhead); fill: none; }
+  </style>
+  <defs>
+    <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto"><path d="M0 0L6 3L0 6z"/></marker>
+    <linearGradient id="unused"><stop offset="0" stop-color="#fff"/></linearGradient>
+  </defs>
+  <g id="a" transform="translate(20 60)">
+    <rect width="90" height="50" fill="#ffffff" stroke="#333"/>
+    <text class="label" x="45" y="30" text-anchor="middle">Authentication gateway</text>
+  </g>
+  <g id="b" transform="translate(250 60)">
+    <rect width="190" height="50" fill="#ffffff" stroke="#333" stroke-width="0.2"/>
+    <text class="label" x="95" y="30" text-anchor="middle">Users</text>
+  </g>
+  <rect id="a" x="150" y="70" width="40" height="30" fill="#eee"/>
+  <path class="edge" d="M110 85 L 230 85"/>
+  <text x="170" y="89" font-size="4" text-anchor="middle">calls</text>
+  <rect x="10" y="10" width="20" height="20" fill="url(#missing)" onclick="alert(1)"/>
+  <foreignObject x="300" y="150" width="80" height="30"><div xmlns="http://www.w3.org/1999/xhtml">html</div></foreignObject>
+</svg>
