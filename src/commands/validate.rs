@@ -20,7 +20,7 @@ impl Paint {
     }
 }
 
-fn rule_ids(list: &[String], flag: &str) -> Result<Vec<&'static str>, AppError> {
+pub fn rule_ids(list: &[String], flag: &str) -> Result<Vec<&'static str>, AppError> {
     let mut out = Vec::new();
     for id in list.iter().map(|s| s.trim()).filter(|s| !s.is_empty()) {
         match catalogue::rule(id) {
@@ -79,15 +79,26 @@ pub fn run(
         let settings = cfg.settings(path, profile, &sel);
         all.extend(rules::analyze(f, &src, &settings));
     }
-    all.sort_by(|a, b| (&a.file, a.line, a.rule).cmp(&(&b.file, b.line, b.rule)));
+    let report = report("validate", all, files.len(), max_findings, fail_on, paint);
+    Ok(Output { json: Value::Object(report.json), text: report.text, exit: if report.failed { EXIT_FINDINGS } else { EXIT_OK }, raw: None })
+}
 
+pub struct Report {
+    pub json: serde_json::Map<String, Value>,
+    pub text: String,
+    pub failed: bool,
+}
+
+/// Summary, capped findings and their text rendering: the part every checking command shares.
+pub fn report(command: &str, mut all: Vec<Finding>, files: usize, max_findings: usize, fail_on: FailOn, paint: &Paint) -> Report {
+    all.sort_by(|a, b| (&a.file, a.line, a.rule).cmp(&(&b.file, b.line, b.rule)));
     let count = |s: Severity| all.iter().filter(|f| f.severity == s).count();
     let summary = Summary {
-        files: files.len(),
+        files,
         errors: count(Severity::Error),
         warnings: count(Severity::Warning),
         info: count(Severity::Info),
-        fixable: 0,
+        fixable: all.iter().filter(|f| f.fix.is_some()).count(),
         truncated: all.len() > max_findings,
     };
     let threshold = match fail_on {
@@ -98,7 +109,7 @@ pub fn run(
     let total = all.len();
     all.truncate(max_findings);
 
-    let mut m = head("validate", !failed);
+    let mut m = head(command, !failed);
     m.insert("summary".into(), serde_json::to_value(&summary).unwrap());
     m.insert("findings".into(), serde_json::to_value(&all).unwrap());
     m.insert("outputs".into(), json!([]));
@@ -120,7 +131,12 @@ pub fn run(
             Severity::Warning => paint.wrap("33", "warning"),
             Severity::Info => paint.wrap("36", "info   "),
         };
-        text.push_str(&format!("  {:>5}  {sev}  {:<width$}  {}  {}\n", f.line, f.rule, paint.wrap("2", &f.target), f.message));
+        let fixable = match &f.fix {
+            Some(x) if x.safe => " [fix]",
+            Some(_) => " [fix --unsafe]",
+            None => "",
+        };
+        text.push_str(&format!("  {:>5}  {sev}  {:<width$}  {}  {}{fixable}\n", f.line, f.rule, paint.wrap("2", &f.target), f.message));
     }
     if !all.is_empty() {
         text.push('\n');
@@ -130,12 +146,12 @@ pub fn run(
     }
     let plural = |n: usize, one: &str, many: &str| format!("{n} {}", if n == 1 { one } else { many });
     text.push_str(&format!(
-        "{} checked: {}, {}, {} info\n",
+        "{} checked: {}, {}, {} info, {} fixable\n",
         plural(summary.files, "file", "files"),
         plural(summary.errors, "error", "errors"),
         plural(summary.warnings, "warning", "warnings"),
-        summary.info
+        summary.info,
+        summary.fixable
     ));
-
-    Ok(Output { json: Value::Object(m), text, exit: if failed { EXIT_FINDINGS } else { EXIT_OK } })
+    Report { json: m, text, failed }
 }

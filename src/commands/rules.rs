@@ -56,7 +56,7 @@ pub fn run(explain: Option<&str>) -> Result<Output, AppError> {
             text.push_str(&format!("\nFails:\n{}\nPasses:\n{}", indent(r.fail), indent(r.pass)));
         }
     }
-    Ok(Output { json: Value::Object(m), text, exit: EXIT_OK })
+    Ok(Output { json: Value::Object(m), text, exit: EXIT_OK, raw: None })
 }
 
 fn indent(s: &str) -> String {

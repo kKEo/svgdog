@@ -99,6 +99,50 @@ pub enum Command {
         #[arg(long, value_delimiter = ',', default_value = "id,tag,bbox,text", value_name = "id,tag,bbox,text,fill,stroke,refs")]
         fields: Vec<String>,
     },
+    /// Apply targeted changes by id
+    #[command(after_help = "Example:\n  svgdoc edit fig/orders.svg --set '#node-api > rect.fill=#2563eb' --dry-run")]
+    Edit {
+        /// SVG file; - reads stdin
+        #[arg(value_name = "FILE")]
+        file: String,
+        /// Set one attribute on every element the selector matches; repeatable
+        #[arg(long, value_name = "SELECTOR.attr=value")]
+        set: Vec<String>,
+        /// JSON operations: set, remove, move, rename-id, add-node (see: svgdoc schema ops)
+        #[arg(long, value_name = "ops.json|-")]
+        ops: Option<String>,
+        /// Report the diff and the resulting findings; write nothing
+        #[arg(long)]
+        dry_run: bool,
+        /// Write the result to a new file; - writes the SVG to stdout
+        #[arg(short = 'o', value_name = "OUT")]
+        output: Option<String>,
+        /// Change the input file
+        #[arg(long)]
+        in_place: bool,
+    },
+    /// Apply autofixes from findings
+    #[command(after_help = "Example:\n  svgdoc fix fig/orders.svg --unsafe --dry-run")]
+    Fix {
+        /// SVG file; - reads stdin
+        #[arg(value_name = "FILE")]
+        file: String,
+        /// Fix only these rules
+        #[arg(long, value_delimiter = ',', value_name = "ID,...")]
+        rules: Vec<String>,
+        /// Also apply fixes that move or recolour content
+        #[arg(long = "unsafe")]
+        allow_unsafe: bool,
+        /// Report the diff and the resulting findings; write nothing
+        #[arg(long)]
+        dry_run: bool,
+        /// Write the result to a new file; - writes the SVG to stdout
+        #[arg(short = 'o', value_name = "OUT")]
+        output: Option<String>,
+        /// Change the input file
+        #[arg(long)]
+        in_place: bool,
+    },
     /// Print a JSON Schema
     #[command(after_help = "Example:\n  svgdoc schema findings")]
     Schema {
@@ -119,12 +163,14 @@ impl Command {
         match self {
             Command::Validate { .. } => "validate",
             Command::Inspect { .. } => "inspect",
+            Command::Edit { .. } => "edit",
+            Command::Fix { .. } => "fix",
             Command::Schema { .. } => "schema",
             Command::Rules { .. } => "rules",
         }
     }
 }
 
-pub const COMMANDS: &[&str] = &["validate", "inspect", "schema", "rules"];
+pub const COMMANDS: &[&str] = &["validate", "inspect", "edit", "fix", "schema", "rules"];
 /// Specified commands that later phases add.
-pub const PLANNED: &[&str] = &["render", "preview", "edit", "fix", "mcp"];
+pub const PLANNED: &[&str] = &["render", "preview", "mcp"];

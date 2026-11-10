@@ -63,6 +63,8 @@ pub struct Elem<'a, 'i> {
     pub style: Style,
     /// Uniform scale of the element's transform.
     pub scale: f64,
+    /// Transform from the element's own units to viewBox units.
+    pub tf: Affine,
     pub kind: Kind,
     pub bbox: Option<Rect>,
     /// Bounding box grown by half the stroke width.
@@ -377,7 +379,7 @@ impl<'s, 'a, 'i> Builder<'s, 'a, 'i> {
         let (cw, ch) = self.canvas;
         let scale = tf.determinant().abs().sqrt();
         let idx = out.len();
-        let mut elem = Elem { node, tag, depth, parent, style: st.clone(), scale, kind: Kind::Group, bbox: None, vbox: None, connector: false, outline: vec![] };
+        let mut elem = Elem { node, tag, depth, parent, style: st.clone(), scale, tf, kind: Kind::Group, bbox: None, vbox: None, connector: false, outline: vec![] };
         let hidden = !st.visible || st.opacity <= 0.0;
         match tag {
             "svg" | "g" | "a" | "switch" | "symbol" => {
@@ -534,6 +536,11 @@ impl<'a, 'i> Scene<'a, 'i> {
         line_of(self.doc, node)
     }
 
+    /// The selector for an element. Only the first element with a given id is addressed by it.
+    pub fn target(&self, node: Node) -> String {
+        selector::target_with(node, &|n| n.attribute("id").and_then(|id| self.ids.get(id)).is_some_and(|v| v.first() == Some(&n)))
+    }
+
     /// Factor from viewBox units to px at the page width the diagram is shown at.
     pub fn view_scale(&self, render_width: f64) -> f64 {
         match self.canvas {
@@ -603,4 +610,25 @@ pub fn segment_hits_rect(a: Point, b: Point, r: Rect) -> bool {
 
 pub fn contains_point(path: &BezPath, p: Point) -> bool {
     path.contains(p)
+}
+
+/// The point on an outline closest to `p`.
+pub fn nearest_on(outline: &[Vec<Point>], p: Point) -> Point {
+    let mut best = (f64::INFINITY, p);
+    for poly in outline {
+        if poly.len() == 1 && poly[0].distance(p) < best.0 {
+            best = (poly[0].distance(p), poly[0]);
+        }
+        for w in poly.windows(2) {
+            let (a, b) = (w[0], w[1]);
+            let ab = b - a;
+            let len2 = ab.hypot2();
+            let t = if len2 == 0.0 { 0.0 } else { ((p - a).dot(ab) / len2).clamp(0.0, 1.0) };
+            let q = a + ab * t;
+            if q.distance(p) < best.0 {
+                best = (q.distance(p), q);
+            }
+        }
+    }
+    best.1
 }

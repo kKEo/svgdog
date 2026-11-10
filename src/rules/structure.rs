@@ -9,7 +9,7 @@ use serde_json::json;
 use super::Ctx;
 use crate::svg::style::{PRESENTATION, url_id};
 use crate::svg::{SVG_NS, XLINK_NS, href};
-use crate::util::nearest;
+use crate::util::{fmt, nearest};
 
 const ELEMENTS: &[&str] = &[
     "svg", "g", "defs", "symbol", "use", "image", "switch", "a", "path", "rect", "circle", "ellipse", "line",
@@ -152,11 +152,23 @@ pub fn run(ctx: &mut Ctx) {
                 Some(ns) => format!("The root <svg> is in namespace '{ns}', not the SVG namespace."),
             };
             ctx.push("svg-root", root, None, msg, vec![]);
+            if name.namespace().is_none() {
+                let t = ctx.target(root);
+                ctx.fix(true, vec![json!({ "op": "set", "target": t, "attr": "xmlns", "value": SVG_NS })]);
+            }
         }
     }
 
     if ctx.on("viewbox-missing") && root.tag_name().name() == "svg" && root.attribute("viewBox").is_none() {
         ctx.push("viewbox-missing", root, None, "The root <svg> has no viewBox, so the drawing cannot scale.".into(), vec![]);
+        // The declared size when there is one, otherwise the extent of the content.
+        let content = scene.elems.iter().filter(|e| e.is_leaf()).filter_map(|e| e.vbox).reduce(|a, b| a.union(b));
+        let vb = scene.canvas.or(content.map(|c| kurbo::Rect::new(c.x0.floor(), c.y0.floor(), c.x1.ceil(), c.y1.ceil())));
+        if let Some(vb) = vb.filter(|v| v.width() > 0.0 && v.height() > 0.0) {
+            let value = format!("{} {} {} {}", fmt(vb.x0), fmt(vb.y0), fmt(vb.width()), fmt(vb.height()));
+            let t = ctx.target(root);
+            ctx.fix(true, vec![json!({ "op": "set", "target": t, "attr": "viewBox", "value": value })]);
+        }
     }
 
     let mut referenced: BTreeSet<&str> = BTreeSet::new();
@@ -249,10 +261,15 @@ pub fn run(ctx: &mut Ctx) {
             && n.parent_element().is_some_and(|p| p.tag_name().name() == "defs" && scene.is_svg(p))
             && !matches!(tag, "style" | "script" | "title" | "desc" | "metadata")
         {
-            match n.attribute("id") {
-                Some(id) if referenced.contains(id) => {}
-                Some(id) => ctx.push("unused-def", n, None, format!("<{tag} id=\"{id}\"> in <defs> is never referenced."), vec![]),
-                None => ctx.push("unused-def", n, None, format!("<{tag}> in <defs> has no id, so nothing can reference it."), vec![]),
+            let message = match n.attribute("id") {
+                Some(id) if referenced.contains(id) => None,
+                Some(id) => Some(format!("<{tag} id=\"{id}\"> in <defs> is never referenced.")),
+                None => Some(format!("<{tag}> in <defs> has no id, so nothing can reference it.")),
+            };
+            if let Some(message) = message {
+                ctx.push("unused-def", n, None, message, vec![]);
+                let t = ctx.target(n);
+                ctx.fix(true, vec![json!({ "op": "remove", "target": t })]);
             }
         }
     }
@@ -260,8 +277,18 @@ pub fn run(ctx: &mut Ctx) {
     if ctx.on("duplicate-id") {
         for (id, nodes) in &scene.ids {
             let first = scene.line(nodes[0]);
+            let mut taken: Vec<String> = Vec::new();
             for &n in &nodes[1..] {
                 ctx.push("duplicate-id", n, None, format!("Id '{id}' is already used on line {first}."), vec![("id", json!(id)), ("first_line", json!(first))]);
+                let mut k = 2 + taken.len();
+                let mut to = format!("{id}-{k}");
+                while scene.ids.contains_key(to.as_str()) || taken.contains(&to) {
+                    k += 1;
+                    to = format!("{id}-{k}");
+                }
+                let t = ctx.target(n);
+                ctx.fix(false, vec![json!({ "op": "rename-id", "target": t, "to": to })]);
+                taken.push(to);
             }
         }
     }

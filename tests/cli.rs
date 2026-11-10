@@ -150,9 +150,12 @@ fn r2_output_validates_against_the_published_schemas() {
     assert_valid(&scene, &run(&["inspect", CLEAN]).json());
     assert_valid(&scene, &run(&["inspect", BROKEN, "--fields", "id,tag,bbox,text,fill,stroke,refs"]).json());
     assert_valid(&scene, &run(&["inspect", "nope.svg"]).json());
-    for name in ["spec", "config", "findings", "scene"] {
+    for name in ["spec", "config", "findings", "scene", "ops"] {
         schema(name);
     }
+    assert_valid(&findings, &run(&["edit", BROKEN, "--no-config", "--set", "#b > rect.rx=4", "--dry-run"]).json());
+    assert_valid(&findings, &run(&["fix", BROKEN, "--no-config", "--unsafe", "--dry-run"]).json());
+    assert_valid(&findings, &run(&["edit", BROKEN, "--set", "#nope.rx=4", "--dry-run"]).json());
 }
 
 #[test]
@@ -219,7 +222,7 @@ fn malformed_xml_is_a_finding_for_validate_and_an_input_error_for_inspect() {
 
 #[test]
 fn r6_help_is_short_and_has_an_example() {
-    for args in [vec!["--help"], vec!["validate", "--help"], vec!["inspect", "--help"], vec!["schema", "--help"], vec!["rules", "--help"]] {
+    for args in [vec!["--help"], vec!["validate", "--help"], vec!["inspect", "--help"], vec!["edit", "--help"], vec!["fix", "--help"], vec!["schema", "--help"], vec!["rules", "--help"]] {
         let r = run(&args);
         assert_eq!(r.code, 0);
         let lines = r.stdout.lines().count();
@@ -494,4 +497,219 @@ fn r15_a_200_kb_file_validates_quickly() {
     // The 1 s budget is for a release build; debug builds get slack.
     let budget = if cfg!(debug_assertions) { 20.0 } else { 1.0 };
     assert!(took.as_secs_f64() < budget, "took {took:?}");
+}
+
+// ------------------------------------------------- phase 2: edit, fix, fix objects
+
+fn copy_fixture(name: &str) -> (tempfile::TempDir, String) {
+    let dir = tempfile::tempdir().unwrap();
+    let text = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(name)).unwrap();
+    fs::write(dir.path().join("d.svg"), &text).unwrap();
+    (dir, text)
+}
+
+/// Rules whose catalogue entry lists an autofix that this build generates.
+const FIXABLE: &[(&str, bool)] = &[
+    ("svg-root", true), ("viewbox-missing", true), ("unused-def", true), ("duplicate-id", false), ("text-overflow", true),
+    ("content-clipped", true), ("excess-margin", true), ("edge-detached", true), ("label-on-line", false),
+    ("font-too-small", false), ("stroke-too-thin", true), ("off-grid", true), ("script-content", true), ("animation", true),
+    ("font-not-portable", true), ("fixed-size", true), ("editor-metadata", true), ("low-contrast", false),
+    ("background-missing", true), ("palette", false), ("stroke-width-style", true),
+];
+
+/// R5: for each fixable rule, applying the finding's ops clears that finding.
+#[test]
+fn r5_applying_a_findings_ops_clears_it() {
+    let ops_schema = schema("ops");
+    for (id, safe) in FIXABLE {
+        let rule = run(&["rules", "--explain", id]).json()["rule"].clone();
+        assert_eq!(rule["autofix"], if *safe { "safe" } else { "unsafe" }, "{id}");
+        let dir = tempfile::tempdir().unwrap();
+        let cfg = rule["example_config"].as_str().unwrap();
+        if !cfg.is_empty() {
+            fs::write(dir.path().join("svgdoc.toml"), cfg).unwrap();
+        }
+        fs::write(dir.path().join("fail.svg"), rule["fail"].as_str().unwrap()).unwrap();
+        let before = run_in(dir.path(), &["validate", "fail.svg", "--rules", id, "--quiet"], None).json();
+        let findings = before["findings"].as_array().unwrap();
+        assert!(!findings.is_empty(), "{id}");
+        assert_eq!(before["summary"]["fixable"].as_u64().unwrap() as usize, findings.len(), "{id}: every finding should carry a fix\n{before:#}");
+
+        // Feed each finding's fix object straight back to edit --ops, one at a time.
+        for round in 0..findings.len() + 1 {
+            let now = run_in(dir.path(), &["validate", "fail.svg", "--rules", id, "--quiet"], None).json();
+            let Some(f) = now["findings"].as_array().unwrap().first().cloned() else { break };
+            assert!(round < findings.len(), "{id}: findings do not go away\n{now:#}");
+            assert_eq!(f["fix"]["safe"], *safe, "{id}");
+            assert_valid(&ops_schema, &f["fix"]);
+            let fix = serde_json::to_string(&f["fix"]).unwrap();
+            let r = run_in(dir.path(), &["edit", "fail.svg", "--ops", "-", "--in-place", "--quiet"], Some(&fix));
+            assert!(r.code <= 1, "{id}: edit failed\n{}{}", r.stdout, r.stderr);
+            assert_eq!(r.json()["changed"], true, "{id}: ops changed nothing\n{fix}");
+        }
+        let after = run_in(dir.path(), &["validate", "fail.svg", "--rules", id, "--quiet"], None).json();
+        assert!(rules_of(&after).is_empty(), "{id}: still failing after its fix\n{after:#}");
+    }
+}
+
+#[test]
+fn fix_applies_safe_fixes_and_unsafe_only_on_request() {
+    let (dir, _) = copy_fixture(BROKEN);
+    let safe = run_in(dir.path(), &["fix", "d.svg", "--no-config", "-o", "safe.svg"], None).json();
+    let fixed: Vec<String> = safe["fixed"].as_array().unwrap().iter().map(|f| f["rule"].as_str().unwrap().to_string()).collect();
+    for want in ["unused-def", "fixed-size", "editor-metadata", "script-content", "text-overflow", "edge-detached", "stroke-too-thin", "content-clipped"] {
+        assert!(fixed.contains(&want.to_string()), "{want} not fixed: {fixed:?}");
+    }
+    for unsafe_rule in ["low-contrast", "duplicate-id", "font-too-small"] {
+        assert!(!fixed.contains(&unsafe_rule.to_string()));
+        assert!(rules_of(&safe).contains(&unsafe_rule.to_string()));
+    }
+    assert_eq!(safe["outputs"][0]["path"], "safe.svg");
+    assert_eq!(safe["outputs"][0]["bytes"].as_u64().unwrap(), fs::metadata(dir.path().join("safe.svg")).unwrap().len());
+
+    let all = run_in(dir.path(), &["fix", "d.svg", "--no-config", "--unsafe", "-o", "all.svg"], None).json();
+    let left = rules_of(&all);
+    for gone in ["low-contrast", "duplicate-id", "font-too-small", "label-on-line"] {
+        assert!(!left.contains(&gone.to_string()), "{gone} left after --unsafe: {left:?}");
+    }
+    // what is left has no fix to offer
+    assert_eq!(all["summary"]["fixable"], 0, "{all:#}");
+
+    let only = run_in(dir.path(), &["fix", "d.svg", "--no-config", "--rules", "unused-def", "--dry-run"], None).json();
+    assert_eq!(only["fixed"], serde_json::json!([{ "rule": "unused-def", "count": 1 }]));
+}
+
+/// R9: repeating a command changes nothing further.
+#[test]
+fn r9_fix_on_fixed_output_is_an_empty_diff() {
+    for flags in [vec![], vec!["--unsafe"]] {
+        let (dir, _) = copy_fixture(BROKEN);
+        let mut first = vec!["fix", "d.svg", "--no-config", "--in-place"];
+        first.extend(&flags);
+        assert_eq!(run_in(dir.path(), &first, None).json()["changed"], true);
+        let once = fs::read(dir.path().join("d.svg")).unwrap();
+        let again = run_in(dir.path(), &first, None).json();
+        assert_eq!(again["changed"], false);
+        assert_eq!(again["diff"], "");
+        assert_eq!(again["outputs"], serde_json::json!([]));
+        assert_eq!(once, fs::read(dir.path().join("d.svg")).unwrap());
+    }
+    let (dir, text) = copy_fixture(CLEAN);
+    let r = run_in(dir.path(), &["fix", "d.svg", "--in-place", "--rules", "text-overflow"], None);
+    assert_eq!((r.code, r.json()["changed"].as_bool()), (0, Some(false)));
+    assert_eq!(text, fs::read_to_string(dir.path().join("d.svg")).unwrap());
+}
+
+/// R11: edit changes only the addressed elements.
+#[test]
+fn r11_bytes_outside_the_edited_element_are_unchanged() {
+    let (dir, before) = copy_fixture(CLEAN);
+    let r = run_in(dir.path(), &["edit", "d.svg", "--set", "#node-api > rect.fill=#1d4ed8", "--set", "#node-api > rect.rx=8", "--in-place"], None);
+    assert_eq!(r.code, 0, "{}", r.stdout);
+    let after = fs::read_to_string(dir.path().join("d.svg")).unwrap();
+    let old = "<rect x=\"288\" y=\"88\" width=\"144\" height=\"64\" rx=\"6\" fill=\"#2563eb\" stroke=\"#1f2937\"/>";
+    let new = "<rect x=\"288\" y=\"88\" width=\"144\" height=\"64\" rx=\"8\" fill=\"#1d4ed8\" stroke=\"#1f2937\"/>";
+    assert_eq!(after, before.replace(old, new));
+    assert_ne!(after, before);
+    let v = r.json();
+    assert_eq!(v["operations"], serde_json::json!({ "given": 2, "applied": 2 }));
+    assert!(v["diff"].as_str().unwrap().contains("+    <rect x=\"288\""));
+}
+
+/// R12: edit and fix can report their effect without writing.
+#[test]
+fn r12_dry_run_reports_a_diff_and_findings_and_writes_nothing() {
+    let (dir, before) = copy_fixture(CLEAN);
+    let listing = walk(dir.path());
+    // shrinking the box makes its label overflow: the dry run says so before anything is written
+    let e = run_in(dir.path(), &["edit", "d.svg", "--set", "#node-api > rect.width=80", "--dry-run"], None);
+    let v = e.json();
+    assert_eq!((v["changed"].as_bool(), v["dry_run"].as_bool()), (Some(true), Some(true)));
+    assert!(v["diff"].as_str().unwrap().starts_with("--- a/d.svg\n+++ b/d.svg\n@@"));
+    assert!(rules_of(&v).contains(&"text-overflow".to_string()), "{v:#}");
+    assert_eq!(v["outputs"], serde_json::json!([]));
+    let (bdir, _) = copy_fixture(BROKEN);
+    let f = run_in(bdir.path(), &["fix", "d.svg", "--no-config", "--dry-run"], None).json();
+    assert!(f["changed"] == true && !f["diff"].as_str().unwrap().is_empty());
+    assert_eq!(before, fs::read_to_string(dir.path().join("d.svg")).unwrap());
+    assert_eq!(listing, walk(dir.path()));
+}
+
+#[test]
+fn edit_ops_file_covers_every_operation() {
+    let (dir, _) = copy_fixture(CLEAN);
+    let ops = serde_json::json!([
+        { "op": "set", "target": "#node-web > rect", "style": "stroke-dasharray", "value": "4 2" },
+        { "op": "remove", "target": "#edge-api--db > text" },
+        { "op": "remove", "target": "#node-db > rect", "attr": "rx" },
+        { "op": "move", "target": "#node-db", "dy": 8 },
+        { "op": "rename-id", "target": "#arrow", "to": "arrowhead" },
+        { "op": "add-node", "target": "#node-web", "tag": "title", "text": "Storefront & shop" }
+    ]);
+    fs::write(dir.path().join("ops.json"), ops.to_string()).unwrap();
+    let r = run_in(dir.path(), &["edit", "d.svg", "--ops", "ops.json", "-o", "out.svg"], None);
+    assert_eq!(r.code, 0, "{}", r.stdout);
+    assert_eq!(r.json()["operations"]["applied"], 6);
+    let out = fs::read_to_string(dir.path().join("out.svg")).unwrap();
+    assert!(out.contains("style=\"stroke-dasharray: 4 2\""));
+    assert!(!out.contains(">insert<"));
+    assert!(out.contains("<g id=\"node-db\" transform=\"translate(0 8)\">"));
+    assert!(out.contains("<marker id=\"arrowhead\"") && out.matches("url(#arrowhead)").count() == 2 && !out.contains("url(#arrow)"));
+    assert!(out.contains("<title>Storefront &amp; shop</title>"));
+    assert_valid(&schema("ops"), &ops);
+    // the input is untouched
+    assert!(fs::read_to_string(dir.path().join("d.svg")).unwrap().contains(">insert<"));
+}
+
+#[test]
+fn edit_and_fix_usage_input_and_output_errors() {
+    let (dir, _) = copy_fixture(CLEAN);
+    let code = |args: &[&str], stdin: Option<&str>| {
+        let r = run_in(dir.path(), args, stdin);
+        (r.code, r.json()["error"]["code"].as_str().unwrap_or("").to_string())
+    };
+    assert_eq!(code(&["edit", "d.svg", "--set", "#node-api.fill=red"], None), (2, "missing-argument".into()));
+    assert_eq!(code(&["edit", "d.svg", "--dry-run"], None), (2, "missing-argument".into()));
+    assert_eq!(code(&["edit", "d.svg", "--set", "nonsense", "--dry-run"], None), (2, "invalid-argument".into()));
+    assert_eq!(code(&["edit", "d.svg", "--set", "#a.x=1", "--in-place", "-o", "x.svg"], None), (2, "argument-conflict".into()));
+    assert_eq!(code(&["edit", "spec.yaml", "--set", "#a.x=1", "--dry-run"], None), (2, "not-implemented".into()));
+    assert_eq!(code(&["fix", "d.svg"], None), (2, "missing-argument".into()));
+    assert_eq!(code(&["fix", "d.svg", "--rules", "nope", "--dry-run"], None), (2, "unknown-rule".into()));
+    // input errors
+    assert_eq!(code(&["edit", "d.svg", "--set", "#missing.fill=red", "--dry-run"], None), (3, "no-match".into()));
+    assert_eq!(code(&["edit", "d.svg", "--ops", "-", "--dry-run"], Some("[{\"op\":\"sett\",\"target\":\"svg\"}]")), (3, "unknown-op".into()));
+    assert_eq!(code(&["edit", "d.svg", "--ops", "-", "--dry-run"], Some("[{\"op\":\"remove\",\"target\":\"svg\",\"atr\":\"x\"}]")), (3, "unknown-field".into()));
+    assert_eq!(code(&["edit", "d.svg", "--ops", "-", "--dry-run"], Some("not json")), (3, "invalid-op".into()));
+    assert_eq!(code(&["edit", "d.svg", "--set", "#node-api.xlink:href=#x", "--dry-run"], None), (3, "edit-breaks-xml".into()));
+    assert_eq!(code(&["fix", "nope.svg", "--dry-run"], None), (3, "file-not-found".into()));
+    // output errors: exit code 4, and no silent overwrite
+    fs::write(dir.path().join("taken.svg"), "keep").unwrap();
+    assert_eq!(code(&["fix", "d.svg", "-o", "taken.svg"], None), (4, "output-exists".into()));
+    assert_eq!(code(&["edit", "d.svg", "--set", "#node-api > rect.rx=1", "-o", "d.svg"], None), (4, "output-exists".into()));
+    assert_eq!(fs::read_to_string(dir.path().join("taken.svg")).unwrap(), "keep");
+    assert_eq!(code(&["edit", "d.svg", "--set", "#node-api > rect.rx=1", "-o", "no/such/dir/out.svg"], None), (4, "write-failed".into()));
+}
+
+#[test]
+fn output_dash_writes_the_svg_to_stdout_without_an_envelope() {
+    let (dir, before) = copy_fixture(CLEAN);
+    let r = run_in(dir.path(), &["edit", "d.svg", "--set", "#node-api > rect.rx=8", "-o", "-"], None);
+    assert_eq!(r.code, 0);
+    assert!(r.stdout.starts_with("<svg") && r.stdout.contains("rx=\"8\""));
+    assert_eq!(r.stdout.len(), before.len());
+    // stdin to stdout works as a filter
+    let piped = run_in(dir.path(), &["fix", "-", "--no-config", "-o", "-"], Some(&fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(BROKEN)).unwrap()));
+    assert_eq!(piped.code, 1); // errors remain, and the exit code still says so
+    assert!(piped.stdout.contains("<svg") && !piped.stdout.contains("onclick"));
+}
+
+#[test]
+fn duplicate_ids_get_distinct_targets() {
+    let v = run(&["validate", BROKEN, "--no-config", "--rules", "duplicate-id"]).json();
+    let f = &v["findings"][0];
+    assert_ne!(f["target"], "#a");
+    assert_eq!(f["fix"]["ops"][0]["op"], "rename-id");
+    assert_eq!(f["fix"]["ops"][0]["to"], "a-2");
+    let hit = run(&["inspect", BROKEN, "--select", f["target"].as_str().unwrap()]).json();
+    assert_eq!(hit["summary"]["returned"], 1);
 }

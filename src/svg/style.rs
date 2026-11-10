@@ -307,6 +307,17 @@ impl<'a> Css<'a> {
         &self.rules
     }
 
+    /// True when a stylesheet rule or the inline style sets `prop`, so an attribute would lose to it.
+    pub fn styled(&self, node: Node<'a, '_>, prop: &str) -> bool {
+        if let Some(style) = node.attribute("style")
+            && simplecss::DeclarationTokenizer::from(style).any(|d| d.name == prop)
+        {
+            return true;
+        }
+        let el = CssNode(node);
+        self.rules.iter().any(|r| r.declarations.iter().any(|d| d.name == prop) && r.selector.matches(&el))
+    }
+
     /// Everything an element declares, lowest priority first.
     pub fn declared<'i>(&self, node: Node<'a, 'i>) -> Decls<'a> {
         let mut out: Decls<'a> = Vec::new();

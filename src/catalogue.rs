@@ -310,7 +310,7 @@ pub static RULES: &[RuleMeta] = &[
         autofix: A::Unsafe,
         fails_when: "A connector crosses a shape that is not its endpoint",
         autofix_note: "Unsafe: reroute",
-        rationale: "A line running through an unrelated node looks like two separate connections. Unstroked boxes that sit tightly behind a label are treated as part of the label, not as nodes.",
+        rationale: "A line running through an unrelated node looks like two separate connections. Unstroked boxes that sit tightly behind a label are treated as part of the label, not as nodes. This build does not generate the reroute yet; it needs the edge router that arrives with render.",
         options: &[],
         example_config: "",
         fail: doc!("  <defs>\n    <marker id=\"arrow\" markerWidth=\"6\" markerHeight=\"6\" refX=\"6\" refY=\"3\" orient=\"auto\"><path d=\"M0 0L6 3L0 6z\"/></marker>\n  </defs>\n  <rect x=\"10\" y=\"35\" width=\"40\" height=\"30\" fill=\"#dbeafe\"/>\n  <rect x=\"80\" y=\"35\" width=\"40\" height=\"30\" fill=\"#dbeafe\"/>\n  <rect x=\"150\" y=\"35\" width=\"40\" height=\"30\" fill=\"#dbeafe\"/>\n  <line x1=\"50\" y1=\"50\" x2=\"150\" y2=\"50\" stroke=\"#1f2937\" marker-end=\"url(#arrow)\"/>"),

@@ -2,7 +2,9 @@ mod catalogue;
 mod cli;
 mod commands;
 mod config;
+mod diff;
 mod envelope;
+mod ops;
 mod rules;
 mod svg;
 mod util;
@@ -38,9 +40,10 @@ fn format_from_args(args: &[String]) -> Format {
 
 fn emit(format: Format, out: &Output) {
     let mut stdout = std::io::stdout().lock();
-    let _ = match format {
-        Format::Json => writeln!(stdout, "{}", out.json),
-        Format::Text => write!(stdout, "{}", out.text),
+    let _ = match (&out.raw, format) {
+        (Some(raw), _) => write!(stdout, "{raw}"),
+        (None, Format::Json) => writeln!(stdout, "{}", out.json),
+        (None, Format::Text) => write!(stdout, "{}", out.text),
     };
     let _ = stdout.flush();
 }
@@ -116,21 +119,27 @@ fn run(args: &[String]) -> i32 {
             ),
             None => None,
         };
-        match &cli.command {
-            Command::Validate { files, rules, skip, fail_on, max_findings } => {
-                let mut loader = config::Loader::new(cli.global.config.as_deref(), cli.global.no_config)?;
-                let out = commands::validate::run(files, rules, skip, *fail_on, *max_findings, &mut loader, profile, &commands::validate::Paint { color })?;
-                if !cli.global.quiet {
-                    for p in &loader.loaded {
-                        eprintln!("svgdoc: config {}", p.display());
-                    }
-                }
-                Ok(out)
-            }
+        let paint = commands::validate::Paint { color };
+        let mut loader = match &cli.command {
+            Command::Validate { .. } | Command::Edit { .. } | Command::Fix { .. } => Some(config::Loader::new(cli.global.config.as_deref(), cli.global.no_config)?),
+            _ => None,
+        };
+        let out = match &cli.command {
+            Command::Validate { files, rules, skip, fail_on, max_findings } => commands::validate::run(files, rules, skip, *fail_on, *max_findings, loader.as_mut().unwrap(), profile, &paint),
+            Command::Edit { file, set, ops, dry_run, output, in_place } => commands::edit::run(file, set, ops.as_deref(), *dry_run, output.as_deref(), *in_place, loader.as_mut().unwrap(), profile, &paint),
+            Command::Fix { file, rules, allow_unsafe, dry_run, output, in_place } => commands::fix::run(file, rules, *allow_unsafe, *dry_run, output.as_deref(), *in_place, loader.as_mut().unwrap(), profile, &paint),
             Command::Inspect { file, select, depth, fields } => commands::inspect::run(file, select.as_deref(), *depth, fields),
             Command::Schema { name } => commands::schema::run(*name),
             Command::Rules { explain } => commands::rules::run(explain.as_deref()),
+        }?;
+        if let Some(loader) = &loader
+            && !cli.global.quiet
+        {
+            for p in &loader.loaded {
+                eprintln!("svgdoc: config {}", p.display());
+            }
         }
+        Ok(out)
     })();
 
     match result {

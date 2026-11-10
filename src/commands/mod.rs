@@ -1,3 +1,6 @@
+pub mod change;
+pub mod edit;
+pub mod fix;
 pub mod inspect;
 pub mod rules;
 pub mod schema;

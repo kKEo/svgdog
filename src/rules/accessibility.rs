@@ -5,7 +5,7 @@ use serde_json::json;
 use super::Ctx;
 use super::geometry::container;
 use crate::svg::style::Paint;
-use crate::svg::{Kind, Scene, selector};
+use crate::svg::{Kind, Scene};
 use crate::util::{Rgba, contrast, fmt, num};
 
 fn has_child(scene: &Scene, name: &str) -> bool {
@@ -46,7 +46,7 @@ pub fn run(ctx: &mut Ctx) {
         let under = container(scene, i, tb.center(), true);
         let (bg, bg_name) = match under {
             Some(k) => match Scene::fill_color(&elems[k]) {
-                Some(c) => (c.over(elems[k].style.fill_alpha(), &page.1), selector::target(elems[k].node)),
+                Some(c) => (c.over(elems[k].style.fill_alpha(), &page.1), scene.target(elems[k].node)),
                 None => continue, // gradient or pattern: no single colour to compare
             },
             None => (page.1, format!("{} page", page.0)),
@@ -69,6 +69,13 @@ pub fn run(ctx: &mut Ctx) {
             let msg = format!("Text {} on {} ({}) has contrast {}:1; the minimum is {}:1.", fg.hex(), bg.hex(), bg_name, fmt(ratio), fmt(min));
             let m = vec![("ratio", num(ratio)), ("min_ratio", num(min)), ("foreground", json!(fg.hex())), ("background", json!(bg.hex())), ("large_text", json!(large))];
             ctx.push("low-contrast", e.node, Some(tb), msg, m);
+            let fallback = [Rgba::BLACK, Rgba::WHITE];
+            let candidates: &[Rgba] = if ctx.set.palette.is_empty() { &fallback } else { &ctx.set.palette };
+            let pick = candidates.iter().filter(|c| contrast(&c.over(alpha, &bg), &bg) >= min).min_by(|a, b| a.distance(fg).total_cmp(&b.distance(fg)));
+            if let Some(c) = pick {
+                let op = ctx.set_prop(e.node, "fill", json!(c.hex()));
+                ctx.fix(false, vec![op]);
+            }
         }
     }
 
@@ -95,8 +102,14 @@ pub fn run(ctx: &mut Ctx) {
         }
         if count > 0 {
             let msg = format!("{count} dark element{} sit{} on a transparent background and will be unreadable on a {name} page ({}).", if count == 1 { "" } else { "s" }, if count == 1 { "s" } else { "" }, dark.hex());
-            let first = first_dark.map(selector::target).unwrap_or_default();
+            let first = first_dark.map(|n| scene.target(n)).unwrap_or_default();
             ctx.push("background-missing", root, scene.canvas, msg, vec![("elements", json!(count)), ("first", json!(first)), ("page", json!(dark.hex())), ("min_ratio", num(dark_min))]);
+            if let Some(c) = scene.canvas {
+                let light = ctx.set.backgrounds.iter().map(|(_, c)| *c).find(|c| c.luminance() >= 0.5).unwrap_or(Rgba::WHITE);
+                let fill = if ctx.set.palette.is_empty() { light } else { nearest(&ctx.set.palette, &light) };
+                let t = ctx.target(root);
+                ctx.fix(true, vec![json!({ "op": "add-node", "target": t, "tag": "rect", "at": "start", "attrs": { "x": num(c.x0), "y": num(c.y0), "width": num(c.width()), "height": num(c.height()), "fill": fill.hex() } })]);
+            }
         }
     }
 
@@ -133,6 +146,8 @@ pub fn run(ctx: &mut Ctx) {
                 }
             }
             ctx.push("palette", e.node, e.bbox, format!("Not in the palette: {}.", parts.join(", ")), m);
+            let ops = off.iter().map(|(k, c)| ctx.set_prop(e.node, k, json!(nearest(&palette, c).hex()))).collect();
+            ctx.fix(false, ops);
         }
     }
 
@@ -147,6 +162,8 @@ pub fn run(ctx: &mut Ctx) {
             let list: Vec<String> = allowed.iter().map(|a| fmt(*a)).collect();
             let msg = format!("Stroke width {} is not one of {}; the nearest is {}.", fmt(w), list.join(", "), fmt(near));
             ctx.push("stroke-width-style", e.node, e.bbox, msg, vec![("stroke_width", num(w)), ("nearest", num(near))]);
+            let op = ctx.set_prop(e.node, "stroke-width", num(near));
+            ctx.fix(true, vec![op]);
         }
     }
 }

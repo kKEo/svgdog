@@ -83,11 +83,22 @@ impl Selector {
         Ok(Selector { chain })
     }
 
+    /// The id the leftmost compound requires, if any: every match lies at or below such an element.
+    pub fn anchor_id(&self) -> Option<&str> {
+        self.chain.first().and_then(|c| c.id.as_deref())
+    }
+
     pub fn matches(&self, node: Node) -> bool {
+        self.matches_with(node, &nth_of_type)
+    }
+
+    /// Like `matches`, with the caller supplying each element's position among
+    /// same-named siblings; a precomputed table keeps large batches linear.
+    pub fn matches_with(&self, node: Node, nth: &dyn Fn(Node) -> usize) -> bool {
         let mut cur = Some(node);
         for c in self.chain.iter().rev() {
             match cur {
-                Some(n) if matches_compound(c, n) => cur = n.parent_element(),
+                Some(n) if matches_compound(c, n, nth) => cur = n.parent_element(),
                 _ => return false,
             }
         }
@@ -95,12 +106,12 @@ impl Selector {
     }
 }
 
-fn nth_of_type(node: Node) -> usize {
+pub fn nth_of_type(node: Node) -> usize {
     let name = node.tag_name().name();
     node.prev_siblings().filter(|s| s.is_element() && s.tag_name().name() == name).count()
 }
 
-fn matches_compound(c: &Compound, n: Node) -> bool {
+fn matches_compound(c: &Compound, n: Node, nth_of: &dyn Fn(Node) -> usize) -> bool {
     if !n.is_element() {
         return false;
     }
@@ -122,7 +133,7 @@ fn matches_compound(c: &Compound, n: Node) -> bool {
         }
     }
     if let Some(nth) = c.nth
-        && nth_of_type(n) != nth
+        && nth_of(n) != nth
     {
         return false;
     }
@@ -131,7 +142,13 @@ fn matches_compound(c: &Compound, n: Node) -> bool {
 
 /// The selector a finding uses for an element: its id where it has one, otherwise
 /// a child path from the nearest ancestor that does.
+#[cfg(test)]
 pub fn target(node: Node) -> String {
+    target_with(node, &|_| true)
+}
+
+/// `usable` says whether an element's id addresses it alone; a later duplicate's does not.
+pub fn target_with(node: Node, usable: &dyn Fn(Node) -> bool) -> String {
     if !node.is_element() {
         return ":root".into();
     }
@@ -141,6 +158,7 @@ pub fn target(node: Node) -> String {
         if let Some(id) = n.attribute("id")
             && !id.is_empty()
             && id.chars().all(is_name)
+            && usable(n)
         {
             parts.push(format!("#{id}"));
             break;

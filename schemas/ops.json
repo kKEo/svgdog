@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://svgdoc.example/schema/ops-1.json",
+  "title": "svgdoc edit operations",
+  "description": "Input of edit --ops: an array of operations, or an object with an ops array such as a finding's fix.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ops"
+    },
+    {
+      "type": "object",
+      "required": [
+        "ops"
+      ],
+      "properties": {
+        "safe": {
+          "type": "boolean"
+        },
+        "ops": {
+          "$ref": "#/$defs/ops"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "ops": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/op"
+      }
+    },
+    "op": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Set an attribute or an inline style property",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "target",
+            "value"
+          ],
+          "properties": {
+            "op": {
+              "const": "set"
+            },
+            "target": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Selector: #id, tag, tag[attr=\"value\"], :nth-of-type(n), joined by ' > '. Every match is changed. comment(N) addresses the N-th comment for remove. Targets refer to the file as it was before the batch."
+            },
+            "attr": {
+              "type": "string"
+            },
+            "style": {
+              "type": "string",
+              "description": "A property of the inline style; use it when a style, not an attribute, governs the value"
+            },
+            "value": {
+              "type": [
+                "string",
+                "number"
+              ]
+            }
+          },
+          "oneOf": [
+            {
+              "required": [
+                "attr"
+              ]
+            },
+            {
+              "required": [
+                "style"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "description": "Remove an element, an attribute or an inline style property",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "target"
+          ],
+          "properties": {
+            "op": {
+              "const": "remove"
+            },
+            "target": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Selector: #id, tag, tag[attr=\"value\"], :nth-of-type(n), joined by ' > '. Every match is changed. comment(N) addresses the N-th comment for remove. Targets refer to the file as it was before the batch."
+            },
+            "attr": {
+              "type": "string",
+              "description": "Remove this attribute instead of the element; a trailing * matches a prefix"
+            },
+            "style": {
+              "type": "string"
+            }
+          },
+          "not": {
+            "required": [
+              "attr",
+              "style"
+            ]
+          }
+        },
+        {
+          "type": "object",
+          "description": "Shift an element by dx, dy in its parent's units",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "target"
+          ],
+          "properties": {
+            "op": {
+              "const": "move"
+            },
+            "target": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Selector: #id, tag, tag[attr=\"value\"], :nth-of-type(n), joined by ' > '. Every match is changed. comment(N) addresses the N-th comment for remove. Targets refer to the file as it was before the batch."
+            },
+            "dx": {
+              "type": "number"
+            },
+            "dy": {
+              "type": "number"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "Rename one element's id; references follow when it is the first element with that id",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "target",
+            "to"
+          ],
+          "properties": {
+            "op": {
+              "const": "rename-id"
+            },
+            "target": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Selector: #id, tag, tag[attr=\"value\"], :nth-of-type(n), joined by ' > '. Every match is changed. comment(N) addresses the N-th comment for remove. Targets refer to the file as it was before the batch."
+            },
+            "to": {
+              "type": "string",
+              "pattern": "^[A-Za-z_][-A-Za-z0-9_.]*$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "Insert an element under the target. On an SVG this adds one element; on a diagram spec (with render) it adds a node",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "target",
+            "tag"
+          ],
+          "properties": {
+            "op": {
+              "const": "add-node"
+            },
+            "target": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Selector: #id, tag, tag[attr=\"value\"], :nth-of-type(n), joined by ' > '. Every match is changed. comment(N) addresses the N-th comment for remove. Targets refer to the file as it was before the batch."
+            },
+            "tag": {
+              "type": "string"
+            },
+            "attrs": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "text": {
+              "type": "string"
+            },
+            "at": {
+              "enum": [
+                "start",
+                "end"
+              ],
+              "default": "end",
+              "description": "start places it before the first drawn child, so it paints underneath"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

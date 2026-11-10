@@ -15,8 +15,8 @@ use serde_json::{Map, Value, json};
 
 use crate::catalogue::{self, Group, INVALID_SUPPRESSION};
 use crate::config::Settings;
-use crate::envelope::{Finding, Severity};
-use crate::svg::{self, Scene, selector};
+use crate::envelope::{Finding, Fix, Severity};
+use crate::svg::{self, Scene};
 use crate::util::num;
 
 pub struct Raw<'a, 'i> {
@@ -26,6 +26,7 @@ pub struct Raw<'a, 'i> {
     pub message: String,
     pub measured: Vec<(&'static str, Value)>,
     pub approximate: bool,
+    pub fix: Option<Fix>,
 }
 
 pub struct Ctx<'s, 'a, 'i> {
@@ -41,11 +42,31 @@ impl<'s, 'a, 'i> Ctx<'s, 'a, 'i> {
     }
 
     pub fn push(&mut self, rule: &'static str, node: Node<'a, 'i>, bbox: Option<Rect>, message: String, measured: Vec<(&'static str, Value)>) {
-        self.out.push(Raw { rule, node, bbox, message, measured, approximate: false });
+        self.out.push(Raw { rule, node, bbox, message, measured, approximate: false, fix: None });
     }
 
     pub fn push_approx(&mut self, rule: &'static str, node: Node<'a, 'i>, bbox: Option<Rect>, message: String, measured: Vec<(&'static str, Value)>) {
-        self.out.push(Raw { rule, node, bbox, message, measured, approximate: true });
+        self.out.push(Raw { rule, node, bbox, message, measured, approximate: true, fix: None });
+    }
+
+    /// Attach an autofix to the finding pushed last.
+    pub fn fix(&mut self, safe: bool, ops: Vec<Value>) {
+        if let Some(last) = self.out.last_mut()
+            && !ops.is_empty()
+        {
+            last.fix = Some(Fix { safe, ops });
+        }
+    }
+
+    pub fn target(&self, node: Node) -> String {
+        self.scene.target(node)
+    }
+
+    /// An operation that sets a presentation property where it takes effect:
+    /// in the inline style when a style already governs it, else as an attribute.
+    pub fn set_prop(&self, node: Node<'a, 'i>, prop: &str, value: Value) -> Value {
+        let key = if self.scene.css.styled(node, prop) { "style" } else { "attr" };
+        json!({ "op": "set", "target": self.target(node), key: prop, "value": value })
     }
 }
 
@@ -69,6 +90,7 @@ fn suppressions<'a, 'i>(scene: &Scene<'a, 'i>, file: &str, findings: &mut Vec<Fi
                 bbox: None,
                 message,
                 measured: None,
+                fix: None,
             });
         };
         let Some((ids, reason)) = rest.split_once(':') else {
@@ -132,6 +154,7 @@ pub fn analyze(file: &str, src: &str, set: &Settings) -> Vec<Finding> {
                     bbox: None,
                     message: format!("The file is not well-formed XML: {e}."),
                     measured: None,
+                    fix: None,
                 });
             }
             return findings;
@@ -164,11 +187,12 @@ pub fn analyze(file: &str, src: &str, set: &Settings) -> Vec<Finding> {
             rule: raw.rule,
             severity,
             file: file.to_string(),
-            target: selector::target(raw.node),
+            target: scene.target(raw.node),
             line: scene.line(raw.node),
             bbox: raw.bbox.map(bbox_json),
             message: raw.message,
             measured: (!measured.is_empty()).then_some(measured),
+            fix: raw.fix,
         });
     }
     findings.sort_by(|a, b| (a.line, a.rule, &a.target, &a.message).cmp(&(b.line, b.rule, &b.target, &b.message)));

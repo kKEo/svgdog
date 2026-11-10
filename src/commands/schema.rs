@@ -7,10 +7,8 @@ pub fn run(name: SchemaName) -> Result<Output, AppError> {
         SchemaName::Config => include_str!("../../schemas/config.json"),
         SchemaName::Findings => include_str!("../../schemas/findings.json"),
         SchemaName::Scene => include_str!("../../schemas/scene.json"),
-        SchemaName::Ops => {
-            return Err(AppError::usage("not-implemented", "The ops schema arrives with the edit and fix commands; this build has validate, inspect, schema and rules."));
-        }
+        SchemaName::Ops => include_str!("../../schemas/ops.json"),
     };
     let json = serde_json::from_str(text).expect("bundled schema is valid JSON");
-    Ok(Output { json, text: text.to_string(), exit: EXIT_OK })
+    Ok(Output { json, text: text.to_string(), exit: EXIT_OK, raw: None })
 }

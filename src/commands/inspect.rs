@@ -3,7 +3,7 @@ use serde_json::{Map, Value, json};
 use super::read_input;
 use crate::envelope::{AppError, EXIT_OK, Output, head};
 use crate::rules::bbox_json;
-use crate::svg::selector::{self, Selector};
+use crate::svg::selector::Selector;
 use crate::svg::{self, Kind, Scene};
 use crate::util::{did_you_mean, fmt};
 
@@ -46,7 +46,7 @@ pub fn run(file: &str, select: Option<&str>, depth: Option<usize>, fields: &[Str
             continue;
         }
         let mut m = Map::new();
-        let target = selector::target(e.node);
+        let target = scene.target(e.node);
         m.insert("target".into(), json!(target));
         m.insert("line".into(), json!(scene.line(e.node)));
         m.insert("depth".into(), json!(e.depth));
@@ -103,5 +103,5 @@ pub fn run(file: &str, select: Option<&str>, depth: Option<usize>, fields: &[Str
     m.insert("summary".into(), json!({ "elements": scene.elems.len(), "returned": elements.len() }));
     text.push_str(&format!("\n{} of {} visible elements\n", elements.len(), scene.elems.len()));
     m.insert("elements".into(), Value::Array(elements));
-    Ok(Output { json: Value::Object(m), text, exit: EXIT_OK })
+    Ok(Output { json: Value::Object(m), text, exit: EXIT_OK, raw: None })
 }

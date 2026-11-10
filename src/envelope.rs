@@ -10,7 +10,6 @@ pub const EXIT_OK: i32 = 0;
 pub const EXIT_FINDINGS: i32 = 1;
 pub const EXIT_USAGE: i32 = 2;
 pub const EXIT_INPUT: i32 = 3;
-#[allow(dead_code)] // used once commands write files
 pub const EXIT_OUTPUT: i32 = 4;
 pub const EXIT_INTERNAL: i32 = 5;
 
@@ -52,6 +51,16 @@ pub struct Finding {
     pub message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub measured: Option<Map<String, Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fix: Option<Fix>,
+}
+
+/// An autofix: operations in the `edit --ops` format.
+#[derive(Clone, Debug, Serialize)]
+pub struct Fix {
+    /// True when `fix` applies it without --unsafe.
+    pub safe: bool,
+    pub ops: Vec<Value>,
 }
 
 #[derive(Clone, Debug, Default, Serialize)]
@@ -136,4 +145,6 @@ pub struct Output {
     pub json: Value,
     pub text: String,
     pub exit: i32,
+    /// When set, this goes to stdout in place of the envelope (`-o -`).
+    pub raw: Option<String>,
 }
