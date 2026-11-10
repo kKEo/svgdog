@@ -181,6 +181,13 @@
           "description": "Finding boxes outlined on the image"
         }
       }
+    },
+    "formatting": {
+      "enum": [
+        "preserved",
+        "rewritten"
+      ],
+      "description": "edit on a spec: whether comments and layout were kept, or the spec was rewritten in canonical form"
     }
   },
   "oneOf": [

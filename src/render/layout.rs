@@ -15,6 +15,19 @@ pub const NOTE_GAP: f64 = 24.0;
 /// Share of the measured width kept free for font substitution at the reader's end.
 pub const RESERVE: f64 = 0.08;
 
+/// How tightly a diagram is set. Render starts with the roomiest level and moves
+/// to a tighter one only when the drawing would be wider than max_width.
+#[derive(Clone, Copy, Debug)]
+pub struct Tuning {
+    /// Widest a node label runs before it wraps.
+    pub wrap: f64,
+    pub note_wrap: f64,
+    /// Room kept beside an edge label in the gap it sits in.
+    pub label_pad: f64,
+}
+
+pub const LEVELS: [Tuning; 3] = [Tuning { wrap: 160.0, note_wrap: 168.0, label_pad: 32.0 }, Tuning { wrap: 120.0, note_wrap: 136.0, label_pad: 24.0 }, Tuning { wrap: 88.0, note_wrap: 104.0, label_pad: 16.0 }];
+
 pub fn up(v: f64, step: f64) -> f64 {
     ((v - 1e-9) / step).ceil() * step
 }
@@ -83,13 +96,13 @@ pub struct Measured {
     pub edge_label: Vec<Option<(f64, f64)>>,
 }
 
-pub fn measure(spec: &Spec) -> Measured {
+pub fn measure(spec: &Spec, t: &Tuning) -> Measured {
     let nodes = spec
         .nodes
         .iter()
         .map(|n| {
             let fixed = n.width.map(|w| up(w, 16.0));
-            let text = block(&n.label, FONT, fixed.map(|w| (w - 32.0).max(24.0)).unwrap_or(160.0));
+            let text = block(&n.label, FONT, fixed.map(|w| (w - 32.0).max(24.0)).unwrap_or(t.wrap));
             let lines = text.lines.len() as f64;
             let (w, h, text_dy) = match n.kind {
                 Kind::Decision => (up(text.width * 1.5 + 48.0, 16.0).max(128.0), up(lines * 20.0 + 44.0, 16.0).max(64.0), 0.0),
@@ -107,7 +120,7 @@ pub fn measure(spec: &Spec) -> Measured {
         .notes
         .iter()
         .map(|n| {
-            let text = block(&n.text, SMALL, 168.0);
+            let text = block(&n.text, SMALL, t.note_wrap);
             NoteBox { w: up(text.width + 20.0, 16.0).max(64.0), h: up(text.lines.len() as f64 * 16.0 + 14.0, 16.0).max(32.0), text }
         })
         .collect();
@@ -207,7 +220,7 @@ fn level_edges(spec: &Spec, m: &Measured, kids: &[Ref]) -> Vec<(usize, usize, f6
 ///
 /// `anchor` is where edges meet each box across the flow, measured from the box's
 /// start; lining anchors up, not box centres, is what keeps edges straight.
-fn layered(sizes: &[(f64, f64)], anchor: &[f64], edges: &[(usize, usize, f64)], dir: Direction) -> (Vec<Point>, (f64, f64)) {
+fn layered(sizes: &[(f64, f64)], anchor: &[f64], edges: &[(usize, usize, f64)], dir: Direction, pad: f64) -> (Vec<Point>, (f64, f64)) {
     let n = sizes.len();
     let main = |i: usize| if dir == Direction::Right { sizes[i].0 } else { sizes[i].1 };
     let cross = |i: usize| if dir == Direction::Right { sizes[i].1 } else { sizes[i].0 };
@@ -303,7 +316,7 @@ fn layered(sizes: &[(f64, f64)], anchor: &[f64], edges: &[(usize, usize, f64)], 
             m_pos[v] = at + snap((band - main(v)) / 2.0);
         }
         let label = edges.iter().filter(|(a, b, _)| rank[*a].min(rank[*b]) <= r && rank[*a].max(rank[*b]) > r).map(|e| e.2).fold(0.0, f64::max);
-        let gap = if dir == Direction::Right && label > 0.0 { up(label + 32.0, 8.0).max(RANK_GAP) } else { RANK_GAP };
+        let gap = if dir == Direction::Right && label > 0.0 { up(label + pad, 8.0).max(RANK_GAP) } else { RANK_GAP };
         at += band + gap;
     }
 
@@ -358,6 +371,7 @@ fn row(sizes: &[(f64, f64)], gap: f64, dir: Direction) -> (Vec<Point>, (f64, f64
 struct Build<'a> {
     spec: &'a Spec,
     m: &'a Measured,
+    t: &'a Tuning,
     /// Footprint of every node and group, and children placed relative to a group's frame.
     node_foot: Vec<Option<Foot>>,
     group_foot: Vec<Option<Foot>>,
@@ -426,10 +440,10 @@ impl Build<'_> {
         let edges = level_edges(self.spec, self.m, kids);
         if as_row {
             let label = edges.iter().map(|e| e.2).fold(0.0, f64::max);
-            let gap = if self.spec.direction == Direction::Right { up(label + 40.0, 8.0).max(48.0) } else { 48.0 };
+            let gap = if self.spec.direction == Direction::Right { up(label + self.t.label_pad + 8.0, 8.0).max(48.0) } else { 48.0 };
             row(&sizes, gap, self.spec.direction)
         } else {
-            layered(&sizes, &anchors, &edges, self.spec.direction)
+            layered(&sizes, &anchors, &edges, self.spec.direction, self.t.label_pad)
         }
     }
 
@@ -456,11 +470,12 @@ impl Build<'_> {
     }
 }
 
-pub fn layout(spec: &Spec, m: &Measured) -> Geometry {
+pub fn layout(spec: &Spec, m: &Measured, t: &Tuning) -> Geometry {
     let mut out = Geometry { nodes: vec![Rect::ZERO; spec.nodes.len()], groups: vec![Rect::ZERO; spec.groups.len()], notes: vec![None; spec.notes.len()] };
     let mut b = Build {
         spec,
         m,
+        t,
         node_foot: (0..spec.nodes.len()).map(|_| None).collect(),
         group_foot: (0..spec.groups.len()).map(|_| None).collect(),
         group_size: vec![(0.0, 0.0); spec.groups.len()],

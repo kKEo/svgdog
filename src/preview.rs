@@ -185,6 +185,53 @@ mod tests {
         }
     }
 
+    /// The same comparison on every drawn element of every fixture and golden file:
+    /// each element gets an id, so the renderer's node can be found, and the two
+    /// boxes must agree. This is what stands behind using the scene's boxes in rules.
+    #[test]
+    fn every_fixture_element_matches_the_renderer() {
+        use crate::ops::{self, Op};
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests");
+        let files = ["fixtures/orders.svg", "fixtures/broken.svg", "golden/orders.svg", "golden/checkout.svg", "golden/tiers.svg", "golden/rack.svg", "golden/login.svg"];
+        let (mut compared, mut texts) = (0, 0);
+        for f in files {
+            let src = std::fs::read_to_string(root.join(f)).unwrap();
+            // Give every drawn element without an id one of its own.
+            let tagged = {
+                let doc = roxmltree::Document::parse_with_options(&src, crate::svg::parse_options()).unwrap();
+                let scene = Scene::build(&doc);
+                let list: Vec<Op> = scene.elems.iter().enumerate().filter(|(_, e)| e.node.attribute("id").is_none()).map(|(i, e)| Op::SetAttr { target: scene.target(e.node), attr: "id".into(), value: format!("probe-{i}") }).collect();
+                ops::apply(&src, &list).unwrap().text
+            };
+            let doc = roxmltree::Document::parse_with_options(&tagged, crate::svg::parse_options()).unwrap();
+            let scene = Scene::build(&doc);
+            let tree = usvg::Tree::from_str(&tagged, &options()).unwrap();
+            for e in scene.elems.iter().filter(|e| e.is_leaf()) {
+                let (Some(mine), Some(id)) = (e.bbox, e.node.attribute("id")) else { continue };
+                // The duplicate id in broken.svg resolves to the first element only.
+                if scene.ids.get(id).is_some_and(|v| v.len() > 1) {
+                    continue;
+                }
+                let Some(node) = tree.node_by_id(id) else { continue };
+                let t = node.abs_bounding_box();
+                let (tx0, ty0, tx1, ty1) = (t.left() as f64, t.top() as f64, t.right() as f64, t.bottom() as f64);
+                if matches!(e.kind, crate::svg::Kind::Text(_)) {
+                    // Ours is the line box, the renderer's the ink: same extent sideways within
+                    // side bearings, and the ink lies inside our box top to bottom.
+                    let slack = 1.0 + 0.04 * mine.width();
+                    assert!((mine.x0 - tx0).abs() < slack && (mine.x1 - tx1).abs() < slack, "{f} #{id} text x: {mine:?} vs {t:?}");
+                    assert!(mine.y0 <= ty0 + 1.0 && mine.y1 >= ty1 - 1.0, "{f} #{id} text y: {mine:?} vs {t:?}");
+                    texts += 1;
+                } else if matches!(e.kind, crate::svg::Kind::Shape { .. }) {
+                    let ok = (mine.x0 - tx0).abs() < 0.3 && (mine.y0 - ty0).abs() < 0.3 && (mine.x1 - tx1).abs() < 0.3 && (mine.y1 - ty1).abs() < 0.3;
+                    assert!(ok, "{f} #{id} <{}>: {mine:?} vs {t:?}", e.tag);
+                    compared += 1;
+                }
+            }
+        }
+        assert!(compared > 120 && texts > 60, "compared only {compared} shapes and {texts} texts");
+    }
+
     #[test]
     fn width_and_height_are_bounded() {
         let tall = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 1000\"><rect width=\"100\" height=\"1000\"/></svg>";

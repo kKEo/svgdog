@@ -37,12 +37,13 @@ pub fn run(file: &str, set: &[String], ops_arg: Option<&str>, inline: Option<&se
     if !src.trim_start().starts_with('<') {
         // A diagram spec: change it as data, check it still renders, and report what the drawing would say.
         let mut doc = spec::read_document(&src, file)?;
-        let applied = spec_edit::apply(&mut doc, &list)?;
+        let edited = spec_edit::edit(&src, &mut doc, &list)?;
         let parsed = spec::parse(&doc)?;
-        let after = if applied == 0 { src.clone() } else { spec_edit::write(&doc, spec::is_json(&src))? };
+        let (applied, after) = (edited.applied, edited.text);
         let svg = render::render(&parsed, &render::Options { theme: None, fonts: cfg.fonts(), text_as_paths: false })?;
-        let note = format!("{applied} of {} operation{} changed the spec. Findings are for the diagram it renders.\n", list.len(), if list.len() == 1 { "" } else { "s" });
-        let extra = vec![("operations", json!({ "given": list.len(), "applied": applied }))];
+        let how = if edited.preserved { "Comments and layout are kept." } else { "The spec was rewritten in canonical form; comments are not kept." };
+        let note = format!("{applied} of {} operation{} changed the spec. {how} Findings are for the diagram it renders.\n", list.len(), if list.len() == 1 { "" } else { "s" });
+        let extra = vec![("operations", json!({ "given": list.len(), "applied": applied })), ("formatting", json!(if edited.preserved { "preserved" } else { "rewritten" }))];
         return finish("edit", file, &src, after, dest, &settings, extra, note, paint, Some(&svg));
     }
 

@@ -11,6 +11,7 @@ use crate::util::did_you_mean;
 pub enum Diagram {
     Flow,
     Layers,
+    Sequence,
     Free,
 }
 
@@ -239,8 +240,8 @@ pub fn parse(doc: &Value) -> Result<Spec, AppError> {
         Some("flow") => Diagram::Flow,
         Some("layers") => Diagram::Layers,
         Some("free") => Diagram::Free,
-        Some(_) => return Err(err("not-implemented", "diagram", "Sequence diagrams are not in this version; use flow, layers or free.".into())),
-        None => return Err(err("missing-field", "diagram", "Missing required field 'diagram'.".into()).suggest(Some("Use one of: flow, layers, free.".into()))),
+        Some(_) => Diagram::Sequence,
+        None => return Err(err("missing-field", "diagram", "Missing required field 'diagram'.".into()).suggest(Some("Use one of: flow, layers, sequence, free.".into()))),
     };
     let title = string(root, "", "title", true, 1, 120)?.unwrap();
     let description = string(root, "", "description", false, 0, 500)?;
@@ -376,8 +377,12 @@ pub fn parse(doc: &Value) -> Result<Spec, AppError> {
         }
     };
     for (i, e) in edges.iter().enumerate() {
-        known(&e.from, format!("edges[{i}].from"), false)?;
-        known(&e.to, format!("edges[{i}].to"), false)?;
+        for (id, end) in [(&e.from, "from"), (&e.to, "to")] {
+            let r = known(id, format!("edges[{i}].{end}"), false)?;
+            if diagram == Diagram::Sequence && !matches!(r, Ref::Node(_)) {
+                return Err(err("invalid-value", &format!("edges[{i}].{end}"), format!("edges[{i}].{end} names the group '{id}'; in a sequence diagram a message joins two nodes.")));
+            }
+        }
     }
     for (i, n) in notes.iter().enumerate() {
         known(&n.attach, format!("notes[{i}].attach"), true)?;

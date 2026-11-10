@@ -13,6 +13,7 @@ mod spec;
 mod spec_edit;
 mod svg;
 mod util;
+mod yaml_patch;
 
 use std::io::{IsTerminal, Write};
 

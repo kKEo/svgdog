@@ -2,6 +2,7 @@
 
 pub mod layout;
 pub mod route;
+mod sequence;
 pub mod theme;
 
 use std::collections::BTreeMap;
@@ -13,7 +14,7 @@ use crate::spec::{Arrow, Diagram, Direction, EdgeStyle, Kind, Ref, Side, Spec};
 use crate::svg::text::{self, Class};
 use crate::svg::{self, SVG_NS};
 use crate::util::{did_you_mean, fmt};
-use layout::{Geometry, Measured};
+use layout::{Geometry, Measured, Tuning};
 use route::{Dir, Grid};
 use theme::{FONT, SMALL, STROKE, THIN};
 
@@ -27,16 +28,16 @@ pub struct Options<'a> {
 
 const STUB: f64 = 16.0;
 
-enum Part {
+pub(crate) enum Part {
     Rect { r: Rect, rx: f64, dashed: bool },
     Path { d: String, filled: bool },
     Polygon(Vec<Point>),
     Line(Point, Point),
 }
 
-struct Shape {
+pub(crate) struct Shape {
     /// Flattened silhouette, for landing connectors exactly on the edge.
-    outline: Vec<Vec<Point>>,
+    pub outline: Vec<Vec<Point>>,
     parts: Vec<Part>,
 }
 
@@ -94,7 +95,7 @@ fn shape(kind: Kind, r: Rect) -> Shape {
 }
 
 /// Slide a point on a box side inwards until it meets the outline.
-fn land(outline: &[Vec<Point>], p: Point, outward: Dir) -> Point {
+pub(crate) fn land(outline: &[Vec<Point>], p: Point, outward: Dir) -> Point {
     let inward = outward.opposite().vec();
     let mut best: Option<f64> = None;
     for poly in outline {
@@ -142,7 +143,7 @@ fn sides(a: Rect, b: Rect, dir: Direction, diagram: Diagram) -> (Dir, Dir) {
         (true, true) => match diagram {
             Diagram::Flow => along_main,
             Diagram::Layers => along_cross,
-            Diagram::Free => if mg >= cg { along_main } else { along_cross },
+            Diagram::Free | Diagram::Sequence => if mg >= cg { along_main } else { along_cross },
         },
         (false, false) => (fwd, back),
     }
@@ -165,16 +166,19 @@ fn esc_attr(s: &str) -> String {
     esc(s).replace('"', "&quot;")
 }
 
-struct Label {
-    rect: Rect,
-    text: String,
+pub(crate) struct Label {
+    pub rect: Rect,
+    pub text: String,
 }
 
-struct Drawn {
+/// Everything placed and ready to write.
+pub(crate) struct Drawn {
     geo: Geometry,
     routes: Vec<Vec<Point>>,
     labels: Vec<Option<Label>>,
     leaders: Vec<Option<(Point, Point)>>,
+    /// Sequence diagrams only: the line under each node's header.
+    lifelines: Vec<Option<(Point, Point)>>,
     size: (f64, f64),
 }
 
@@ -207,8 +211,8 @@ fn midpoint(route: &[Point]) -> Point {
     route.first().copied().unwrap_or(Point::ZERO)
 }
 
-fn arrange(spec: &Spec, m: &Measured, shapes_of: &dyn Fn(usize, Rect) -> Shape) -> Drawn {
-    let mut geo = layout::layout(spec, m);
+fn arrange(spec: &Spec, m: &Measured, t: &Tuning, shapes_of: &dyn Fn(usize, Rect) -> Shape) -> Drawn {
+    let mut geo = layout::layout(spec, m, t);
 
     // Work in positive coordinates with room around the content for routes.
     let all = |geo: &Geometry| geo.nodes.iter().chain(&geo.groups).chain(geo.notes.iter().flatten()).copied().reduce(|a, b| a.union(b)).unwrap_or(Rect::ZERO);
@@ -439,8 +443,16 @@ fn arrange(spec: &Spec, m: &Measured, shapes_of: &dyn Fn(usize, Rect) -> Shape) 
         leaders.push(Some(line));
     }
 
-    // Fit the canvas to everything drawn, with a margin that scales down for small diagrams.
+    fit(geo, routes, labels, leaders, vec![None; spec.nodes.len()])
+}
+
+/// Fit the canvas to everything drawn, with a margin that scales down for small diagrams.
+pub(crate) fn fit(mut geo: Geometry, mut routes: Vec<Vec<Point>>, mut labels: Vec<Option<Label>>, mut leaders: Vec<Option<(Point, Point)>>, mut lifelines: Vec<Option<(Point, Point)>>) -> Drawn {
+    let all = |geo: &Geometry| geo.nodes.iter().chain(&geo.groups).chain(geo.notes.iter().flatten()).copied().reduce(|a, b| a.union(b)).unwrap_or(Rect::ZERO);
     let mut b = all(&geo);
+    for l in lifelines.iter().flatten() {
+        b = b.union(Rect::from_points(l.0, l.1));
+    }
     for r in &routes {
         for p in r {
             b = b.union(Rect::from_center_size(*p, (4.0, 4.0)));
@@ -468,10 +480,10 @@ fn arrange(spec: &Spec, m: &Measured, shapes_of: &dyn Fn(usize, Rect) -> Shape) 
     for l in labels.iter_mut().flatten() {
         l.rect = l.rect + shift;
     }
-    for l in leaders.iter_mut().flatten() {
+    for l in leaders.iter_mut().chain(lifelines.iter_mut()).flatten() {
         *l = (l.0 + shift, l.1 + shift);
     }
-    Drawn { geo, routes, labels, leaders, size: (cw + 2.0 * mx, ch + 2.0 * my) }
+    Drawn { geo, routes, labels, leaders, lifelines, size: (cw + 2.0 * mx, ch + 2.0 * my) }
 }
 
 struct Writer {
@@ -538,13 +550,27 @@ pub fn render(spec: &Spec, opt: &Options) -> Result<String, AppError> {
         let e = if opt.theme.is_some() { AppError::usage("unknown-theme", format!("Unknown theme '{name}'.")) } else { AppError::input("unknown-theme", format!("Unknown theme '{name}'.")).path("theme") };
         e.suggest(did_you_mean(name, theme::names()).or(Some(format!("Themes: {}.", theme::names().collect::<Vec<_>>().join(", ")))))
     })?;
-    let m = layout::measure(spec);
     let kinds: Vec<Kind> = spec.nodes.iter().map(|n| n.kind).collect();
-    let d = arrange(spec, &m, &|i, r| shape(kinds[i], r));
+    // Set the diagram as roomily as fits: tighter wrapping and gaps are tried only
+    // when the drawing would be wider than max_width.
+    let mut chosen = None;
+    for t in &layout::LEVELS {
+        let m = layout::measure(spec, t);
+        let d = match spec.diagram {
+            Diagram::Sequence => sequence::arrange(spec, &m, t, &|i, r| shape(kinds[i], r)),
+            _ => arrange(spec, &m, t, &|i, r| shape(kinds[i], r)),
+        };
+        let fits = d.size.0 <= spec.max_width + 1e-6;
+        chosen = Some((m, d));
+        if fits {
+            break;
+        }
+    }
+    let (m, d) = chosen.expect("there is at least one layout level");
     let (w, h) = d.size;
     if w > spec.max_width + 1e-6 {
-        let hint = if spec.diagram != Diagram::Free && spec.direction == Direction::Right { "Try 'direction: down', shorter labels, or a larger max_width." } else { "Try shorter labels, fewer boxes side by side, or a larger max_width." };
-        return Err(AppError::input("too-wide", format!("The drawing is {} px wide; max_width allows {}.", fmt(w), fmt(spec.max_width))).path("max_width").suggest(Some(hint.into())));
+        let hint = if matches!(spec.diagram, Diagram::Flow | Diagram::Layers) && spec.direction == Direction::Right { "Try 'direction: down', shorter labels, or a larger max_width." } else { "Try shorter labels, fewer boxes side by side, or a larger max_width." };
+        return Err(AppError::input("too-wide", format!("The drawing is {} px wide even at the tightest spacing; max_width allows {}.", fmt(w), fmt(spec.max_width))).path("max_width").suggest(Some(hint.into())));
     }
 
     let family = if opt.fonts.is_empty() { "Inter, sans-serif".to_string() } else { opt.fonts.join(", ") };
@@ -585,6 +611,9 @@ pub fn render(spec: &Spec, opt: &Options) -> Result<String, AppError> {
         let r = d.geo.nodes[i];
         let (fill, ink) = if n.emphasis { (theme.accent_fill, theme.accent_text) } else { (theme.node_fill, theme.text) };
         wr.out.push_str(&format!("  <g id=\"node-{}\">\n", n.id));
+        if let Some((a, b)) = d.lifelines[i] {
+            wr.out.push_str(&format!("    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-dasharray=\"4 4\"/>\n", fmt(a.x), fmt(a.y), fmt(b.x), fmt(b.y), theme.muted, fmt(THIN)));
+        }
         for p in &shape(n.kind, r).parts {
             wr.part(p, fill, theme.node_stroke);
         }

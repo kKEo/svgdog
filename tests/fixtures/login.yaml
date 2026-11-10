@@ -1,0 +1,28 @@
+version: 1
+diagram: sequence
+title: Login with a one-time code
+description: The messages exchanged when a user signs in with a code sent by email.
+nodes:
+  - {id: user, label: User, kind: actor}
+  - {id: app, label: Web app, kind: client}
+  - {id: auth, label: Auth service, kind: service, emphasis: true}
+  - {id: db, label: Users DB, kind: datastore}
+  - {id: mail, label: Mail provider, kind: external}
+groups:
+  - {id: backend, label: Backend, members: [auth, db]}
+edges:
+  - {from: user, to: app, label: enter email}
+  - {from: app, to: auth, label: POST /login}
+  - {from: auth, to: db, label: find user}
+  - {from: db, to: auth, label: user row, style: async, id: found}
+  - {from: auth, to: auth, label: create code, id: make-code}
+  - {from: auth, to: mail, label: send code, style: async}
+  - {from: auth, to: app, label: 202 Accepted, style: async, id: accepted}
+  - {from: app, to: user, label: ask for the code, style: async, id: prompt}
+  - {from: user, to: app, label: enter code, id: code-in}
+  - {from: app, to: auth, label: POST /verify, id: verify}
+  - {from: auth, to: app, label: session cookie, style: async, id: session}
+notes:
+  - {attach: make-code, text: "Six digits, valid for ten minutes"}
+  - {attach: mail, text: Third-party service}
+  - {attach: backend, text: Runs in the private network}

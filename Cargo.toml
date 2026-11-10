@@ -1,6 +1,6 @@
 [package]
 name = "svgdoc"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
 
 [dependencies]
@@ -16,6 +16,7 @@ serde_yaml_ng = "0.10.0"
 simplecss = "0.2.2"
 svgtypes = "0.16.2"
 toml = "1.2.1"
+yaml-rust2 = "0.13.0"
 
 [dev-dependencies]
 jsonschema = { version = "0.61.1", default-features = false }

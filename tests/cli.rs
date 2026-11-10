@@ -752,7 +752,7 @@ fn the_spec_example_renders_clean() {
 
 #[test]
 fn every_fixture_and_theme_renders_without_errors_or_warnings() {
-    for name in [ORDERS, "tests/fixtures/checkout.yaml", "tests/fixtures/tiers.yaml", "tests/fixtures/rack.yaml"] {
+    for name in [ORDERS, "tests/fixtures/checkout.yaml", "tests/fixtures/tiers.yaml", "tests/fixtures/rack.yaml", "tests/fixtures/login.yaml"] {
         for theme in ["docs-light", "docs-dark"] {
             let (v, _) = render_fixture(name, &["--theme", theme]);
             let bad: Vec<&Value> = v["findings"].as_array().unwrap().iter().filter(|f| f["rule"] != "desc-missing" && f["rule"] != "label-on-line").collect();
@@ -788,7 +788,7 @@ fn every_node_kind_renders_clean_in_both_directions() {
 #[test]
 fn rendered_svg_uses_only_the_portable_subset() {
     let allowed = ["svg", "g", "rect", "circle", "ellipse", "line", "polyline", "polygon", "path", "text", "tspan", "defs", "marker", "title", "desc"];
-    for name in [ORDERS, "tests/fixtures/checkout.yaml", "tests/fixtures/tiers.yaml", "tests/fixtures/rack.yaml"] {
+    for name in [ORDERS, "tests/fixtures/checkout.yaml", "tests/fixtures/tiers.yaml", "tests/fixtures/rack.yaml", "tests/fixtures/login.yaml"] {
         let (_, svg) = render_fixture(name, &[]);
         for tag in svg.split('<').skip(1).filter(|t| !t.starts_with('/')) {
             let tag = tag.split(|c: char| c.is_whitespace() || c == '>' || c == '/').next().unwrap();
@@ -840,7 +840,7 @@ fn r16_ids_survive_adding_a_node() {
 #[test]
 fn spec_fixtures_satisfy_the_published_schema() {
     let v = schema("spec");
-    for name in [ORDERS, "tests/fixtures/checkout.yaml", "tests/fixtures/tiers.yaml", "tests/fixtures/rack.yaml"] {
+    for name in [ORDERS, "tests/fixtures/checkout.yaml", "tests/fixtures/tiers.yaml", "tests/fixtures/rack.yaml", "tests/fixtures/login.yaml"] {
         let doc: Value = serde_yaml_ng::from_str(&fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(name)).unwrap()).unwrap();
         assert_valid(&v, &doc);
     }
@@ -873,7 +873,7 @@ fn spec_errors_name_the_path_and_suggest_a_fix() {
         (format!("{base}groups:\n  - {{id: g, members: [a, h]}}\n  - {{id: h, members: [g]}}\n"), "group-cycle", "groups[0].members"),
         (base.replace("{id: b, label: B}", "{id: b, label: B, at: [1, 2]}"), "at-outside-free", "nodes[1].at"),
         (base.replace("diagram: flow", "diagram: free"), "missing-field", "nodes[0].at"),
-        (base.replace("diagram: flow", "diagram: sequence"), "not-implemented", "diagram"),
+        (format!("{}edges:\n  - {{from: a, to: g}}\ngroups:\n  - {{id: g, members: [b]}}\n", base.replace("diagram: flow", "diagram: sequence")), "invalid-value", "edges[0].to"),
         (format!("{base}notes:\n  - {{attach: nope, text: hi}}\n"), "unknown-reference", "notes[0].attach"),
         (format!("{base}theme: neon\n"), "unknown-theme", "theme"),
         ("nodes: [".to_string(), "malformed-spec", "-"),
@@ -913,6 +913,15 @@ fn render_output_rules() {
     let e = run_in(dir.path(), &["render", "w.yaml", "-o", "w.svg"], None);
     assert_eq!((e.code, e.json()["error"]["code"].as_str()), (3, Some("too-wide")));
     assert!(!dir.path().join("w.svg").exists());
+    // A limit that the roomy layout misses but a tighter one meets is met without being asked:
+    // the example is 872 px wide by default and is set more tightly to fit 760.
+    let width = |svg: &str| svg.split("viewBox=\"0 0 ").nth(1).unwrap().split(' ').next().unwrap().parse::<f64>().unwrap();
+    assert!(width(&fs::read_to_string(dir.path().join("o.svg")).unwrap()) > 760.0);
+    let snug = fs::read_to_string(dir.path().join("o.yaml")).unwrap().replace("direction: right", "direction: right\nmax_width: 760");
+    fs::write(dir.path().join("s.yaml"), snug).unwrap();
+    let r = run_in(dir.path(), &["render", "s.yaml", "-o", "s.svg"], None);
+    assert_eq!(r.json()["findings"], serde_json::json!([]), "{}", r.stdout);
+    assert!(width(&fs::read_to_string(dir.path().join("s.svg")).unwrap()) <= 760.0);
 }
 
 #[test]
@@ -1102,7 +1111,7 @@ fn r8_output_matches_the_golden_files() {
     let update = std::env::var_os("SVGDOC_UPDATE_GOLDEN").is_some();
     let dir = tempfile::tempdir().unwrap();
     let mut produced: Vec<(String, Vec<u8>)> = Vec::new();
-    for name in ["orders", "checkout", "tiers", "rack"] {
+    for name in ["orders", "checkout", "tiers", "rack", "login"] {
         let spec = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("tests/fixtures/{name}.yaml"));
         let out = format!("{name}.svg");
         let r = run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", &out, "--no-config"], None);
@@ -1147,4 +1156,72 @@ fn r15_cold_start_is_fast() {
         })
         .fold(f64::INFINITY, f64::min);
     assert!(best < budget, "cold start took {best:.3} s");
+}
+
+#[test]
+fn sequence_diagrams_put_lifelines_in_order_and_messages_top_to_bottom() {
+    let (v, svg) = render_fixture("tests/fixtures/login.yaml", &["--theme", "docs-light"]);
+    assert_eq!(v["findings"], serde_json::json!([]), "{v:#}");
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(dir.path().join("l.svg"), &svg).unwrap();
+    let scene = run_in(dir.path(), &["inspect", "l.svg", "--depth", "1", "--fields", "id,bbox"], None).json();
+    let top = |id: &str| -> Vec<f64> {
+        let e = scene["elements"].as_array().unwrap().iter().find(|e| e["id"] == id).unwrap_or_else(|| panic!("no {id}"));
+        e["bbox"].as_array().unwrap().iter().map(|n| n.as_f64().unwrap()).collect()
+    };
+    // lifelines left to right in spec order, each a header with a line under it
+    let xs: Vec<f64> = ["node-user", "node-app", "node-auth", "node-db", "node-mail"].iter().map(|id| top(id)[0] + top(id)[2] / 2.0).collect();
+    assert!(xs.windows(2).all(|w| w[0] < w[1]), "{xs:?}");
+    assert!(top("node-user")[3] > 300.0, "a lifeline runs down the diagram");
+    // messages top to bottom in listed order
+    let ys: Vec<f64> = ["edge-user--app", "edge-app--auth", "edge-auth--db", "edge-found", "edge-make-code", "edge-auth--mail", "edge-accepted", "edge-prompt", "edge-code-in", "edge-verify", "edge-session"].iter().map(|id| top(id)[1] + top(id)[3]).collect();
+    assert!(ys.windows(2).all(|w| w[0] < w[1]), "{ys:?}");
+    // the group frames its members' headers, and a message runs between its two lifelines
+    let (frame, auth, db) = (top("group-backend"), top("node-auth"), top("node-db"));
+    assert!(frame[0] < auth[0] && frame[0] + frame[2] > db[0] + db[2]);
+    let line = svg.split("id=\"edge-app--auth\"").nth(1).unwrap().split("d=\"").nth(1).unwrap().split('"').next().unwrap().to_string();
+    let nums: Vec<f64> = line.split(|c: char| !(c.is_ascii_digit() || c == '.')).filter(|t| !t.is_empty()).map(|t| t.parse().unwrap()).collect();
+    assert_eq!((nums[0], nums[2]), (xs[1], xs[2]), "{line}");
+    assert_eq!(nums[1], nums[3], "a message is a level line: {line}");
+}
+
+/// Editing a YAML spec keeps its comments and layout; only what cannot be placed
+/// in the text makes svgdoc rewrite the file, and it says so.
+#[test]
+fn spec_edits_keep_yaml_comments() {
+    let dir = tempfile::tempdir().unwrap();
+    let src = "# Order flow, owned by the checkout team\nversion: 1\ndiagram: flow\ntitle: Orders   # shown as the image title\ndescription: How an order is placed.\n\nnodes:\n  # the public entry point\n  - id: web\n    label: Storefront\n    kind: client\n  - id: api          # owns the order lifecycle\n    label: Order API\n  - {id: db, label: Orders DB, kind: datastore}\n\ngroups:\n  - id: backend\n    label: Backend\n    members: [api, db]\n\nedges:\n  - from: web\n    to: api\n    label: POST /orders   # idempotent\n  - {from: api, to: db}\n\nnotes:\n  - attach: db\n    text: Nightly backup\n";
+    fs::write(dir.path().join("o.yaml"), src).unwrap();
+    let ops = serde_json::json!([
+        { "op": "set", "target": "#api", "attr": "label", "value": "Orders: API" },
+        { "op": "set", "target": "#api", "attr": "emphasis", "value": true },
+        { "op": "set", "target": "#db", "attr": "label", "value": "Orders store" },
+        { "op": "set", "target": ":root", "attr": "direction", "value": "down" },
+        { "op": "set", "target": "#web--api", "attr": "style", "value": "async" },
+        { "op": "remove", "target": "#web", "attr": "kind" },
+        { "op": "rename-id", "target": "#db", "to": "store" },
+        { "op": "add-node", "target": "#backend", "attrs": { "id": "cache", "label": "Cache", "kind": "datastore" } },
+        { "op": "add-edge", "from": "api", "to": "cache", "attrs": { "label": "read" } }
+    ]);
+    fs::write(dir.path().join("ops.json"), ops.to_string()).unwrap();
+    let r = run_in(dir.path(), &["edit", "o.yaml", "--ops", "ops.json", "--in-place"], None);
+    let v = r.json();
+    assert!(r.code <= 1, "{}", r.stdout);
+    assert_eq!((v["formatting"].as_str(), v["operations"]["applied"].as_u64()), (Some("preserved"), Some(9)), "{v:#}");
+    let out = fs::read_to_string(dir.path().join("o.yaml")).unwrap();
+    let want = "# Order flow, owned by the checkout team\nversion: 1\ndiagram: flow\ntitle: Orders   # shown as the image title\ndescription: How an order is placed.\n\nnodes:\n  # the public entry point\n  - id: web\n    label: Storefront\n  - id: api          # owns the order lifecycle\n    label: \"Orders: API\"\n    emphasis: true\n  - {id: store, label: Orders store, kind: datastore}\n  - {id: cache, label: Cache, kind: datastore}\n\ngroups:\n  - id: backend\n    label: Backend\n    members: [api, store, cache]\n\nedges:\n  - from: web\n    to: api\n    label: POST /orders   # idempotent\n    style: async\n  - {from: api, to: store}\n  - {from: api, to: cache, label: read}\n\nnotes:\n  - attach: store\n    text: Nightly backup\ndirection: down\n";
+    assert_eq!(out, want);
+    // the edited spec still renders
+    assert!(run_in(dir.path(), &["render", "o.yaml", "-o", "o.svg"], None).code <= 1);
+
+    // Removing a node takes edges, notes and memberships with it: that is a rewrite, and the envelope says so.
+    let rm = run_in(dir.path(), &["edit", "o.yaml", "--ops", "-", "--in-place"], Some("[{\"op\":\"remove\",\"target\":\"#cache\"}]")).json();
+    assert_eq!(rm["formatting"], "rewritten", "{rm:#}");
+    let rewritten = fs::read_to_string(dir.path().join("o.yaml")).unwrap();
+    assert!(!rewritten.contains('#') && !rewritten.contains("cache"));
+    // JSON specs have no comments to keep; they are always rewritten.
+    let doc: Value = serde_yaml_ng::from_str(&rewritten).unwrap();
+    fs::write(dir.path().join("o.json"), doc.to_string()).unwrap();
+    let j = run_in(dir.path(), &["edit", "o.json", "--set", "#api.label=API", "--in-place"], None).json();
+    assert_eq!(j["formatting"], "rewritten");
 }

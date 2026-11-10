@@ -116,14 +116,43 @@ fn remove(doc: &mut Value, id: &str, list: &str, at: usize) {
     }
 }
 
-/// Apply operations to a spec document. Returns how many changed it.
-pub fn apply(doc: &mut Value, ops: &[Op]) -> Result<usize, AppError> {
+pub struct Edited {
+    /// Operations that changed the spec.
+    pub applied: usize,
+    /// The new text; `preserved` says whether comments and layout were kept.
+    pub text: String,
+    pub preserved: bool,
+}
+
+/// Apply operations to a spec. Each change is made in the data and, where the
+/// text can be patched to mean the same, in the text too, so comments survive.
+/// When a change cannot be placed, the whole spec is written out afresh.
+pub fn edit(src: &str, doc: &mut Value, ops: &[Op]) -> Result<Edited, AppError> {
     if !doc.is_object() {
         return Err(AppError::input("invalid-spec", "The spec must be a mapping."));
     }
-    let mut changed = 0;
+    let json = crate::spec::is_json(src);
+    let mut text = (!json).then(|| src.to_string());
+    let mut applied = 0;
     for (i, op) in ops.iter().enumerate() {
         let before = doc.clone();
+        apply_one(doc, op, i)?;
+        if *doc == before {
+            continue;
+        }
+        applied += 1;
+        // Keep the patched text only if it reads back as exactly the new data.
+        text = text.and_then(|t| crate::yaml_patch::patch(&t, op, &before, doc)).filter(|t| serde_yaml_ng::from_str::<Value>(t).ok().as_ref() == Some(&*doc));
+    }
+    Ok(match text {
+        _ if applied == 0 => Edited { applied, text: src.to_string(), preserved: true },
+        Some(text) => Edited { applied, text, preserved: true },
+        None => Edited { applied, text: write(doc, json)?, preserved: false },
+    })
+}
+
+fn apply_one(doc: &mut Value, op: &Op, i: usize) -> Result<(), AppError> {
+    {
         match op {
             Op::SetAttr { target, attr, value } => match target_id(target, i)? {
                 None => {
@@ -203,11 +232,8 @@ pub fn apply(doc: &mut Value, ops: &[Op]) -> Result<usize, AppError> {
             }
             Op::SetStyle { .. } | Op::RemoveStyle { .. } => return Err(bad(i, "style", "a spec has no styles; set a field with 'attr'.".into())),
         }
-        if *doc != before {
-            changed += 1;
-        }
     }
-    Ok(changed)
+    Ok(())
 }
 
 /// Canonical text for a spec document, in the format the input used.
