@@ -10,8 +10,12 @@ use crate::envelope::{AppError, Output};
 use crate::{ops, render, spec, spec_edit};
 
 #[allow(clippy::too_many_arguments)]
-pub fn run(file: &str, set: &[String], ops_arg: Option<&str>, dry_run: bool, output: Option<&str>, in_place: bool, loader: &mut Loader, profile: Option<Profile>, paint: &Paint) -> Result<Output, AppError> {
+pub fn run(file: &str, set: &[String], ops_arg: Option<&str>, inline: Option<&serde_json::Value>, dry_run: bool, output: Option<&str>, in_place: bool, loader: &mut Loader, profile: Option<Profile>, paint: &Paint) -> Result<Output, AppError> {
+    if inline.is_some() && (!set.is_empty() || ops_arg.is_some()) {
+        return Err(AppError::usage("argument-conflict", "Give set or ops, not both."));
+    }
     let list = match (set.is_empty(), ops_arg) {
+        (true, None) if inline.is_some() => ops::parse_ops(inline.unwrap())?,
         (false, Some(_)) => return Err(AppError::usage("argument-conflict", "Give --set or --ops, not both.")),
         (true, None) => return Err(AppError::usage("missing-argument", "Nothing to change: give --set 'SELECTOR.attr=value' or --ops <file>.").suggest(Some("svgdoc schema ops prints the operation format.".into()))),
         (false, None) => set.iter().map(|s| ops::parse_set(s)).collect::<Result<Vec<_>, _>>()?,

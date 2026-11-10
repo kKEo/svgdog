@@ -196,6 +196,13 @@ pub enum Command {
         #[arg(long)]
         in_place: bool,
     },
+    /// Serve the commands as Model Context Protocol tools over stdio
+    #[command(after_help = "Example:\n  svgdoc mcp --root ./docs")]
+    Mcp {
+        /// Directory the server may read and write; paths outside it are refused
+        #[arg(long, value_name = "DIR")]
+        root: PathBuf,
+    },
     /// Print a JSON Schema
     #[command(after_help = "Example:\n  svgdoc schema findings")]
     Schema {
@@ -220,12 +227,13 @@ impl Command {
             Command::Preview { .. } => "preview",
             Command::Edit { .. } => "edit",
             Command::Fix { .. } => "fix",
+            Command::Mcp { .. } => "mcp",
             Command::Schema { .. } => "schema",
             Command::Rules { .. } => "rules",
         }
     }
 }
 
-pub const COMMANDS: &[&str] = &["render", "validate", "inspect", "preview", "edit", "fix", "schema", "rules"];
-/// Specified commands that later phases add.
-pub const PLANNED: &[&str] = &["mcp"];
+pub const COMMANDS: &[&str] = &["render", "validate", "inspect", "preview", "edit", "fix", "mcp", "schema", "rules"];
+/// Specified commands that are not built yet.
+pub const PLANNED: &[&str] = &[];

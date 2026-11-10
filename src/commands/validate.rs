@@ -33,7 +33,7 @@ pub fn rule_ids(list: &[String], flag: &str) -> Result<Vec<&'static str>, AppErr
     Ok(out)
 }
 
-fn expand(args: &[String]) -> Result<Vec<String>, AppError> {
+pub fn expand(args: &[String]) -> Result<Vec<String>, AppError> {
     let mut files = Vec::new();
     for a in args {
         let globby = a.contains(['*', '?', '[']);

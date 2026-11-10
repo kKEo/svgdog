@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 1208" data-svgdoc="1" font-family="Inter, sans-serif">
+  <title>Checkout platform</title>
+  <desc>Services behind checkout and how they talk.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
+  </defs>
+  <rect x="0" y="0" width="768" height="1208" fill="#ffffff"/>
+  <g id="group-edge">
+    <rect x="176" y="232" width="160" height="208" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="188" y="256.37" font-size="12" fill="#6b7280">Edge</text>
+  </g>
+  <g id="group-core">
+    <rect x="24" y="488" width="720" height="400" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="36" y="512.37" font-size="12" fill="#6b7280">Core services</text>
+  </g>
+  <g id="group-data">
+    <rect x="232" y="624" width="496" height="128" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="244" y="648.37" font-size="12" fill="#6b7280">Data</text>
+  </g>
+  <g id="node-user">
+    <rect x="200" y="24" width="112" height="48" rx="24" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="256" y="53.09" text-anchor="middle" font-size="14" fill="#1f2937">Shopper</text>
+  </g>
+  <g id="node-web">
+    <rect x="208" y="120" width="96" height="64" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <line x1="208" y1="136" x2="304" y2="136" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="256" y="165.09" text-anchor="middle" font-size="14" fill="#1f2937">Web app</text>
+  </g>
+  <g id="node-gw">
+    <rect x="192" y="272" width="128" height="48" rx="8" fill="#2563eb" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="256" y="301.09" text-anchor="middle" font-size="14" fill="#ffffff">API gateway</text>
+  </g>
+  <g id="node-auth">
+    <rect x="192" y="368" width="128" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="256" y="397.09" text-anchor="middle" font-size="14" fill="#1f2937">Auth service</text>
+  </g>
+  <g id="node-orders">
+    <rect x="184" y="528" width="144" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="256" y="557.09" text-anchor="middle" font-size="14" fill="#1f2937">Order service</text>
+  </g>
+  <g id="node-pay">
+    <rect x="40" y="664" width="160" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="120" y="693.09" text-anchor="middle" font-size="14" fill="#1f2937">Payment service</text>
+  </g>
+  <g id="node-stripe">
+    <rect x="96" y="1008" width="144" height="48" rx="4" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="168" y="1037.09" text-anchor="middle" font-size="14" fill="#1f2937">Card processor</text>
+  </g>
+  <g id="node-odb">
+    <path d="M256 672 A56 8 0 0 1 368 672 L368 720 A56 8 0 0 1 256 720 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M256 672 A56 8 0 0 0 368 672" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="312" y="707.09" text-anchor="middle" font-size="14" fill="#1f2937">Orders DB</text>
+  </g>
+  <g id="node-bus">
+    <path d="M408 672 L520 672 A8 24 0 0 1 520 720 L408 720 A8 24 0 0 1 408 672 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M520 672 A8 24 0 0 0 520 720" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="464" y="701.09" text-anchor="middle" font-size="14" fill="#1f2937">Event bus</text>
+  </g>
+  <g id="node-mail">
+    <rect x="272" y="992" width="128" height="80" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text text-anchor="middle" font-size="14" fill="#1f2937"><tspan x="336" y="1027.09">Notification</tspan><tspan x="336" y="1047.09">worker</tspan></text>
+  </g>
+  <g id="node-ok">
+    <polygon points="184,800 248,832 184,864 120,832" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="184" y="837.09" text-anchor="middle" font-size="14" fill="#1f2937">Paid?</text>
+  </g>
+  <g id="node-doc">
+    <path d="M272 1120 L400 1120 L400 1176 Q368 1164 336 1176 Q304 1188 272 1176 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="336" y="1153.09" text-anchor="middle" font-size="14" fill="#1f2937">Invoice PDF</text>
+  </g>
+  <g id="edge-user--web">
+    <path d="M256 72 L256 120" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-web--gw">
+    <path d="M256 184 L256 272" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="283.48" y="210.37" text-anchor="middle" font-size="12" fill="#1f2937">HTTPS</text>
+  </g>
+  <g id="edge-gw--auth">
+    <path d="M256 320 L256 368" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="232.59" y="348.37" text-anchor="middle" font-size="12" fill="#1f2937">verify</text>
+  </g>
+  <g id="edge-gw--orders">
+    <path d="M272 320 L272 360 L328 360 L328 504 L272 504 L272 528" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="312.88" y="520.37" text-anchor="middle" font-size="12" fill="#1f2937">place order</text>
+  </g>
+  <g id="edge-orders--pay">
+    <path d="M200 576 L200 624 L184 624 L184 664" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="172.74" y="604.37" text-anchor="middle" font-size="12" fill="#1f2937">charge</text>
+  </g>
+  <g id="edge-pay--stripe">
+    <path d="M120 712 L120 792 L112 792 L112 984 L168 984 L168 1008" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="2 4" marker-end="url(#arrow)"/>
+    <text x="90.57" y="756.37" text-anchor="middle" font-size="12" fill="#1f2937">capture</text>
+  </g>
+  <g id="edge-pay--ok">
+    <path d="M136 712 L136 760 L184 760 L184 800" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-paid-yes">
+    <path d="M216 816 L216 600 L232 600 L232 576" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="248.71" y="592.37" text-anchor="middle" font-size="12" fill="#1f2937">yes</text>
+  </g>
+  <g id="edge-orders--odb">
+    <path d="M272 576 L272 616 L296 616 L296 664.41" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="248.74" y="615.37" text-anchor="middle" font-size="12" fill="#1f2937">insert</text>
+  </g>
+  <g id="edge-orders--bus">
+    <path d="M312 576 L312 648 L416 648 L416 672" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <text x="364" y="640.11" text-anchor="middle" font-size="12" fill="#1f2937">publish</text>
+  </g>
+  <g id="edge-bus--mail">
+    <path d="M416 720 L416 904 L296 904 L296 968 L352 968 L352 992" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-mail--doc">
+    <path d="M336 1072 L336 1120" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="362.12" y="1100.37" text-anchor="middle" font-size="12" fill="#1f2937">render</text>
+  </g>
+  <g id="edge-mail-retry">
+    <path d="M376 992 L376 976 L416 976 L416 1008 L400 1008" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="396" y="968.11" text-anchor="middle" font-size="12" fill="#1f2937">retry</text>
+  </g>
+  <g id="note-1">
+    <line x1="552" y1="696" x2="528" y2="696" stroke="#6b7280" stroke-width="1" stroke-dasharray="2 3"/>
+    <rect x="552" y="680" width="160" height="32" rx="4" fill="#ffffff" stroke="#6b7280" stroke-width="1"/>
+    <text x="632" y="700.37" text-anchor="middle" font-size="12" fill="#1f2937">At-least-once delivery</text>
+  </g>
+  <g id="note-2">
+    <line x1="352" y1="600" x2="216" y2="688" stroke="#6b7280" stroke-width="1" stroke-dasharray="2 3"/>
+    <rect x="352" y="552" width="144" height="48" rx="4" fill="#ffffff" stroke="#6b7280" stroke-width="1"/>
+    <text text-anchor="middle" font-size="12" fill="#1f2937"><tspan x="424" y="572.37">Only after capture</tspan><tspan x="424" y="588.37">succeeds</tspan></text>
+  </g>
+  <g id="note-3">
+    <line x1="384" y1="912" x2="384" y2="888" stroke="#6b7280" stroke-width="1" stroke-dasharray="2 3"/>
+    <rect x="304" y="912" width="160" height="32" rx="4" fill="#ffffff" stroke="#6b7280" stroke-width="1"/>
+    <text x="384" y="932.37" text-anchor="middle" font-size="12" fill="#1f2937">Deployed as one unit</text>
+  </g>
+</svg>

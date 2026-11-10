@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 376 376" data-svgdoc="1" font-family="Inter, sans-serif">
+  <title>Rack layout</title>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
+    <marker id="arrow-start" markerWidth="10" markerHeight="8" refX="0" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M10 0L0 4L10 8Z" fill="#1f2937"/></marker>
+  </defs>
+  <rect x="0" y="0" width="376" height="376" fill="#ffffff"/>
+  <g id="group-rack">
+    <rect x="24" y="112" width="304" height="104" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="36" y="136.37" font-size="12" fill="#6b7280">Rack 12</text>
+  </g>
+  <g id="node-sw">
+    <rect x="120" y="24" width="96" height="48" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="168" y="53.09" text-anchor="middle" font-size="14" fill="#1f2937">Switch</text>
+  </g>
+  <g id="node-a">
+    <rect x="40" y="152" width="96" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="88" y="181.09" text-anchor="middle" font-size="14" fill="#1f2937">Node A</text>
+  </g>
+  <g id="node-b">
+    <rect x="216" y="152" width="96" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="264" y="181.09" text-anchor="middle" font-size="14" fill="#1f2937">Node B</text>
+  </g>
+  <g id="node-nas">
+    <path d="M128 296 A48 8 0 0 1 224 296 L224 344 A48 8 0 0 1 128 344 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M128 296 A48 8 0 0 0 224 296" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="176" y="331.09" text-anchor="middle" font-size="14" fill="#1f2937">NAS</text>
+  </g>
+  <g id="edge-sw--a">
+    <path d="M136 72 L136 128 L120 128 L120 152" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-sw--b">
+    <path d="M200 72 L200 128 L232 128 L232 152" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-a--nas">
+    <path d="M120 200 L120 248 L144 248 L144 290.1" fill="none" stroke="#1f2937" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow)"/>
+    <text x="162.87" y="273.42" text-anchor="middle" font-size="12" fill="#1f2937">NFS</text>
+  </g>
+  <g id="edge-b--nas">
+    <path d="M232 200 L232 248 L208 248 L208 290.1" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="2 4"/>
+  </g>
+  <g id="note-1">
+    <line x1="240" y1="48" x2="216" y2="48" stroke="#6b7280" stroke-width="1" stroke-dasharray="2 3"/>
+    <rect x="240" y="32" width="112" height="32" rx="4" fill="#ffffff" stroke="#6b7280" stroke-width="1"/>
+    <text x="296" y="52.37" text-anchor="middle" font-size="12" fill="#1f2937">10 GbE uplink</text>
+  </g>
+</svg>

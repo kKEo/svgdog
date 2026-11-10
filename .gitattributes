@@ -1,0 +1,7 @@
+# Output is compared byte for byte across platforms: never translate line endings.
+* text=auto eol=lf
+*.svg text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.png binary
+*.ttf binary

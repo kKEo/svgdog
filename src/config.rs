@@ -388,12 +388,14 @@ impl Config {
 pub struct Loader {
     explicit: Option<Rc<Config>>,
     no_config: bool,
+    /// Discovery does not look above this directory.
+    ceiling: Option<PathBuf>,
     cache: HashMap<PathBuf, Rc<Config>>,
     pub loaded: Vec<PathBuf>,
 }
 
 impl Loader {
-    pub fn new(explicit: Option<&Path>, no_config: bool) -> Result<Loader, AppError> {
+    pub fn new(explicit: Option<&Path>, no_config: bool, ceiling: Option<PathBuf>) -> Result<Loader, AppError> {
         let mut loaded = Vec::new();
         let explicit = match explicit {
             Some(p) => {
@@ -402,7 +404,7 @@ impl Loader {
             }
             None => None,
         };
-        Ok(Loader { explicit, no_config, cache: HashMap::new(), loaded })
+        Ok(Loader { explicit, no_config, ceiling, cache: HashMap::new(), loaded })
     }
 
     /// The config for an input file; `None` means stdin, which uses the working directory.
@@ -430,6 +432,9 @@ impl Loader {
             let candidate = d.join(CONFIG_NAME);
             if candidate.is_file() {
                 found = Some(candidate);
+                break;
+            }
+            if self.ceiling.as_deref() == Some(d) {
                 break;
             }
             dir = d.parent();

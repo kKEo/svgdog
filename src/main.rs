@@ -4,6 +4,7 @@ mod commands;
 mod config;
 mod diff;
 mod envelope;
+mod mcp;
 mod ops;
 mod preview;
 mod render;
@@ -63,7 +64,7 @@ fn fail(format: Format, command: &str, err: &AppError) -> i32 {
     err.exit
 }
 
-fn usage_error(e: clap::Error, args: &[String]) -> AppError {
+pub fn usage_error(e: clap::Error, args: &[String]) -> AppError {
     let rendered = e.render().to_string();
     let first = rendered.lines().next().unwrap_or("invalid arguments").trim_start_matches("error: ").trim().to_string();
     let message = if first.ends_with('.') { first } else { format!("{first}.") };
@@ -99,6 +100,48 @@ fn usage_error(e: clap::Error, args: &[String]) -> AppError {
     AppError::usage(code, message).suggest(suggestion)
 }
 
+/// What differs between a command typed in a shell and one arriving as a tool call.
+pub struct Env {
+    pub color: bool,
+    /// Config discovery stops at this directory.
+    pub ceiling: Option<std::path::PathBuf>,
+    /// Edit operations supplied as data in place of an --ops file.
+    pub inline_ops: Option<serde_json::Value>,
+}
+
+/// Run one parsed command and hand back its output; nothing is printed here.
+pub fn execute(cli: &Cli, env: &Env) -> Result<Output, AppError> {
+    let profile = match &cli.global.profile {
+        Some(p) => Some(config::Profile::parse(p).ok_or_else(|| AppError::usage("unknown-profile", format!("Unknown profile '{p}'.")).suggest(util::did_you_mean(p, config::PROFILES.iter().copied())))?),
+        None => None,
+    };
+    let paint = commands::validate::Paint { color: env.color };
+    let mut loader = match &cli.command {
+        Command::Validate { .. } | Command::Edit { .. } | Command::Fix { .. } | Command::Render { .. } | Command::Preview { .. } => Some(config::Loader::new(cli.global.config.as_deref(), cli.global.no_config, env.ceiling.clone())?),
+        _ => None,
+    };
+    let out = match &cli.command {
+        Command::Validate { files, rules, skip, fail_on, max_findings } => commands::validate::run(files, rules, skip, *fail_on, *max_findings, loader.as_mut().unwrap(), profile, &paint),
+        Command::Edit { file, set, ops, dry_run, output, in_place } => commands::edit::run(file, set, ops.as_deref(), env.inline_ops.as_ref(), *dry_run, output.as_deref(), *in_place, loader.as_mut().unwrap(), profile, &paint),
+        Command::Fix { file, rules, allow_unsafe, dry_run, output, in_place } => commands::fix::run(file, rules, *allow_unsafe, *dry_run, output.as_deref(), *in_place, loader.as_mut().unwrap(), profile, &paint),
+        Command::Render { spec, output, theme, no_validate, force, text_as_paths } => commands::render::run(spec, output, theme.as_deref(), *no_validate, *force, *text_as_paths, loader.as_mut().unwrap(), profile, &paint),
+        Command::Preview { file, output, width, background, annotate, crop, force } => commands::preview::run(file, output, *width, *background, *annotate, crop.as_deref(), *force, loader.as_mut().unwrap(), profile, &paint),
+        Command::Inspect { file, select, depth, fields } => commands::inspect::run(file, select.as_deref(), *depth, fields),
+        Command::Schema { name } => commands::schema::run(*name),
+        Command::Rules { explain } => commands::rules::run(explain.as_deref()),
+        Command::Mcp { .. } => Err(AppError::usage("invalid-argument", "The mcp server cannot be started from inside a tool call.")),
+    }?;
+    if let Some(loader) = &loader {
+        LOADED.with(|l| *l.borrow_mut() = loader.loaded.clone());
+    }
+    Ok(out)
+}
+
+thread_local! {
+    /// Config files the last command read, for the stderr log.
+    static LOADED: std::cell::RefCell<Vec<std::path::PathBuf>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
 fn run(args: &[String]) -> i32 {
     let cli = match Cli::try_parse_from(args) {
         Ok(c) => c,
@@ -113,41 +156,22 @@ fn run(args: &[String]) -> i32 {
     };
     let format = cli.global.format.unwrap_or_else(default_format);
     let name = cli.command.name();
+    if let Command::Mcp { root } = &cli.command {
+        // The server owns stdout from here on; a start-up failure is reported as JSON.
+        return match mcp::serve(root) {
+            Ok(()) => EXIT_OK,
+            Err(e) => fail(Format::Json, name, &e),
+        };
+    }
     let color = format == Format::Text && std::io::stdout().is_terminal() && !cli.global.no_color && std::env::var_os("NO_COLOR").is_none_or(|v| v.is_empty());
-
-    let result = (|| -> Result<Output, AppError> {
-        let profile = match &cli.global.profile {
-            Some(p) => Some(
-                config::Profile::parse(p)
-                    .ok_or_else(|| AppError::usage("unknown-profile", format!("Unknown profile '{p}'.")).suggest(util::did_you_mean(p, config::PROFILES.iter().copied())))?,
-            ),
-            None => None,
-        };
-        let paint = commands::validate::Paint { color };
-        let mut loader = match &cli.command {
-            Command::Validate { .. } | Command::Edit { .. } | Command::Fix { .. } | Command::Render { .. } | Command::Preview { .. } => Some(config::Loader::new(cli.global.config.as_deref(), cli.global.no_config)?),
-            _ => None,
-        };
-        let out = match &cli.command {
-            Command::Validate { files, rules, skip, fail_on, max_findings } => commands::validate::run(files, rules, skip, *fail_on, *max_findings, loader.as_mut().unwrap(), profile, &paint),
-            Command::Edit { file, set, ops, dry_run, output, in_place } => commands::edit::run(file, set, ops.as_deref(), *dry_run, output.as_deref(), *in_place, loader.as_mut().unwrap(), profile, &paint),
-            Command::Fix { file, rules, allow_unsafe, dry_run, output, in_place } => commands::fix::run(file, rules, *allow_unsafe, *dry_run, output.as_deref(), *in_place, loader.as_mut().unwrap(), profile, &paint),
-            Command::Render { spec, output, theme, no_validate, force, text_as_paths } => commands::render::run(spec, output, theme.as_deref(), *no_validate, *force, *text_as_paths, loader.as_mut().unwrap(), profile, &paint),
-            Command::Preview { file, output, width, background, annotate, crop, force } => commands::preview::run(file, output, *width, *background, *annotate, crop.as_deref(), *force, loader.as_mut().unwrap(), profile, &paint),
-            Command::Inspect { file, select, depth, fields } => commands::inspect::run(file, select.as_deref(), *depth, fields),
-            Command::Schema { name } => commands::schema::run(*name),
-            Command::Rules { explain } => commands::rules::run(explain.as_deref()),
-        }?;
-        if let Some(loader) = &loader
-            && !cli.global.quiet
-        {
-            for p in &loader.loaded {
+    let result = execute(&cli, &Env { color, ceiling: None, inline_ops: None });
+    if !cli.global.quiet {
+        LOADED.with(|l| {
+            for p in l.borrow().iter() {
                 eprintln!("svgdoc: config {}", p.display());
             }
-        }
-        Ok(out)
-    })();
-
+        });
+    }
     match result {
         Ok(out) => {
             emit(format, &out);
