@@ -7,12 +7,12 @@
     "url": "https://github.com/kKEo/svgdog",
     "source": "github"
   },
-  "version": "1.0.3",
+  "version": "1.0.4",
   "packages": [
     {
       "registryType": "cargo",
       "identifier": "svgdog",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "transport": {
         "type": "stdio"
       },
