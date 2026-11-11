@@ -98,8 +98,10 @@ In text mode the same error is printed on stderr as `error[code]: message` follo
 | `invalid-config`, `config-not-readable` | 3 | `svgdog.toml` is invalid or unreadable; see [Configuration](configuration.md) |
 | `invalid-op`, `unknown-op`, `conflicting-ops`, `edit-breaks-xml`, `no-match` | 3 | An edit operation is malformed, clashes with another, would break the XML, or its target matches nothing |
 | `not-renderable` | 3 | `preview` cannot rasterize the file |
+| `not-svgdog-output` | 3 | The file given to `render --previous` was not rendered by SVGDog |
 | `outside-root`, `root-not-found` | 3 | MCP only: a path escapes the root, or the root is unusable |
-| `output-exists` | 4 | The output exists; add `--force` (render, preview) or choose a new path |
+| `output-exists` | 4 | The output exists; add `--force` (render, preview), `--previous` with the same file (render) or choose a new path |
+| `layout-changed` | 4 | `render --previous` or `docs`: the boxes cannot stay where the earlier drawing has them. `error.details.reasons` says why; `--force` lays the diagram out afresh. See [Keeping the layout](commands.md#keeping-the-layout) |
 | `write-failed` | 4 | The file could not be written |
 | `internal-error` | 5 | A bug; report it with the command and the input |
 

@@ -1868,3 +1868,216 @@ fn the_page_script_steps_and_shows_details() {
     assert!(out.status.success(), "{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
     assert!(String::from_utf8_lossy(&out.stdout).contains("player ok"));
 }
+
+/// Where a node's box is in a rendered drawing: x, y, width, height.
+fn box_in(dir: &Path, file: &str, id: &str) -> [f64; 4] {
+    let v = run_in(dir, &["inspect", file, "--select", &format!("#node-{id}"), "--depth", "1", "--fields", "id,bbox"], None).json();
+    // the shape is the first thing drawn in the node's group
+    let shape = v["elements"].as_array().unwrap().iter().find(|e| e["depth"] == 2).unwrap_or_else(|| panic!("{id} has a shape in {file}: {v:#}"));
+    let b: Vec<f64> = shape["bbox"].as_array().unwrap().iter().map(|n| n.as_f64().unwrap()).collect();
+    [b[0], b[1], b[2], b[3]]
+}
+
+/// The centre of one box seen from another: equal before and after means neither moved against the other.
+fn apart(dir: &Path, file: &str, a: &str, b: &str) -> (f64, f64) {
+    let (p, q) = (box_in(dir, file, a), box_in(dir, file, b));
+    (q[0] + q[2] / 2.0 - p[0] - p[2] / 2.0, q[1] + q[3] / 2.0 - p[1] - p[3] / 2.0)
+}
+
+fn orders_with(change: impl Fn(String) -> String) -> String {
+    change(fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(ORDERS)).unwrap())
+}
+
+#[test]
+fn a_drawing_rendered_again_keeps_its_boxes_when_nodes_edges_and_words_change() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(dir.path().join("o.yaml"), orders_with(|s| s)).unwrap();
+    assert_eq!(run_in(dir.path(), &["render", "o.yaml", "-o", "o.svg"], None).code, 0);
+    fs::copy(dir.path().join("o.svg"), dir.path().join("first.svg")).unwrap();
+
+    // two new boxes (one inside the group), two new edges, one label reworded
+    let grown = orders_with(|s| {
+        s.replace("groups:", "  - id: cache\n    label: Price cache\n    kind: datastore\n  - id: mailer\n    label: Mail provider\n    kind: external\n\ngroups:")
+            .replace("members: [api, db, queue]", "members: [api, db, queue, cache]")
+            .replace("notes:", "  - from: api\n    to: cache\n    label: read\n  - from: queue\n    to: mailer\n\nnotes:")
+            .replace("label: Order API", "label: Orders API")
+    });
+    fs::write(dir.path().join("o.yaml"), &grown).unwrap();
+
+    // the file exists: without a word about it, nothing is replaced, and the way out is named
+    let refused = run_in(dir.path(), &["render", "o.yaml", "-o", "o.svg"], None);
+    assert_eq!(refused.code, 4);
+    assert!(refused.json()["error"]["suggestion"].as_str().unwrap().contains("--previous o.svg"), "{}", refused.stdout);
+
+    // naming it as the earlier drawing updates it in place, without --force
+    let r = run_in(dir.path(), &["render", "o.yaml", "-o", "o.svg", "--previous", "o.svg", "--profile", "strict", "--no-config"], None);
+    let v = r.json();
+    assert_eq!((r.code, v["summary"]["errors"].as_u64(), v["summary"]["warnings"].as_u64()), (0, Some(0), Some(0)), "{v:#}");
+    assert_valid(&schema("findings"), &v);
+    assert_eq!((v["layout"]["kept"].as_u64(), v["layout"]["relaid"].as_bool(), v["layout"]["reasons"].as_array().unwrap().len()), (Some(4), Some(false), 0));
+    assert_eq!(v["layout"]["placed"], serde_json::json!(["cache", "mailer"]));
+    for (a, b) in [("web", "api"), ("api", "db"), ("api", "queue"), ("db", "queue")] {
+        assert_eq!(apart(dir.path(), "first.svg", a, b), apart(dir.path(), "o.svg", a, b), "{a} and {b} stay where they were");
+    }
+    let text = run_in(dir.path(), &["render", "o.yaml", "-o", "t.svg", "--previous", "first.svg", "--format", "text"], None);
+    assert!(text.stdout.contains("Layout kept: 4 boxes in place, 2 added (cache, mailer)."), "{}", text.stdout);
+
+    // rendered over itself nothing changes, so --check agrees it is current
+    let after = fs::read(dir.path().join("o.svg")).unwrap();
+    assert_eq!(run_in(dir.path(), &["render", "o.yaml", "-o", "o.svg", "--previous", "o.svg"], None).code, 0);
+    assert_eq!(fs::read(dir.path().join("o.svg")).unwrap(), after);
+    let c = run_in(dir.path(), &["render", "o.yaml", "-o", "o.svg", "--check"], None);
+    assert_eq!((c.code, c.json()["stale"].as_array().unwrap().len()), (0, 0), "{}", c.stdout);
+    // and it is not the drawing the spec would get from nothing
+    assert_eq!(run_in(dir.path(), &["render", "o.yaml", "-o", "fresh.svg"], None).code, 0);
+    assert_ne!(fs::read(dir.path().join("fresh.svg")).unwrap(), after);
+    assert_ne!(apart(dir.path(), "first.svg", "api", "queue"), apart(dir.path(), "fresh.svg", "api", "queue"), "a fresh layout moves the boxes, which is what --previous avoids");
+
+    // a box that is gone is counted, and the rest still stays
+    fs::write(dir.path().join("less.yaml"), orders_with(|s| s.replace("  - id: queue\n    label: Fulfilment queue\n    kind: queue\n", "").replace("members: [api, db, queue]", "members: [api, db]").replace("  - from: api\n    to: queue\n    label: publish\n    style: async\n", "").replace("notes:\n  - attach: queue\n    text: At-least-once delivery\n", ""))).unwrap();
+    let less = run_in(dir.path(), &["render", "less.yaml", "-o", "less.svg", "--previous", "first.svg"], None);
+    assert_eq!((less.code, less.json()["layout"]["gone"].clone()), (0, serde_json::json!(["queue"])), "{}", less.stdout);
+    assert_eq!(apart(dir.path(), "first.svg", "web", "db"), apart(dir.path(), "less.svg", "web", "db"));
+}
+
+const CHAIN: &str = "version: 1\ndiagram: flow\ntitle: Chain\ndirection: down\nnodes:\n  - { id: a, label: First }\n  - { id: b, label: Second }\n  - { id: c, label: Third }\nedges: [\"a -> b\", \"b -> c\"]\n";
+
+#[test]
+fn a_layout_that_cannot_be_kept_stops_the_render_unless_forced() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(dir.path().join("c.yaml"), CHAIN).unwrap();
+    assert_eq!(run_in(dir.path(), &["render", "c.yaml", "-o", "c.svg"], None).code, 0);
+    let before = fs::read(dir.path().join("c.svg")).unwrap();
+
+    // the middle box becomes six lines tall: it cannot stay between its neighbours
+    fs::write(dir.path().join("c.yaml"), CHAIN.replace("label: Second", "label: \"Second\\nwith\\nmany\\nmore\\nlines\\nof text\"")).unwrap();
+    let r = run_in(dir.path(), &["render", "c.yaml", "-o", "c.svg", "--previous", "c.svg"], None);
+    let v = r.json();
+    assert_eq!((r.code, v["ok"].as_bool(), v["error"]["code"].as_str()), (4, Some(false), Some("layout-changed")), "{v:#}");
+    assert_valid(&schema("findings"), &v);
+    let reasons = v["error"]["details"]["reasons"].as_array().unwrap();
+    assert!(!reasons.is_empty() && reasons.iter().all(|x| x["id"] == "b") && v["error"]["suggestion"].as_str().unwrap().contains("--force"), "{v:#}");
+    assert_eq!(fs::read(dir.path().join("c.svg")).unwrap(), before, "nothing is written");
+
+    // --force: laid out afresh, and the report says so
+    assert_eq!(run_in(dir.path(), &["render", "c.yaml", "-o", "fresh.svg"], None).code, 0);
+    let f = run_in(dir.path(), &["render", "c.yaml", "-o", "c.svg", "--previous", "c.svg", "--force"], None);
+    let v = f.json();
+    assert_eq!((f.code, v["layout"]["relaid"].as_bool(), v["layout"]["reasons"].as_array().unwrap().is_empty()), (0, Some(true), false), "{v:#}");
+    assert_valid(&schema("findings"), &v);
+    assert_eq!(fs::read(dir.path().join("c.svg")).unwrap(), fs::read(dir.path().join("fresh.svg")).unwrap());
+
+    // an earlier drawing that is not ours cannot be read for its layout
+    fs::copy(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/broken.svg"), dir.path().join("other.svg")).unwrap();
+    let o = run_in(dir.path(), &["render", "c.yaml", "-o", "x.svg", "--previous", "other.svg"], None);
+    assert_eq!((o.code, o.json()["error"]["code"].as_str().map(|s| s.to_string())), (3, Some("not-svgdog-output".into())));
+    assert_eq!(run_in(dir.path(), &["render", "c.yaml", "-o", "x.svg", "--previous", "missing.svg"], None).code, 3);
+
+    // nothing in common is nothing to keep: a plain layout, not a failure
+    fs::write(dir.path().join("new.yaml"), CHAIN.replace("id: a", "id: x").replace("id: b", "id: y").replace("id: c", "id: z").replace("a -> b", "x -> y").replace("b -> c", "y -> z")).unwrap();
+    let n = run_in(dir.path(), &["render", "new.yaml", "-o", "new.svg", "--previous", "fresh.svg"], None);
+    assert_eq!((n.code, n.json()["layout"]["kept"].as_u64(), n.json()["layout"]["gone"].as_array().unwrap().len()), (0, Some(0), 3), "{}", n.stdout);
+}
+
+#[test]
+fn layouts_that_follow_the_spec_order_are_compared_with_the_earlier_drawing() {
+    let dir = tempfile::tempdir().unwrap();
+    let login = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/login.yaml")).unwrap();
+    fs::write(dir.path().join("l.yaml"), &login).unwrap();
+    assert_eq!(run_in(dir.path(), &["render", "l.yaml", "-o", "l.svg"], None).code, 0);
+
+    // one more message: the participants stay in their columns
+    fs::write(dir.path().join("more.yaml"), login.replace("notes:", "  - {from: app, to: user, label: signed in, style: async, id: done}\nnotes:")).unwrap();
+    let m = run_in(dir.path(), &["render", "more.yaml", "-o", "more.svg", "--previous", "l.svg"], None);
+    assert_eq!((m.code, m.json()["layout"]["kept"].as_u64()), (0, Some(5)), "{}", m.stdout);
+
+    // a participant put between two others moves every column after it
+    fs::write(dir.path().join("wide.yaml"), login.replace("  - {id: auth,", "  - {id: cdn, label: Edge cache, kind: service}\n  - {id: auth,").replace("nodes:", "max_width: 1200\nnodes:")).unwrap();
+    let w = run_in(dir.path(), &["render", "wide.yaml", "-o", "wide.svg", "--previous", "l.svg"], None);
+    assert_eq!((w.code, w.json()["error"]["code"].as_str().map(|s| s.to_string())), (4, Some("layout-changed".into())), "{}", w.stdout);
+    assert!(!dir.path().join("wide.svg").exists());
+    let forced = run_in(dir.path(), &["render", "wide.yaml", "-o", "wide.svg", "--previous", "l.svg", "--force", "--no-validate"], None);
+    assert_eq!((forced.code, forced.json()["layout"]["relaid"].as_bool()), (0, Some(true)), "{}", forced.stdout);
+    assert!(dir.path().join("wide.svg").exists());
+
+    // pinned boxes are where the spec puts them: the earlier drawing has no say
+    let rack = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/rack.yaml");
+    assert_eq!(run_in(dir.path(), &["render", rack.to_str().unwrap(), "-o", "rack.svg"], None).code, 0);
+    assert_eq!(run_in(dir.path(), &["render", rack.to_str().unwrap(), "-o", "rack2.svg", "--previous", "rack.svg"], None).code, 0);
+}
+
+const LIVING: &str = "# Page\n\n```svgdog path\nversion: 1\ndiagram: flow\ntitle: Request path\ndirection: down\nedges:\n  - \"browser -> api: request\"\n  - \"api -> db: query\"\n```\n";
+
+#[test]
+fn docs_keeps_the_boxes_of_a_picture_that_is_already_there() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(dir.path().join("page.md"), LIVING).unwrap();
+    assert_eq!(run_in(dir.path(), &["docs", "page.md"], None).code, 0);
+    fs::copy(dir.path().join("diagrams/page-path.svg"), dir.path().join("first.svg")).unwrap();
+
+    // a new box and edge: the three that were there do not move
+    let page = fs::read_to_string(dir.path().join("page.md")).unwrap();
+    fs::write(dir.path().join("page.md"), page.replace("  - \"api -> db: query\"\n", "  - \"api -> db: query\"\n  - \"api -> cache: read\"\n")).unwrap();
+    let stale = run_in(dir.path(), &["docs", "page.md", "--check"], None);
+    assert_eq!(stale.code, 1, "{}", stale.stdout);
+    assert_eq!(run_in(dir.path(), &["docs", "page.md"], None).code, 0);
+    for (a, b) in [("browser", "api"), ("api", "db")] {
+        assert_eq!(apart(dir.path(), "first.svg", a, b), apart(dir.path(), "diagrams/page-path.svg", a, b));
+    }
+    box_in(dir.path(), "diagrams/page-path.svg", "cache");
+    let ok = run_in(dir.path(), &["docs", "page.md", "--check"], None);
+    assert_eq!((ok.code, ok.json()["stale"].as_array().unwrap().len()), (0, 0), "{}", ok.stdout);
+
+    // a box that outgrows its place stops the run and names the page; --force lets the layout go
+    let page = fs::read_to_string(dir.path().join("page.md")).unwrap();
+    fs::write(dir.path().join("page.md"), page.replace("edges:\n", "nodes:\n  - { id: api, label: \"API\\nwith\\nmany\\nmore\\nlines\\nof text\" }\nedges:\n")).unwrap();
+    let before = fs::read(dir.path().join("diagrams/page-path.svg")).unwrap();
+    let no = run_in(dir.path(), &["docs", "page.md"], None);
+    let v = no.json();
+    assert_eq!((no.code, v["error"]["code"].as_str()), (4, Some("layout-changed")), "{v:#}");
+    assert!(v["error"]["message"].as_str().unwrap().starts_with("page.md, diagram starting on line 4"), "{v:#}");
+    assert_eq!(fs::read(dir.path().join("diagrams/page-path.svg")).unwrap(), before);
+    let yes = run_in(dir.path(), &["docs", "page.md", "--force"], None);
+    let v = yes.json();
+    assert_eq!((yes.code, v["relaid"][0]["path"].as_str()), (0, Some("diagrams/page-path.svg")), "{v:#}");
+    assert_valid(&schema("findings"), &v);
+    assert_eq!(run_in(dir.path(), &["docs", "page.md", "--check"], None).code, 0);
+}
+
+#[test]
+fn every_computed_layout_keeps_its_boxes_when_boxes_are_added() {
+    let dir = tempfile::tempdir().unwrap();
+    let fixture = |n: &str| fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures").join(n)).unwrap();
+    let cases: [(&str, String, &[&str], usize); 3] = [
+        (
+            "tiers",
+            fixture("tiers.yaml").replace("groups:", "  - {id: auth, label: Auth service, kind: service}\n  - {id: search, label: Search index, kind: datastore}\ngroups:").replace("members: [api, jobs]", "members: [api, jobs, auth]").replace("members: [pg, redis, s3]", "members: [pg, redis, s3, search]")
+                + "  - {from: api, to: auth, label: verify}\n  - {from: jobs, to: search, label: index}\n",
+            &["cdn", "spa", "api", "jobs", "pg", "redis", "s3"],
+            2,
+        ),
+        ("states", fixture("states.yaml").replace("  - { id: done, kind: end }", "  - { id: refunded, label: Refunded }\n  - { id: done, kind: end }") + "  - \"shipped -> refunded: returned\"\n  - \"refunded -> done\"\n", &["draft", "placed", "paid", "shipped", "cancelled"], 1),
+        (
+            "checkout",
+            fixture("checkout.yaml").replace("groups:", "  - {id: ledger, label: Ledger, kind: datastore}\ngroups:").replace("members: [odb, bus]", "members: [odb, bus, ledger]").replace("notes:", "  - {from: pay, to: ledger, label: record}\nnotes:"),
+            &["user", "web", "gw", "auth", "orders", "pay", "stripe", "odb", "bus", "mail", "doc"],
+            1,
+        ),
+    ];
+    for (name, changed, stay, added) in cases {
+        let (spec, old, new) = (format!("{name}.yaml"), format!("{name}.svg"), format!("{name}.new.svg"));
+        fs::write(dir.path().join(&spec), fixture(&spec)).unwrap();
+        assert_eq!(run_in(dir.path(), &["render", &spec, "-o", &old], None).code, 0);
+        fs::write(dir.path().join(&spec), changed).unwrap();
+        let r = run_in(dir.path(), &["render", &spec, "-o", &new, "--previous", &old], None);
+        let v = r.json();
+        assert_eq!((r.code, v["summary"]["errors"].as_u64(), v["layout"]["placed"].as_array().map(|a| a.len())), (0, Some(0), Some(added)), "{name}: {v:#}");
+        for pair in stay.windows(2) {
+            assert_eq!(apart(dir.path(), &old, pair[0], pair[1]), apart(dir.path(), &new, pair[0], pair[1]), "{name}: {} and {} stay", pair[0], pair[1]);
+        }
+        // once more over the result: the same bytes
+        let again = format!("{name}.again.svg");
+        assert_eq!(run_in(dir.path(), &["render", &spec, "-o", &again, "--previous", &new], None).code, 0);
+        assert_eq!(fs::read(dir.path().join(&new)).unwrap(), fs::read(dir.path().join(&again)).unwrap(), "{name}");
+    }
+}

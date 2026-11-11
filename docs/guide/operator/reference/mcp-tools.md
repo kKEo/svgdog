@@ -64,8 +64,9 @@ Compile a spec (YAML or JSON) to SVG and validate it. Mirrors [`render`](command
 | `interactive` | string | no | `css` or `html`; see [Interactive versions](commands.md#interactive-versions) |
 | `embed_spec` | boolean | no | Store the spec inside the SVG |
 | `check` | boolean | no | Write nothing; report whether `output` is what the spec renders now |
+| `previous` | path | no | The SVG rendered from the earlier spec: boxes in both stay where they were. May be the same file as `output`. See [Keeping the layout](commands.md#keeping-the-layout) |
 | `no_validate` | boolean | no | Skip the checks |
-| `force` | boolean | no | Replace an existing output file |
+| `force` | boolean | no | Replace an existing output file; with `previous`, lay out afresh when the layout cannot be kept |
 | `text_as_paths` | boolean | no | Convert text to outlines |
 
 With `spec` and no `output`, one call takes a diagram from text to a checked drawing and a picture, with no files involved. Giving both `spec` and `file` is `argument-conflict`; giving neither is `missing-argument`. A `spec` value that is a single line ending in `.yaml`, `.yml` or `.json` is refused with a hint to use `file`. A spec given as text has no location, so config discovery starts at the root.
@@ -162,6 +163,7 @@ Render the diagrams inside Markdown pages. Mirrors [`docs`](commands.md#docs). N
 | `check` | boolean | no | Write nothing; report what is out of date |
 | `assets` | string | no | Folder for the pictures, next to each page; default `diagrams`. A value with `..` is refused, so pictures stay below their page |
 | `theme` | string | no | Theme for every diagram |
+| `force` | boolean | no | Lay a diagram out afresh when its boxes cannot stay where the picture on disk has them |
 | `interactive` | string | no | `css` or `html` |
 
 ### svgdog_describe

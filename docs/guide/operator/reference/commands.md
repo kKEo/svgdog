@@ -37,13 +37,34 @@ svgdog render fig/orders.yaml -o fig/orders.svg
 | `--frames` | Write one picture per entry of the spec's `steps`, named `OUT` with the step number before the extension (`orders.1.svg`, `orders.2.svg`, ...); `OUT` itself is not written | off |
 | `--embed-spec` | Store the spec in the SVG as `<metadata id="svgdog-spec">` (compact JSON), so `describe` can read the drawing back. The `editor-metadata` rule and its fix leave this element alone | off |
 | `--check` | Write nothing. Render in memory and compare with `OUT` byte for byte; exit 1 if it is missing or differs. Cannot be combined with `--force` or `-o -` | off |
+| `--previous SVG` | An SVG this tool rendered from an earlier version of the spec. Boxes that are in both drawings stay where they were; new boxes go into free room. `SVG` may be `OUT` itself, which is then replaced without `--force`. See [Keeping the layout](#keeping-the-layout) | off |
 | `--no-validate` | Skip the checks on the result (the envelope carries `"validated": false`) | off |
-| `--force` | Replace an existing output file | off (an existing file gives exit 4) |
+| `--force` | Replace an existing output file. With `--previous`: when the layout cannot be kept, lay the diagram out afresh in place of failing | off (an existing file gives exit 4) |
 | `--text-as-paths` | Convert text to outlines: identical everywhere, but not searchable | off |
 
 With `--frames`, every frame is checked and listed in `outputs`, and `summary.files` counts them. A spec without `steps` is exit 3 (`no-steps`), and `-o -` is exit 2. If any frame file exists and `--force` is not given, nothing is written (exit 4).
 
-With `--check` the envelope has `checked` (the number of files compared) and `stale` (a list of `path` and `reason`, `missing` or `differs`) in place of findings; `ok` is false when anything is stale. Give `--check` the same flags the file was rendered with (`--theme`, `--embed-spec`, `--frames`), or it will differ.
+With `--check` the envelope has `checked` (the number of files compared) and `stale` (a list of `path` and `reason`, `missing` or `differs`) in place of findings; `ok` is false when anything is stale. Give `--check` the same flags the file was rendered with (`--theme`, `--embed-spec`, `--frames`), or it will differ. A file is current when it is what the spec renders over the file itself as `--previous`, or what it renders from nothing, so a drawing made with `--previous` passes.
+
+#### Keeping the layout
+
+Without `--previous`, every render places the boxes from nothing, and one new node can move all of them. With it, the earlier drawing says where the boxes were:
+
+```bash
+svgdog render fig/orders.yaml -o fig/orders.svg --previous fig/orders.svg
+```
+
+| Diagram | What `--previous` does |
+|---|---|
+| `flow`, `state`, `layers` | Boxes in both drawings keep their centre. A new box goes to the free spot nearest to where it belongs beside its neighbours. A frame keeps its size, or grows round a new member. Edges, edge labels and notes are placed again |
+| `sequence`, `timeline`, `compare` | These follow the order of the spec, so the diagram is laid out as usual and then compared: if a box in both drawings moved against the others, the layout was not kept. Adding at the end keeps it; adding in the middle does not |
+| `free` | Positions come from `at`; the earlier drawing is read and has no effect |
+
+The earlier positions are read from the drawing's geometry (`node-<id>` and `group-<id>`), so any SVG rendered by SVGDog works, whatever flags it was rendered with. A file that SVGDog did not render is exit 3 (`not-svgdog-output`). Ids are how boxes are matched: a renamed node is a new box.
+
+When the layout cannot be kept, render stops with exit 4, error code `layout-changed`, and writes nothing. `error.details.reasons` lists each reason as `id` and `why`: a box changed size and no longer fits beside a neighbour, a box would sit inside a frame it is not in, two frames would overlap, there is no free room for a new box, or the drawing would be wider than `max_width`. With `--force` the diagram is laid out afresh and the reasons are in the report.
+
+The envelope has `layout`: `previous` (the file), `kept` (the number of boxes in both), `placed` and `gone` (ids only in the new and only in the earlier drawing), `relaid` (true when `--force` gave up the layout) and `reasons`. Rendering a spec over its own output gives the same bytes.
 
 Findings are listed up to 50. Exit 1 when an error-level finding remains. Writes are atomic (temporary file, then rename). `[style] fonts` in `svgdog.toml` sets the font-family list written into the SVG.
 
@@ -201,6 +222,7 @@ svgdog docs docs/ README.md --check
 | `--check` | Write nothing; exit 1 if any picture or image line is out of date | off |
 | `--assets DIR` | Folder for the pictures, relative to each page; no `..` | `diagrams` |
 | `--theme NAME` | Theme for every diagram | each spec's `theme`, else `docs-light` |
+| `--force` | Lay a diagram out afresh when its boxes cannot stay where the picture on disk has them. Cannot be combined with `--check` | off (such a diagram gives exit 4) |
 | `--interactive none\|css\|html` | `css`: the pictures are the `css` version. `html`: the pictures stay static, a page `DIR/<page>-<name>.html` is written beside each, and the image line ends with a link to it, labelled "Interactive version" | `none` |
 
 A diagram is a fenced code block whose info word is `svgdog`, or, when the source should not be shown to readers, an HTML comment that opens with `<!-- svgdog` on its own line and closes with `-->` on its own line. An optional second word names the diagram.
@@ -226,6 +248,8 @@ For each block the command:
 Nothing else in the page is touched, and a second run writes nothing. Pictures of blocks that were removed or renamed are not deleted.
 
 The envelope lists what was written in `outputs`, the pages that hold diagrams in `documents`, and the findings of every rendered picture; `summary.files` counts the diagrams. With `--check` it also has `stale` (`path` and `reason`: `missing`, `differs` or `image links differ`). A spec error ends the run with exit 3; its message names the page and the line the diagram starts on. Two diagrams on one page that would get the same file name are refused (`duplicate-id`).
+
+A picture that is already there is the earlier drawing for its diagram, as with [`render --previous`](#keeping-the-layout): when the spec in the page changes, the boxes stay where they were. A diagram whose boxes cannot stay ends the run with exit 4 (`layout-changed`, with the page and line in the message) and that picture is left as it was; with `--force` it is laid out afresh and listed in `relaid` (`path` and `why`). To get a fresh layout for one diagram, delete its picture and run the command again. `--check` accepts a picture that is either the kept layout or the fresh one.
 
 ## describe
 

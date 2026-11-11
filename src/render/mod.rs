@@ -3,6 +3,7 @@
 mod compare;
 mod explain;
 pub mod interactive;
+pub mod keep;
 pub mod layout;
 pub mod route;
 mod sequence;
@@ -653,33 +654,60 @@ impl Writer {
 }
 
 pub fn render(spec: &Spec, opt: &Options) -> Result<String, AppError> {
+    draw(spec, opt, None).map(|(svg, _)| svg)
+}
+
+/// Render with the boxes where an earlier drawing had them. When `Kept::reasons`
+/// is not empty the layout could not be kept, and the drawing returned is not one to use.
+pub fn render_keeping(spec: &Spec, opt: &Options, prev: &keep::Previous) -> Result<(String, keep::Kept), AppError> {
+    draw(spec, opt, Some(prev)).map(|(svg, kept)| (svg, kept.unwrap_or_default()))
+}
+
+fn draw(spec: &Spec, opt: &Options, prev: Option<&keep::Previous>) -> Result<(String, Option<keep::Kept>), AppError> {
     let name = opt.theme.or(spec.theme.as_deref()).unwrap_or("docs-light");
     let theme = theme::find(name).ok_or_else(|| {
         let e = if opt.theme.is_some() { AppError::usage("unknown-theme", format!("Unknown theme '{name}'.")) } else { AppError::input("unknown-theme", format!("Unknown theme '{name}'.")).path("theme") };
         e.suggest(did_you_mean(name, theme::names()).or(Some(format!("Themes: {}.", theme::names().collect::<Vec<_>>().join(", ")))))
     })?;
     let kinds: Vec<Kind> = spec.nodes.iter().map(|n| n.kind).collect();
-    // Set the diagram as roomily as fits: tighter wrapping and gaps are tried only
-    // when the drawing would be wider than max_width.
+    let mut kept: Option<keep::Kept> = None;
     let mut chosen = None;
-    for t in &layout::LEVELS {
+    if let Some(prev) = prev.filter(|p| keep::pins(spec, p)) {
+        // Boxes stay where the earlier drawing had them, at the spacing it was set at.
+        let t = &layout::LEVELS[keep::level(spec, prev)];
         let m = layout::measure(spec, t);
-        let d = match spec.diagram {
-            Diagram::Sequence => sequence::arrange(spec, &m, t, &|i, r| shape(kinds[i], r)),
-            Diagram::Timeline => timeline::arrange(spec, &m),
-            Diagram::Compare => connect(spec, &m, compare::layout(spec, &m), &|i, r| shape(kinds[i], r)),
-            _ => arrange(spec, &m, t, &|i, r| shape(kinds[i], r)),
-        };
-        let fits = d.size.0 <= spec.max_width + 1e-6;
+        let (geo, mut k) = keep::pinned(spec, &m, t, prev);
+        let d = connect(spec, &m, geo, &|i, r| shape(kinds[i], r));
+        if d.size.0 > spec.max_width + 1e-6 {
+            k.reasons.push(keep::Reason { id: String::new(), why: format!("with the boxes kept in place the drawing would be {} px wide; max_width allows {}", fmt(d.size.0), fmt(spec.max_width)) });
+        }
+        kept = Some(k);
         chosen = Some((m, d));
-        if fits {
-            break;
+    } else {
+        // Set the diagram as roomily as fits: tighter wrapping and gaps are tried only
+        // when the drawing would be wider than max_width.
+        for t in &layout::LEVELS {
+            let m = layout::measure(spec, t);
+            let d = match spec.diagram {
+                Diagram::Sequence => sequence::arrange(spec, &m, t, &|i, r| shape(kinds[i], r)),
+                Diagram::Timeline => timeline::arrange(spec, &m),
+                Diagram::Compare => connect(spec, &m, compare::layout(spec, &m), &|i, r| shape(kinds[i], r)),
+                _ => arrange(spec, &m, t, &|i, r| shape(kinds[i], r)),
+            };
+            let fits = d.size.0 <= spec.max_width + 1e-6;
+            chosen = Some((m, d));
+            if fits {
+                break;
+            }
         }
     }
     let (m, mut d) = chosen.expect("there is at least one layout level");
+    if let (Some(prev), None) = (prev, &kept) {
+        kept = Some(keep::compare(spec, &d.geo, prev));
+    }
     explain::grow_for_badges(spec, &mut d);
     let (w, h) = d.size;
-    if w > spec.max_width + 1e-6 {
+    if w > spec.max_width + 1e-6 && kept.as_ref().is_none_or(|k| k.reasons.is_empty()) {
         let hint = if matches!(spec.diagram, Diagram::Flow | Diagram::Layers | Diagram::State | Diagram::Timeline) && spec.direction == Direction::Right { "Try 'direction: down', shorter labels, or a larger max_width." } else { "Try shorter labels, fewer boxes side by side, or a larger max_width." };
         return Err(AppError::input("too-wide", format!("The drawing is {} px wide even at the tightest spacing; max_width allows {}.", fmt(w), fmt(spec.max_width))).path("max_width").suggest(Some(hint.into())));
     }
@@ -845,5 +873,44 @@ pub fn render(spec: &Spec, opt: &Options) -> Result<String, AppError> {
         let accent = if theme.name == theme::AUTO { theme::THEMES[0].accent_fill } else { theme.accent_fill };
         out = interactive::style(&out, spec, theme, accent);
     }
-    Ok(out)
+    Ok((out, kept))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every fixture and bundled example: the boxes read back from the drawing are
+    /// the boxes that were drawn, so an earlier drawing says exactly where things were.
+    #[test]
+    fn boxes_read_back_from_a_drawing_are_the_boxes_drawn() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let mut seen = 0;
+        for dir in ["tests/fixtures", "examples"] {
+            for entry in std::fs::read_dir(root.join(dir)).unwrap() {
+                let path = entry.unwrap().path();
+                if path.extension().and_then(|e| e.to_str()) != Some("yaml") {
+                    continue;
+                }
+                let name = path.to_string_lossy().into_owned();
+                let doc = crate::spec::read_document(&std::fs::read_to_string(&path).unwrap(), &name).unwrap();
+                let spec = crate::spec::parse(&doc).unwrap();
+                for text_as_paths in [false, true] {
+                    let opt = Options { theme: None, fonts: &[], text_as_paths, embed: None, interactive: false };
+                    let svg = render(&spec, &opt).unwrap();
+                    let prev = keep::read(&svg, &name).unwrap();
+                    // Drawn over itself, nothing may move and the bytes must be the same.
+                    let (again, kept) = render_keeping(&spec, &opt, &prev).unwrap();
+                    assert!(kept.reasons.is_empty(), "{name}: {:?}", kept.reasons);
+                    assert_eq!(kept.kept.len(), spec.nodes.len(), "{name}: every box is read back");
+                    assert_eq!(svg, again, "{name}: rendering over itself changes nothing");
+                    for g in &spec.groups {
+                        assert!(prev.groups.contains_key(&g.id), "{name}: frame of {} is read back", g.id);
+                    }
+                }
+                seen += 1;
+            }
+        }
+        assert!(seen >= 15, "fixtures and examples were found");
+    }
 }

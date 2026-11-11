@@ -29,7 +29,7 @@ SVGDog draws each diagram into a `diagrams` folder next to the page and adds an 
 ![Request path. Flow diagram: browser to api (request); api to database (query).](diagrams/diagrams-in-pages-request-path.svg)
 ```
 
-Change the spec, run the command again, and the picture and the image line are updated. Running it when nothing changed writes nothing.
+Change the spec, run the command again, and the picture and the image line are updated. Running it when nothing changed writes nothing. The boxes that were already in the picture stay where they were; see [Changing a diagram without moving it](changing-a-diagram.md).
 
 - The word after `svgdog` (`request-path` above) names the picture. Without it, diagrams are numbered in the order they appear on the page.
 - The text in the square brackets is what readers get when the picture cannot be shown. SVGDog writes it from the spec's `title` and `description`.

@@ -20,6 +20,7 @@ svgdog preview orders.svg -o orders.png   # look at it
 | Make an SVG from my spec | `render` | [Writing a spec](writing-a-spec.md) |
 | Check any SVG for mistakes | `validate` | [Checking and fixing SVGs](checking-and-fixing.md) |
 | Repair the mistakes SVGDog can fix by itself | `fix` | [Checking and fixing SVGs](checking-and-fixing.md) |
+| Change my spec and keep the boxes where readers know them | `render --previous` | [Changing a diagram without moving it](changing-a-diagram.md) |
 | Change one thing (a colour, a label) without redoing everything | `edit` | [Checking and fixing SVGs](checking-and-fixing.md) |
 | Find out what is inside an SVG and where it sits | `inspect` | [Checking and fixing SVGs](checking-and-fixing.md) |
 | See the diagram as a picture | `preview` | [Looking at your diagram](looking-at-your-diagram.md) |

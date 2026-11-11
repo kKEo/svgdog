@@ -128,14 +128,14 @@ pub fn execute(cli: &Cli, env: &Env) -> Result<Output, AppError> {
         Command::Validate { files, rules, skip, fail_on, max_findings } => commands::validate::run(files, rules, skip, *fail_on, *max_findings, loader.as_mut().unwrap(), profile, &paint),
         Command::Edit { file, set, ops, dry_run, output, in_place } => commands::edit::run(file, set, ops.as_deref(), env.inline_ops.as_ref(), *dry_run, output.as_deref(), *in_place, loader.as_mut().unwrap(), profile, &paint),
         Command::Fix { file, rules, allow_unsafe, dry_run, output, in_place } => commands::fix::run(file, rules, *allow_unsafe, *dry_run, output.as_deref(), *in_place, loader.as_mut().unwrap(), profile, &paint),
-        Command::Render { spec, output, theme, interactive, frames, embed_spec, check, no_validate, force, text_as_paths } => commands::render::run(spec, env.inline_spec.as_deref(), output, theme.as_deref(), *interactive, *frames, *embed_spec, *check, *no_validate, *force, *text_as_paths, loader.as_mut().unwrap(), profile, &paint),
+        Command::Render { spec, output, theme, interactive, frames, embed_spec, check, previous, no_validate, force, text_as_paths } => commands::render::run(spec, env.inline_spec.as_deref(), output, theme.as_deref(), *interactive, *frames, *embed_spec, *check, previous.as_deref(), *no_validate, *force, *text_as_paths, loader.as_mut().unwrap(), profile, &paint),
         Command::Preview { file, output, width, background, annotate, crop, step, force } => commands::preview::run(file, output, *width, *background, *annotate, crop.as_deref(), *step, *force, loader.as_mut().unwrap(), profile, &paint),
         Command::Inspect { file, select, depth, fields } => commands::inspect::run(file, select.as_deref(), *depth, fields),
         Command::Schema { name } => commands::schema::run(*name),
         Command::Rules { explain } => commands::rules::run(explain.as_deref()),
         Command::Examples { name } => commands::examples::run(name.as_deref()),
         Command::Describe { file, short } => commands::describe::run(file, *short),
-        Command::Docs { paths, check, assets, theme, interactive } => commands::docs::run(paths, *check, assets, theme.as_deref(), *interactive, loader.as_mut().unwrap(), profile, &paint),
+        Command::Docs { paths, check, assets, theme, force, interactive } => commands::docs::run(paths, *check, assets, theme.as_deref(), *force, *interactive, loader.as_mut().unwrap(), profile, &paint),
         Command::Mcp { .. } => Err(AppError::usage("invalid-argument", "The mcp server cannot be started from inside a tool call.")),
     }?;
     if let Some(loader) = &loader {

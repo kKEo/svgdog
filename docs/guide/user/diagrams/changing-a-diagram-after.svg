@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 296" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>Order placement</title>
+  <desc>Flow diagram: Storefront to Order API (POST /orders); Order API to Orders DB (insert); Order API to Fulfilment queue (publish); Order API to Price cache (read); Fulfilment queue to Mail provider (send).</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
+  </defs>
+  <rect x="0" y="0" width="840" height="296" fill="#ffffff"/>
+  <g id="node-web">
+    <rect x="24" y="72" width="112" height="64" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <line x1="24" y1="88" x2="136" y2="88" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="80" y="117.09" text-anchor="middle" font-size="14" fill="#1f2937">Storefront</text>
+  </g>
+  <g id="node-api">
+    <rect x="256" y="80" width="112" height="48" rx="8" fill="#2563eb" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="312" y="109.09" text-anchor="middle" font-size="14" fill="#ffffff">Order API</text>
+  </g>
+  <g id="node-db">
+    <path d="M480 32 A56 8 0 0 1 592 32 L592 80 A56 8 0 0 1 480 80 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M480 32 A56 8 0 0 0 592 32" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="536" y="67.09" text-anchor="middle" font-size="14" fill="#1f2937">Orders DB</text>
+  </g>
+  <g id="node-queue">
+    <path d="M456 128 L616 128 A8 24 0 0 1 616 176 L456 176 A8 24 0 0 1 456 128 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M616 128 A8 24 0 0 0 616 176" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="536" y="157.09" text-anchor="middle" font-size="14" fill="#1f2937">Fulfilment queue</text>
+  </g>
+  <g id="node-cache">
+    <path d="M472 216 A64 8 0 0 1 600 216 L600 264 A64 8 0 0 1 472 264 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M472 216 A64 8 0 0 0 600 216" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="536" y="251.09" text-anchor="middle" font-size="14" fill="#1f2937">Price cache</text>
+  </g>
+  <g id="node-mailer">
+    <rect x="688" y="128" width="128" height="48" rx="4" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="752" y="157.09" text-anchor="middle" font-size="14" fill="#1f2937">Mail provider</text>
+  </g>
+  <g id="edge-web--api">
+    <path d="M136 104 L256 104" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="196" y="96.11" text-anchor="middle" font-size="12" fill="#1f2937">POST /orders</text>
+  </g>
+  <g id="edge-api--db">
+    <path d="M368 88 L424 88 L424 72 L480 72" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="396" y="80.11" text-anchor="middle" font-size="12" fill="#1f2937">insert</text>
+  </g>
+  <g id="edge-api--queue">
+    <path d="M368 112 L408 112 L408 144 L448.52 144" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <text x="398" y="104.11" text-anchor="middle" font-size="12" fill="#1f2937">publish</text>
+  </g>
+  <g id="edge-api--cache">
+    <path d="M368 120 L400 120 L400 224 L472 224" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="419.78" y="176.37" text-anchor="middle" font-size="12" fill="#1f2937">read</text>
+  </g>
+  <g id="edge-queue--mailer">
+    <path d="M624 152 L688 152" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="656" y="144.11" text-anchor="middle" font-size="12" fill="#1f2937">send</text>
+  </g>
+</svg>

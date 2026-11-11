@@ -126,6 +126,13 @@ fn tools_return_the_same_envelope_as_the_cli() {
     check(&r);
     assert_eq!((r["ok"].as_bool(), r["outputs"][0]["path"].as_str()), (Some(true), Some("o.svg")));
     assert!(dir.path().join("o.svg").exists());
+    // the same spec over its own drawing: the boxes are kept, and the file may be replaced without force
+    let (k, is_error, _) = s.call("svgdog_render", json!({ "file": "orders.yaml", "output": "o.svg", "previous": "o.svg" }));
+    assert!(!is_error, "{k}");
+    check(&k);
+    assert_eq!((k["layout"]["kept"].as_u64(), k["layout"]["relaid"].as_bool()), (Some(4), Some(false)), "{k}");
+    let (k, is_error, _) = s.call("svgdog_render", json!({ "file": "orders.yaml", "output": "o2.svg", "previous": "../o.svg" }));
+    assert!(is_error && k["error"]["code"] == "outside-root", "the earlier drawing is confined to the root like any path: {k}");
 
     let (scene, _, _) = s.call("svgdog_inspect", json!({ "file": "o.svg", "select": "#node-api", "fields": ["tag", "bbox", "text"] }));
     assert_eq!(scene["summary"]["returned"], 3);

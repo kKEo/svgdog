@@ -97,7 +97,7 @@ fn shown(p: &Path) -> String {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn run(paths: &[String], check: bool, assets: &str, theme: Option<&str>, live: Live, loader: &mut Loader, profile: Option<Profile>, paint: &Paint) -> Result<Output, AppError> {
+pub fn run(paths: &[String], check: bool, assets: &str, theme: Option<&str>, force: bool, live: Live, loader: &mut Loader, profile: Option<Profile>, paint: &Paint) -> Result<Output, AppError> {
     let dir_ok = !assets.is_empty() && Path::new(assets).components().all(|c| matches!(c, Component::Normal(_)));
     if !dir_ok {
         return Err(AppError::usage("invalid-argument", format!("--assets '{assets}' must be a folder name or relative path below the page, without '..'.")));
@@ -107,6 +107,7 @@ pub fn run(paths: &[String], check: bool, assets: &str, theme: Option<&str>, liv
     let mut outputs: Vec<Value> = Vec::new();
     let mut stale: Vec<Value> = Vec::new();
     let mut documents: Vec<Value> = Vec::new();
+    let mut relaid: Vec<Value> = Vec::new();
     let mut diagrams = 0;
 
     for page in pages(paths)? {
@@ -142,12 +143,42 @@ pub fn run(paths: &[String], check: bool, assets: &str, theme: Option<&str>, liv
             let rel = format!("{assets}/{file}");
             let target = folder.join(&rel);
             // The picture in the page is an SVG either way; the html version is a second file beside it.
-            let svg = render::render(&parsed, &render::Options { theme, fonts: cfg.fonts(), text_as_paths: false, embed: None, interactive: live == Live::Css }).map_err(at)?;
-            findings.extend(rules::analyze(&shown(&target), &svg, &settings));
+            // The picture already there says where the boxes were; they stay when they can.
+            let opt = |interactive: bool| render::Options { theme, fonts: cfg.fonts(), text_as_paths: false, embed: None, interactive };
+            let shown_target = shown(&target);
+            let earlier = super::render::previous_in(&target);
+            let keep = match &earlier {
+                None => false,
+                Some(prev) => {
+                    let (kept_svg, kept) = render::render_keeping(&parsed, &opt(live == Live::Css), prev).map_err(at)?;
+                    if check {
+                        // Current is what the spec gives over the picture itself, or from nothing.
+                        kept.reasons.is_empty() && std::fs::read(&target).is_ok_and(|bytes| bytes == kept_svg.as_bytes())
+                    } else if kept.reasons.is_empty() {
+                        true
+                    } else if force {
+                        relaid.push(json!({ "path": shown_target, "why": kept.reasons[0].why }));
+                        false
+                    } else {
+                        // Fails with the reasons; --force is what lets the layout go.
+                        super::render::lay(&parsed, &opt(false), Some((prev, &shown_target)), false).map_err(at)?;
+                        false
+                    }
+                }
+            };
+            let draw = |interactive: bool| -> Result<String, AppError> {
+                match (&earlier, keep) {
+                    (Some(prev), true) => render::render_keeping(&parsed, &opt(interactive), prev).map(|(svg, _)| svg),
+                    _ => render::render(&parsed, &opt(interactive)),
+                }
+            };
+            // The picture in the page is an SVG either way; the html version is a second file beside it.
+            let svg = draw(live == Live::Css).map_err(at)?;
+            findings.extend(rules::analyze(&shown_target, &svg, &settings));
             diagrams += 1;
             let mut files = vec![(target.clone(), svg)];
             if live == Live::Html {
-                let inner = render::render(&parsed, &render::Options { theme, fonts: cfg.fonts(), text_as_paths: false, embed: None, interactive: true }).map_err(at)?;
+                let inner = draw(true).map_err(at)?;
                 let name = theme.or(parsed.theme.as_deref()).unwrap_or("docs-light");
                 let (light, dark) = if name == render::theme::AUTO { (&render::theme::THEMES[0], Some(&render::theme::THEMES[1])) } else { (render::theme::find(name).unwrap_or(&render::theme::THEMES[0]), None) };
                 files.push((target.with_extension("html"), render::interactive::page(&inner, &parsed, light, dark)));
@@ -223,6 +254,12 @@ pub fn run(paths: &[String], check: bool, assets: &str, theme: Option<&str>, liv
     } else {
         for o in &outputs {
             text.push_str(&format!("Wrote {}.\n", o["path"].as_str().unwrap_or("")));
+        }
+        for l in &relaid {
+            text.push_str(&format!("{}: layout not kept ({}); laid out afresh.\n", l["path"].as_str().unwrap_or(""), l["why"].as_str().unwrap_or("")));
+        }
+        if !relaid.is_empty() {
+            r.json.insert("relaid".into(), Value::Array(relaid.clone()));
         }
         if outputs.is_empty() {
             text.push_str("Nothing to update.\n");

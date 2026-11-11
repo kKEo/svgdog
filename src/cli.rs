@@ -102,10 +102,13 @@ pub enum Command {
         /// Write nothing; exit 1 if OUT is missing or is not what this spec renders now
         #[arg(long, conflicts_with = "force")]
         check: bool,
+        /// An SVG rendered earlier: boxes in both stay where they were (may be OUT itself)
+        #[arg(long, value_name = "SVG")]
+        previous: Option<String>,
         /// Skip the checks on the result
         #[arg(long)]
         no_validate: bool,
-        /// Replace an existing output file
+        /// Replace an existing output file; with --previous, lay out afresh if the layout cannot be kept
         #[arg(long)]
         force: bool,
         /// Convert text to outlines: exact everywhere, but not searchable
@@ -254,6 +257,9 @@ pub enum Command {
         /// Theme for every diagram: docs-light, docs-dark or docs-auto [default: each spec's]
         #[arg(long, value_name = "NAME")]
         theme: Option<String>,
+        /// Lay a diagram out afresh when its boxes cannot stay where the picture on disk has them
+        #[arg(long, conflicts_with = "check")]
+        force: bool,
         /// css: the pictures highlight on hover where the page inlines them; html: also write a page per diagram and link it
         #[arg(long, value_enum, default_value = "none", value_name = "none|css|html", hide_possible_values = true, hide_default_value = true)]
         interactive: Live,

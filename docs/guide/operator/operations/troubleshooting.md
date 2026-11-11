@@ -59,6 +59,8 @@ Other codes: `unknown-rule` (with a did-you-mean), `unknown-profile`, `invalid-c
 
 `output-exists`: `a.svg already exists; pass --force to replace it.` The output path is taken. Add `--force`, choose a new path, or for `edit` and `fix` use `--in-place`. `write-failed` means the directory is missing or not writable.
 
+`layout-changed`: `The layout of a.svg cannot be kept: 'b' changed size and no longer fits beside 'a'.` The render was asked to keep the boxes of an earlier drawing (`render --previous`, or `docs` over a picture that exists) and cannot. Nothing was written. Shorten the label or undo the change that needs the room, or pass `--force` to accept a fresh layout. The reasons are in `error.details.reasons`.
+
 ### MCP errors
 
 | Code | Cause |

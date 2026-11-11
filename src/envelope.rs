@@ -81,11 +81,13 @@ pub struct AppError {
     pub message: String,
     pub path: Option<String>,
     pub suggestion: Option<String>,
+    /// More about the failure, for a program to read.
+    pub details: Option<Box<Value>>,
 }
 
 impl AppError {
     pub fn new(exit: i32, code: &'static str, message: impl Into<String>) -> Self {
-        AppError { exit, code, message: message.into(), path: None, suggestion: None }
+        AppError { exit, code, message: message.into(), path: None, suggestion: None, details: None }
     }
     pub fn usage(code: &'static str, message: impl Into<String>) -> Self {
         Self::new(EXIT_USAGE, code, message)
@@ -101,6 +103,10 @@ impl AppError {
         self.suggestion = s;
         self
     }
+    pub fn details(mut self, d: Value) -> Self {
+        self.details = Some(Box::new(d));
+        self
+    }
 
     pub fn to_json(&self, command: &str) -> Value {
         let mut err = Map::new();
@@ -111,6 +117,9 @@ impl AppError {
         }
         if let Some(s) = &self.suggestion {
             err.insert("suggestion".into(), json!(s));
+        }
+        if let Some(d) = &self.details {
+            err.insert("details".into(), (**d).clone());
         }
         json!({
             "tool": TOOL,

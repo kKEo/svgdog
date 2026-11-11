@@ -6,7 +6,11 @@ This page answers the questions people ask most and explains the messages SVGDog
 
 ### `error[output-exists]: hello.svg already exists; pass --force to replace it.` (exit code 4)
 
-SVGDog will not overwrite a file by accident. Add `--force` to replace it, or choose a different name with `-o`.
+SVGDog will not overwrite a file by accident. Add `--force` to replace it, or choose a different name with `-o`. To update a diagram and keep its boxes where they are, add `--previous hello.svg` instead.
+
+### `error[layout-changed]: The layout of orders.svg cannot be kept: 'api' changed size and no longer fits beside 'web'.` (exit code 4)
+
+You asked SVGDog to keep the boxes where an earlier picture has them (`--previous`, or `svgdog docs` on a page whose picture exists), and after your change they no longer fit. Nothing was written. Make the change smaller (a shorter label, for example), or add `--force` to let SVGDog arrange the diagram again. See [Changing a diagram without moving it](changing-a-diagram.md).
 
 ### `error[unknown-field]: Unknown field 'labl' in nodes[0].` (exit code 3)
 

@@ -150,17 +150,17 @@ pub struct Geometry {
 }
 
 /// An item's own box plus the notes around it.
-struct Foot {
-    w: f64,
-    h: f64,
+pub(crate) struct Foot {
+    pub w: f64,
+    pub h: f64,
     /// Where the own box sits inside the footprint.
-    ox: f64,
-    oy: f64,
+    pub ox: f64,
+    pub oy: f64,
     /// Note boxes relative to the own box's origin.
-    notes: Vec<(usize, Rect)>,
+    pub notes: Vec<(usize, Rect)>,
 }
 
-fn foot(spec: &Spec, m: &Measured, me: Ref, w: f64, h: f64) -> Foot {
+pub(crate) fn foot(spec: &Spec, m: &Measured, me: Ref, w: f64, h: f64) -> Foot {
     let mut notes = Vec::new();
     for side in [Side::Top, Side::Right, Side::Bottom, Side::Left] {
         let mine: Vec<usize> = (0..spec.notes.len()).filter(|i| spec.notes[*i].side == side && spec.lookup(&spec.notes[*i].attach) == Some(me)).collect();

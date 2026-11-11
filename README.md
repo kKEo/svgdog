@@ -50,6 +50,14 @@ fails when a picture is out of date. `--theme docs-auto` gives one file that fol
 the reader's light or dark mode. `svgdog describe` turns a diagram into words, and
 `render --embed-spec` stores the spec in the SVG so it can be read back.
 
+## Changing a diagram
+
+A diagram that readers know should not rearrange itself when one box is added.
+`svgdog render orders.yaml -o orders.svg --previous orders.svg` keeps every box that
+is in both versions where it was and puts new boxes into free room. When that cannot
+be done, the command stops with `layout-changed` and says why; `--force` lays the
+diagram out afresh. `svgdog docs` does the same for the pictures it already wrote.
+
 ## The loop
 
 ```sh
@@ -65,7 +73,7 @@ Repeat render (or fix) until the exit code is 0.
 
 | Command | Purpose |
 | --- | --- |
-| `render <spec> -o <out.svg>` | Compile a YAML or JSON spec to SVG and validate the result |
+| `render <spec> -o <out.svg>` | Compile a YAML or JSON spec to SVG and validate the result; `--previous` keeps an earlier layout |
 | `validate <file.svg>...` | Run the 38 rules on SVG files, including ones SVGDog did not make |
 | `inspect <file.svg>` | List visible elements with their bounding boxes, as data |
 | `preview <file.svg> -o <out.png>` | Rasterize to PNG; `--annotate` outlines findings, `--crop` zooms in |

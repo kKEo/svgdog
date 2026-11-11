@@ -155,10 +155,21 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["path", "reason"],
+        "required": [
+          "path",
+          "reason"
+        ],
         "properties": {
-          "path": { "type": "string" },
-          "reason": { "enum": ["missing", "differs", "image links differ"] }
+          "path": {
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "missing",
+              "differs",
+              "image links differ"
+            ]
+          }
         }
       }
     },
@@ -168,10 +179,18 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["path", "diagrams"],
+        "required": [
+          "path",
+          "diagrams"
+        ],
         "properties": {
-          "path": { "type": "string" },
-          "diagrams": { "type": "integer", "minimum": 1 }
+          "path": {
+            "type": "string"
+          },
+          "diagrams": {
+            "type": "integer",
+            "minimum": 1
+          }
         }
       }
     },
@@ -222,6 +241,88 @@
         "rewritten"
       ],
       "description": "edit on a spec: whether comments and layout were kept, or the spec was rewritten in canonical form"
+    },
+    "layout": {
+      "type": "object",
+      "description": "render --previous: what became of the earlier drawing's layout",
+      "additionalProperties": false,
+      "required": [
+        "previous",
+        "kept",
+        "placed",
+        "gone",
+        "relaid",
+        "reasons"
+      ],
+      "properties": {
+        "previous": {
+          "type": "string",
+          "description": "The earlier drawing"
+        },
+        "kept": {
+          "type": "integer",
+          "description": "Boxes in both drawings"
+        },
+        "placed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ids of boxes only in the new drawing"
+        },
+        "gone": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ids of boxes only in the earlier drawing"
+        },
+        "relaid": {
+          "type": "boolean",
+          "description": "True when the layout could not be kept and --force laid the diagram out afresh"
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "why"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The node or group that cannot stay; empty when the reason is about the whole drawing"
+              },
+              "why": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "Why the layout could not be kept; empty when it was"
+        }
+      }
+    },
+    "relaid": {
+      "type": "array",
+      "description": "docs --force: pictures whose layout could not be kept and were laid out afresh",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "why"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "oneOf": [
@@ -366,6 +467,35 @@
         },
         "suggestion": {
           "type": "string"
+        },
+        "details": {
+          "type": "object",
+          "description": "More about the failure, for a program to read. layout-changed: the earlier drawing and why its layout cannot be kept",
+          "properties": {
+            "previous": {
+              "type": "string"
+            },
+            "reasons": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "why"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "The node or group that cannot stay; empty when the reason is about the whole drawing"
+                  },
+                  "why": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }

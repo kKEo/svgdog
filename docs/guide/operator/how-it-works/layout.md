@@ -89,6 +89,19 @@ error[too-wide]: The drawing is 576 px wide even at the tightest spacing; max_wi
 
 The suggestion depends on the diagram: for a left-to-right flow or layers diagram it recommends `direction: down`; otherwise it recommends shorter labels, fewer boxes side by side, or a larger `max_width`. Nothing is written to the output path. See [Troubleshooting](../operations/troubleshooting.md).
 
+### Keeping an earlier layout
+
+`render --previous` and `docs` skip the placement above for boxes that an earlier drawing already has. The code is in `src/render/keep.rs`.
+
+1. **Read.** `keep::read` parses the earlier SVG and takes the box of the first shape in each `node-<id>` group and the rectangle of each `group-<id>`. Lifelines, timeline dots, step badges and outlined text are skipped. A unit test renders every fixture and example, reads it back and renders it again over itself; the bytes must not change.
+2. **Level.** `keep::level` picks the spacing level at which most boxes and notes measure what they measured in the earlier drawing, so that a drawing set at level 2 is measured at level 2 again.
+3. **Kept boxes** get their old centre and their new size.
+4. **New boxes.** The fresh layout is computed as well, only to learn where a new box belongs beside its neighbours (the boxes it has edges with, else the boxes in the same group). That offset is applied to where the neighbours really are, and the nearest spot on a 16 px lattice is taken that keeps the usual gaps from every box, stays out of frames the box is not in, lets its own frames grow without touching anything, and does not make the drawing wider than `max_width`.
+5. **Frames** keep their old rectangle while it holds the members and nothing else, and otherwise wrap the members. The bands of a `layers` diagram are stretched to one length.
+6. **Reasons.** What no longer fits is collected (`Kept::reasons`); any reason makes the render fail with `layout-changed`, or with `--force` fall back to the placement above.
+
+Routing, labels, notes and the canvas then run as usual on the kept boxes. For `sequence`, `timeline` and `compare`, `keep::compare` only checks the usual layout against the earlier one.
+
 ### The canvas
 
 After placement the canvas is fitted to what was drawn. The margin is the widest of 24, 16 or 8 px that keeps the empty margin to at most 13 % of the dimension, safely under the 15 % at which the `excess-margin` rule fires, so small diagrams get small margins (`fit`, `src/render/mod.rs:450-470`). The result is the `viewBox` of the SVG.
