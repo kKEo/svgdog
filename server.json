@@ -1,0 +1,36 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.kKEo/svgdog",
+  "title": "SVGDog",
+  "description": "Render declarative diagram specs to SVG and check any SVG for correctness, legibility and portability.",
+  "repository": {
+    "url": "https://github.com/kKEo/svgdog",
+    "source": "github"
+  },
+  "version": "1.0.3",
+  "packages": [
+    {
+      "registryType": "cargo",
+      "identifier": "svgdog",
+      "version": "1.0.3",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "mcp",
+          "valueHint": "mcp"
+        },
+        {
+          "type": "named",
+          "name": "--root-path",
+          "description": "Directory the server may read and write; paths outside it are refused",
+          "isRequired": true,
+          "format": "filepath",
+          "default": "."
+        }
+      ]
+    }
+  ]
+}

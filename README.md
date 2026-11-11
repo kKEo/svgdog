@@ -14,6 +14,18 @@ Full documentation lives in [`docs/guide/`](docs/guide/index.html): a landing pa
 [operator guide](docs/guide/operator/README.md) and the
 [tester guide](docs/guide/tester/README.md). `make docs` builds them with mdBook.
 
+## Install
+
+```sh
+cargo install svgdog                 # from crates.io, builds from source
+cargo binstall svgdog                # prebuilt binary, needs cargo-binstall
+brew install kKEo/tap/svgdog         # Homebrew (macOS and Linux)
+```
+
+Or download a tarball for Linux (x86_64 and arm64, static) or macOS (Apple silicon and
+Intel) from the [releases page](https://github.com/kKEo/svgdog/releases) and check it
+against `SHA256SUMS`.
+
 ## Build
 
 ```sh
@@ -155,6 +167,8 @@ is required:
 svgdog mcp --root-path ./docs
 ```
 
+- MCP Registry name: `mcp-name: io.github.kKEo/svgdog`
+
 The server exposes `svgdog_render`, `svgdog_validate`, `svgdog_inspect`,
 `svgdog_preview`, `svgdog_edit`, `svgdog_fix`, `svgdog_schema`, `svgdog_rules` and
 `svgdog_examples`. `svgdog_render` also takes the spec as text and can return the SVG
@@ -169,12 +183,30 @@ relative to the root and paths outside it are refused. It serves both the
   change, regenerate with `SVGDOG_UPDATE_GOLDEN=1 cargo test r8_output_matches`.
 - `.github/workflows/ci.yml` runs the tests on Linux and macOS; passing on
   both is the cross-platform determinism check. Windows is not built or tested.
-- `.github/workflows/release.yml` publishes a GitHub release when a version tag is
-  pushed. Set `version` in `Cargo.toml`, commit, then `git tag v1.2.3 && git push
-  origin v1.2.3`. It reruns the checks, refuses a tag that does not match
-  `Cargo.toml`, and attaches binaries for Linux (x86_64 and arm64, static), macOS
-  (Apple silicon and Intel), plus `SHA256SUMS`. Running it by hand from
-  the Actions tab builds the binaries without publishing.
+- `.github/workflows/release.yml` publishes a release when a version tag is pushed.
+  Run `make bump` (`BUMP=minor` or `BUMP=major` for larger steps; it commits and tags
+  but does not push), then `git push origin master vX.Y.Z`. The workflow reruns the
+  checks, refuses a tag that does not match `Cargo.toml`, and then:
+  - creates the GitHub release with binaries for Linux (x86_64 and arm64, static) and
+    macOS (Apple silicon and Intel), plus `SHA256SUMS`;
+  - publishes the crate to crates.io (Trusted Publishing, no stored token);
+  - updates the formula in the `kKEo/homebrew-tap` repository;
+  - lists the new version in the MCP Registry (`server.json`).
+
+  A tag with a suffix such as `v1.1.0-rc.1` only creates a GitHub pre-release.
+  Running the workflow by hand from the Actions tab builds the binaries without
+  publishing. `make release-check` dry-runs the crates.io package locally.
+- One-time setup for the channels above:
+  1. crates.io: publish the first version by hand (`cargo login`, `cargo publish`),
+     then add this repository and `release.yml` under the crate's Trusted Publishing
+     settings.
+  2. Homebrew: create the public repository `kKEo/homebrew-tap` and add a
+     `TAP_GITHUB_TOKEN` secret here (fine-grained token, Contents read and write on
+     that repository only).
+  3. MCP Registry: nothing to set up. GitHub OIDC proves the `io.github.kKEo`
+     namespace, and the registry reads the `mcp-name:` line from the crates.io README,
+     so the crate has to be published first.
+  Other MCP directories (Smithery, Glama and similar) are listed by hand.
 - `svgdog rules --explain ID` examples are executed by the tests: each failing
   example must raise its rule, each passing one must not, and each fix must clear
   its finding.

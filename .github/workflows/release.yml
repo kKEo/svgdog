@@ -106,3 +106,149 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --title "svgdog ${{ needs.version.outputs.version }}" \
             --generate-notes --verify-tag "${flags[@]}"
+
+  # Publishes the crate with crates.io Trusted Publishing (no stored token).
+  # One-time setup: publish the first release by hand, then add this repository and
+  # the workflow file name (release.yml) under the crate's Trusted Publishing settings.
+  # Pre-release tags (v1.1.0-rc.1) are not published to crates.io.
+  crates-io:
+    name: publish to crates.io
+    if: github.ref_type == 'tag' && !contains(github.ref_name, '-')
+    needs: [publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
+        id: auth
+      - name: Publish the crate
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        run: cargo publish --locked
+
+  # Updates the Homebrew formula in kKEo/homebrew-tap to the new release.
+  # One-time setup: create the (public) kKEo/homebrew-tap repository and add the
+  # TAP_GITHUB_TOKEN secret here: a fine-grained token with Contents: read and write
+  # on that repository only. Pre-release tags are skipped.
+  homebrew:
+    name: update Homebrew tap
+    if: github.ref_type == 'tag' && !contains(github.ref_name, '-')
+    needs: [version, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      TAP: kKEo/homebrew-tap
+    steps:
+      - name: Fetch the checksums of this release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern SHA256SUMS
+      - name: Write the formula
+        run: |
+          sum() { grep "svgdog-$VERSION-$1.tar.gz" SHA256SUMS | cut -d' ' -f1; }
+          url() { echo "https://github.com/$GITHUB_REPOSITORY/releases/download/v$VERSION/svgdog-$VERSION-$1.tar.gz"; }
+          mkdir -p tap/Formula
+          cat > tap/Formula/svgdog.rb <<RUBY
+          class Svgdog < Formula
+            desc "Compile declarative diagram descriptions to SVG and check any SVG"
+            homepage "https://github.com/$GITHUB_REPOSITORY"
+            version "$VERSION"
+            license any_of: ["MIT", "Apache-2.0"]
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "$(url aarch64-apple-darwin)"
+                sha256 "$(sum aarch64-apple-darwin)"
+              else
+                url "$(url x86_64-apple-darwin)"
+                sha256 "$(sum x86_64-apple-darwin)"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.arm?
+                url "$(url aarch64-unknown-linux-musl)"
+                sha256 "$(sum aarch64-unknown-linux-musl)"
+              else
+                url "$(url x86_64-unknown-linux-musl)"
+                sha256 "$(sum x86_64-unknown-linux-musl)"
+              end
+            end
+
+            def install
+              bin.install "svgdog"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/svgdog --version")
+            end
+          end
+          RUBY
+          cat tap/Formula/svgdog.rb
+      - name: Push the formula to the tap
+        env:
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+        run: |
+          if [[ -z "$TAP_GITHUB_TOKEN" ]]; then
+            echo "::error::The TAP_GITHUB_TOKEN secret is not set."
+            exit 1
+          fi
+          git clone --depth 1 "https://x-access-token:${TAP_GITHUB_TOKEN}@github.com/$TAP.git" checkout
+          mkdir -p checkout/Formula
+          cp tap/Formula/svgdog.rb checkout/Formula/svgdog.rb
+          cd checkout
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/svgdog.rb
+          if git diff --cached --quiet; then echo "Formula already up to date."; exit 0; fi
+          git commit -m "svgdog $VERSION"
+          git push
+
+  # Lists the server in the official MCP Registry (registry.modelcontextprotocol.io).
+  # It verifies the crate on crates.io, so it runs after the crates-io job, and it needs
+  # the visible `mcp-name:` line in README.md. Authentication is GitHub OIDC, which
+  # proves ownership of the io.github.kKEo namespace. Pre-release tags are skipped.
+  mcp-registry:
+    name: publish to the MCP Registry
+    if: github.ref_type == 'tag' && !contains(github.ref_name, '-')
+    needs: [version, crates-io]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      MCP_PUBLISHER_VERSION: v1.8.1
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Download and verify mcp-publisher
+        run: |
+          set -euo pipefail
+          os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+          arch="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+          archive="mcp-publisher_${os}_${arch}.tar.gz"
+          base_url="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}"
+          curl --fail --location --silent --show-error --output "$archive" "$base_url/$archive"
+          curl --fail --location --silent --show-error --output "$archive.sigstore.json" "$base_url/$archive.sigstore.json"
+          cosign verify-blob \
+            --bundle "$archive.sigstore.json" \
+            --certificate-identity "https://github.com/modelcontextprotocol/registry/.github/workflows/release.yml@refs/tags/${MCP_PUBLISHER_VERSION}" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            "$archive"
+          tar xzf "$archive" mcp-publisher
+          rm -f "$archive" "$archive.sigstore.json"
+      - name: Set the version in server.json
+        run: |
+          jq --arg v "$VERSION" '.version = $v | .packages[].version = $v' server.json > server.tmp
+          mv server.tmp server.json
+      - name: Authenticate to the MCP Registry
+        run: ./mcp-publisher login github-oidc
+      - name: Publish the server
+        run: ./mcp-publisher publish
