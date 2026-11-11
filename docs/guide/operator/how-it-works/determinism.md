@@ -23,7 +23,7 @@ Both `cmp` commands print their message when run on SVGDog 1.0.0.
 
 ## How it is verified
 
-The test `r8_output_matches_the_golden_files` (`tests/cli.rs:1109`) renders the five fixture specs, a dark-theme variant with text as paths, a findings listing, an inspect listing and a PNG, and compares each with the file in `tests/golden/` byte for byte. CI runs it on Linux, macOS and Windows (`.github/workflows/ci.yml`). The three passing together is the cross-platform proof. After an intended change to output, regenerate with `SVGDOG_UPDATE_GOLDEN=1 cargo test r8_output_matches`; see the [tester guide](../../tester/) for the full procedure.
+The test `r8_output_matches_the_golden_files` (`tests/cli.rs:1109`) renders the five fixture specs, a dark-theme variant with text as paths, a findings listing, an inspect listing and a PNG, and compares each with the file in `tests/golden/` byte for byte. CI runs it on Linux and macOS (`.github/workflows/ci.yml`). The two passing together is the cross-platform evidence; Windows is not tested. After an intended change to output, regenerate with `SVGDOG_UPDATE_GOLDEN=1 cargo test r8_output_matches`; see the [tester guide](../../tester/) for the full procedure.
 
 > **Note.** The guarantee covers the same SVGDog version. A new release may change layout or routing and with it the bytes. Pin the version in CI if you commit rendered SVGs and want diffs only when the spec changes.
 

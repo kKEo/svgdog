@@ -23,7 +23,7 @@ cd svg-diagram-generator
 cargo build --release --locked
 ```
 
-`--locked` makes the build use the versions pinned in `Cargo.lock`, which is what CI does. The binary is `target/release/svgdog` (`svgdog.exe` on Windows). A clean release build took about a minute on a four-core machine.
+`--locked` makes the build use the versions pinned in `Cargo.lock`, which is what CI does. The binary is `target/release/svgdog`. Windows is not built or tested by this project; the code has no platform-specific parts, so a build from source may work there, but nothing checks it. A clean release build took about a minute on a four-core machine.
 
 ## Install it
 

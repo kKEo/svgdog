@@ -13,7 +13,7 @@ SVGDog is one self-contained executable. There is nothing to configure on a serv
 - **A binary of about 9 MB** (the 1.0.0 release build on macOS arm64 is 9,357,216 bytes). The two fonts are inside it.
 - **No network use.** SVGDog never opens a connection, so it runs in an air-gapped build.
 - **No required files.** An optional `svgdog.toml` next to your diagrams changes which rules apply; see [Configuration](../reference/configuration.md).
-- **Five supported targets** in the release workflow: Linux x86_64 and arm64 (static), macOS Apple silicon and Intel, and Windows x86_64. CI runs the test suite on Linux, macOS and Windows.
+- **Four supported targets** in the release workflow: Linux x86_64 and arm64 (static), and macOS Apple silicon and Intel. CI runs the test suite on Linux and macOS. Windows is not built or tested.
 
 ## Choosing a path
 

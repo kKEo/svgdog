@@ -61,7 +61,7 @@ git diff tests/golden/orders.svg          # SVG and JSON diff as text
 
 Look at the PNG with your image viewer, or render a fresh one: `svgdog preview tests/golden/orders.svg -o /tmp/orders.png`.
 
-> **Warning.** Regenerating on one machine proves nothing about the others. Push the regenerated files and wait for all three CI jobs to pass before you merge.
+> **Warning.** Regenerating on one machine proves nothing about the others. Push the regenerated files and wait for both CI jobs to pass before you merge.
 
 ## Keep the documentation pictures in step
 

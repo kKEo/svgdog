@@ -44,4 +44,4 @@ This page lists what SVGDog does not do, or does only approximately, so you can 
 - **No published releases yet.** The release workflow is written but not committed, and no tag exists; see [Release binaries](../install/release-binaries.md).
 - **The JSON Schemas use a placeholder domain.** The `$id` values in `schemas/*.json` start with `https://svgdog.example/schema/`, which does not resolve. Use `svgdog schema <name>` to get the schema rather than fetching the id.
 - **The requirements document is not in the repository.** Tests and CI comments cite "R1 to R16" from a specification that is not tracked here.
-- **Cross-platform determinism rests on CI that has not yet been seen passing.** The golden-file test is designed to prove it on Linux, macOS and Windows; see [Determinism](../how-it-works/determinism.md).
+- **Cross-platform determinism rests on CI that has not yet been seen passing.** The golden-file test is designed to show it on Linux and macOS, and Windows is not built or tested at all; see [Determinism](../how-it-works/determinism.md).

@@ -51,7 +51,6 @@ jobs:
           - { target: aarch64-unknown-linux-musl, os: ubuntu-24.04-arm }
           - { target: aarch64-apple-darwin, os: macos-latest }
           - { target: x86_64-apple-darwin, os: macos-latest }
-          - { target: x86_64-pc-windows-msvc, os: windows-latest }
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
@@ -71,13 +70,8 @@ jobs:
           mkdir -p "dist/$name"
           cp README.md "dist/$name/"
           cd dist
-          if [[ "${{ runner.os }}" == "Windows" ]]; then
-            cp "../target/${{ matrix.target }}/release/svgdog.exe" "$name/"
-            7z a "$name.zip" "$name" > /dev/null
-          else
-            cp "../target/${{ matrix.target }}/release/svgdog" "$name/"
-            tar -czf "$name.tar.gz" "$name"
-          fi
+          cp "../target/${{ matrix.target }}/release/svgdog" "$name/"
+          tar -czf "$name.tar.gz" "$name"
           rm -r "$name"
       - uses: actions/upload-artifact@v4
         with:

@@ -72,5 +72,5 @@ Copy this into the pull request description and tick it.
 - [ ] If an output shape changed, the schema in `schemas/` and the tests agree.
 - [ ] If a CLI flag or command changed, the MCP tool table in `src/mcp.rs` and the docs agree.
 - [ ] `Cargo.lock` is committed if dependencies changed.
-- [ ] All three CI jobs (`test (ubuntu-latest)`, `test (macos-latest)`, `test (windows-latest)`) are green.
+- [ ] Both CI jobs (`test (ubuntu-latest)`, `test (macos-latest)`) are green.
 - [ ] You tried the change by hand ([Exploratory testing by hand](exploratory.md)).

@@ -159,13 +159,13 @@ relative to the root and paths outside it are refused. It serves both the
 
 - `tests/golden/` holds expected output, compared byte for byte. After an intended
   change, regenerate with `SVGDOG_UPDATE_GOLDEN=1 cargo test r8_output_matches`.
-- `.github/workflows/ci.yml` runs the tests on Linux, macOS and Windows; passing on
-  all three is the cross-platform determinism check.
+- `.github/workflows/ci.yml` runs the tests on Linux and macOS; passing on
+  both is the cross-platform determinism check. Windows is not built or tested.
 - `.github/workflows/release.yml` publishes a GitHub release when a version tag is
   pushed. Set `version` in `Cargo.toml`, commit, then `git tag v1.2.3 && git push
   origin v1.2.3`. It reruns the checks, refuses a tag that does not match
   `Cargo.toml`, and attaches binaries for Linux (x86_64 and arm64, static), macOS
-  (Apple silicon and Intel) and Windows, plus `SHA256SUMS`. Running it by hand from
+  (Apple silicon and Intel), plus `SHA256SUMS`. Running it by hand from
   the Actions tab builds the binaries without publishing.
 - `svgdog rules --explain ID` examples are executed by the tests: each failing
   example must raise its rule, each passing one must not, and each fix must clear

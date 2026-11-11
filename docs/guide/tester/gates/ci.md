@@ -8,13 +8,12 @@ The `ci` workflow runs on every push to `master`, on every pull request, on dema
 
 ## The gates
 
-There is one job, `test`, run on three systems with `fail-fast: false`, so a failure on one system does not hide the result on the others. Each run has a 30 minute timeout.
+There is one job, `test`, run on two systems with `fail-fast: false`, so a failure on one system does not hide the result on the others. Each run has a 30 minute timeout.
 
 | Job name | Runs on |
 |---|---|
 | `test (ubuntu-latest)` | Linux |
 | `test (macos-latest)` | macOS |
-| `test (windows-latest)` | Windows |
 
 Each job runs these steps in order. A failing step fails the job.
 
@@ -38,19 +37,19 @@ cargo test --locked
 cargo test --locked --release r15
 ```
 
-If all three pass, the Linux job should pass. See below for the other two systems.
+If all three pass, the Linux job should pass. See below for macOS.
 
-## Why three systems
+## Why two systems
 
-The golden-file test `r8_output_matches_the_golden_files` in `tests/cli.rs` compares the bytes of rendered SVGs, scene JSON and a PNG with the files in `tests/golden/`. Those files were produced on one machine. A pass on Linux, macOS and Windows is therefore the proof of requirement R8: render, validate, inspect and preview give the same bytes everywhere. A comment above the matrix in `ci.yml` says the same.
+The golden-file test `r8_output_matches_the_golden_files` in `tests/cli.rs` compares the bytes of rendered SVGs, scene JSON and a PNG with the files in `tests/golden/`. Those files were produced on one machine. A pass on both Linux (x86_64) and macOS (Apple silicon) is therefore the evidence for requirement R8: render, validate, inspect and preview give the same bytes on different systems and processors. Windows is not built or tested, so nothing is claimed for it. A comment above the matrix in `ci.yml` says the same.
 
-`.gitattributes` supports this: it forces LF line endings for `*.svg`, `*.yaml` and `*.json` and marks `*.png` and `*.ttf` as binary, so Windows checkouts do not change the bytes that are compared.
+`.gitattributes` supports this: it forces LF line endings for `*.svg`, `*.yaml` and `*.json` and marks `*.png` and `*.ttf` as binary, so a checkout that translates line endings does not change the bytes that are compared.
 
 ## When one system fails
 
 1. Read the failing test name in the job log. If it is `r8_output_matches_the_golden_files`, the message names the file and both sizes: `{name} differs from tests/golden/{name} ({n} vs {m} bytes)`.
 2. If only one system differs, do not regenerate the golden files. A difference between systems is a real portability bug (floating-point formatting, line endings, font measuring, path separators). Fix the cause.
-3. If all three systems differ, the change is probably intended. Follow [Golden files](../adding/golden-files.md).
+3. If both systems differ, the change is probably intended. Follow [Golden files](../adding/golden-files.md).
 4. Check that no file in the diff was committed with CRLF line endings.
 
 ## Timing budgets

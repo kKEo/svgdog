@@ -26,16 +26,16 @@ Pushing a tag matching `v[0-9]+.[0-9]+.[0-9]+*` starts the workflow. Do not push
 
 ## What the workflow does
 
-1. **check** runs `ci.yml` as a reusable workflow: `cargo clippy --locked --all-targets -- -D warnings`, `cargo test --locked`, and `cargo test --locked --release r15` on Linux, macOS and Windows.
+1. **check** runs `ci.yml` as a reusable workflow: `cargo clippy --locked --all-targets -- -D warnings`, `cargo test --locked`, and `cargo test --locked --release r15` on Linux and macOS.
 2. **version** reads the version from `Cargo.toml` and fails if the tag is not `v<that version>`.
-3. **build** compiles `cargo build --locked --release` for five targets (Linux x86_64 and arm64 with musl, macOS Apple silicon and Intel, Windows x86_64) and packs each as `svgdog-<version>-<target>.tar.gz` (`.zip` on Windows) containing the binary and `README.md`.
+3. **build** compiles `cargo build --locked --release` for four targets (Linux x86_64 and arm64 with musl, macOS Apple silicon and Intel) and packs each as `svgdog-<version>-<target>.tar.gz` containing the binary and `README.md`.
 4. **publish** runs only for tags. It writes `SHA256SUMS` for every archive and creates the release with `gh release create ... --generate-notes --verify-tag`. A tag with a suffix, such as `v1.1.0-rc.1`, is published as a pre-release.
 
 The jobs run in that order: build needs version, and publish needs check, version and build.
 
 ## Dry run without publishing
 
-Run the workflow by hand from the Actions tab (`workflow_dispatch`). It performs the checks and builds all five binaries and uploads them as workflow artifacts, but the publish job does not run because there is no tag. Use this to test a change to the workflow itself, or to get binaries from a branch.
+Run the workflow by hand from the Actions tab (`workflow_dispatch`). It performs the checks and builds all four binaries and uploads them as workflow artifacts, but the publish job does not run because there is no tag. Use this to test a change to the workflow itself, or to get binaries from a branch.
 
 ## After the release
 

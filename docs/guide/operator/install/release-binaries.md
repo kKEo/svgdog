@@ -14,9 +14,8 @@ The workflow (`.github/workflows/release.yml`) builds these targets and names ea
 | `aarch64-unknown-linux-musl` | ubuntu-24.04-arm | `.tar.gz` |
 | `aarch64-apple-darwin` | macos-latest | `.tar.gz` |
 | `x86_64-apple-darwin` | macos-latest | `.tar.gz` |
-| `x86_64-pc-windows-msvc` | windows-latest | `.zip` |
 
-Each archive unpacks to a folder `svgdog-<version>-<target>/` holding the binary (`svgdog`, or `svgdog.exe`) and `README.md`. The Linux binaries are linked statically with musl, so they run on any distribution without installing libraries. The release also carries a `SHA256SUMS` file listing the checksum of every archive.
+Each archive unpacks to a folder `svgdog-<version>-<target>/` holding the binary `svgdog` and `README.md`. The Linux binaries are linked statically with musl, so they run on any distribution without installing libraries. The release also carries a `SHA256SUMS` file listing the checksum of every archive.
 
 The binaries are not signed or notarised; the workflow has no signing step.
 
@@ -34,7 +33,7 @@ install -m 755 svgdog-1.0.0-aarch64-apple-darwin/svgdog /usr/local/bin/svgdog
 svgdog --version
 ```
 
-On Windows, extract the `.zip` and put `svgdog.exe` on your `PATH`.
+There is no Windows binary.
 
 > **Warning.** A macOS binary downloaded with a browser may be quarantined by Gatekeeper because it is not notarised. Downloading with `gh` or `curl` does not set the quarantine flag. If you must use a browser download, remove the flag with `xattr -d com.apple.quarantine <file>`.
 
