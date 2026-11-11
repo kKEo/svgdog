@@ -9,5 +9,5 @@ build-dir = "../../../site/user"
 create-missing = false
 
 [output.html]
-site-url = "/svg-diagram-generator/user/"
-git-repository-url = "https://github.com/kKEo/svg-diagram-generator"
+site-url = "/svgdog/user/"
+git-repository-url = "https://github.com/kKEo/svgdog"

@@ -87,7 +87,7 @@ jobs:
       - name: Install svgdog
         run: |
           # Replace with your pinned install; see Release binaries.
-          cargo install --git https://github.com/kKEo/svg-diagram-generator --locked --tag v1.0.0 svgdog
+          cargo install --git https://github.com/kKEo/svgdog --locked --tag v1.0.0 svgdog
       - name: Check diagrams
         run: svgdog validate 'docs/**/*.svg' --fail-on warning
 ```

@@ -24,7 +24,7 @@ The binaries are not signed or notarised; the workflow has no signing step.
 Once a release exists, for version `1.0.0` on Apple silicon:
 
 ```bash
-gh release download v1.0.0 --repo kKEo/svg-diagram-generator \
+gh release download v1.0.0 --repo kKEo/svgdog \
   --pattern 'svgdog-1.0.0-aarch64-apple-darwin.tar.gz' --pattern SHA256SUMS
 
 shasum -a 256 -c SHA256SUMS --ignore-missing    # macOS; on Linux: sha256sum -c SHA256SUMS --ignore-missing
@@ -49,7 +49,7 @@ Pin an exact version and check its checksum, so a pipeline never changes behavio
 VERSION=1.0.0
 TARGET=x86_64-unknown-linux-musl
 curl -fsSL -o svgdog.tar.gz \
-  "https://github.com/kKEo/svg-diagram-generator/releases/download/v${VERSION}/svgdog-${VERSION}-${TARGET}.tar.gz"
+  "https://github.com/kKEo/svgdog/releases/download/v${VERSION}/svgdog-${VERSION}-${TARGET}.tar.gz"
 echo "<expected sha256>  svgdog.tar.gz" | sha256sum -c -
 tar -xzf svgdog.tar.gz --strip-components=1 "svgdog-${VERSION}-${TARGET}/svgdog"
 ```

@@ -18,8 +18,8 @@ cargo --version
 ## Build
 
 ```bash
-git clone git@github.com:kKEo/svg-diagram-generator.git
-cd svg-diagram-generator
+git clone git@github.com:kKEo/svgdog.git
+cd svgdog
 cargo build --release --locked
 ```
 

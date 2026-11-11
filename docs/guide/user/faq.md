@@ -46,7 +46,7 @@ The check found problems at or above the failing level: errors by default, or wa
 
 ### Exit code 5
 
-An internal error. Please report it, with the command you ran and the input file, in the [repository](https://github.com/kKEo/svg-diagram-generator).
+An internal error. Please report it, with the command you ran and the input file, in the [repository](https://github.com/kKEo/svgdog).
 
 ## Questions
 
@@ -84,6 +84,6 @@ The repository does not state a licence for SVGDog yet. Ask the maintainers befo
 
 ### Where do I report a problem?
 
-Open an issue in the [repository](https://github.com/kKEo/svg-diagram-generator).
+Open an issue in the [repository](https://github.com/kKEo/svgdog).
 
 For deeper troubleshooting, such as CI failures and configuration questions, see the [Operator guide](../operator/).

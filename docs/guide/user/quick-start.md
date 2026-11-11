@@ -8,7 +8,7 @@ You need a terminal and the Rust toolchain (the `cargo` command). SVGDog has no 
 
 ## 1. Build SVGDog
 
-Get the source from the [repository](https://github.com/kKEo/svg-diagram-generator), then build it:
+Get the source from the [repository](https://github.com/kKEo/svgdog), then build it:
 
 ```bash
 # from the folder that holds Cargo.toml
