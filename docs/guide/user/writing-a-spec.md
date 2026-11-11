@@ -62,18 +62,19 @@ And this is the picture SVGDog draws from it:
 | Key | Required | What it does |
 |---|---|---|
 | `version` | yes | Always `1` for now |
-| `diagram` | yes | The kind of diagram: `flow`, `layers`, `sequence` or `free` (see [Diagram types](diagram-types.md)) |
+| `diagram` | yes | The kind of diagram: `flow`, `layers`, `sequence`, `free`, `state`, `timeline` or `compare` (see [Diagram types](diagram-types.md)) |
 | `title` | yes | The name of the diagram, 1 to 120 characters. It becomes the picture's accessible name |
 | `description` | no | One or two sentences saying what the diagram shows, up to 500 characters |
 | `direction` | no | `right` (default) or `down`: which way the flow runs |
 | `theme` | no | `docs-light` or `docs-dark` (see [Themes and settings](themes-and-settings.md)) |
 | `max_width` | no | The widest the picture may be, 200 to 2000 px. The default is 960 |
-| `nodes` | yes | The boxes |
+| `nodes` | no | The boxes. You can leave the list out when the arrows name them (see [The short way](#the-short-way)) |
 | `edges` | no | The arrows |
 | `groups` | no | Frames drawn around related boxes |
 | `notes` | no | Short callouts attached to a box, a group or an arrow |
+| `steps`, `focus`, `legend`, `caption` | no | Words and markers that explain the picture (see [Explaining a diagram](explaining-a-diagram.md)) |
 
-> **Tip.** If you leave out `description`, `render` still succeeds (exit code 0) but prints a `desc-missing` warning: the picture has no text for screen readers. Several examples in this guide leave it out to stay short; write one in real specs.
+> **Tip.** If you leave out `description`, SVGDog writes one for you from the diagram, for example "Flow diagram: browser to api (request)". Screen readers speak it. Your own sentence is usually better, because it can say why the diagram matters; write one in real specs.
 
 ## Nodes: the boxes
 
@@ -101,6 +102,32 @@ edges:
 - `id`: optional. If you leave it out, SVGDog uses `from--to`. Give an edge an id when you want to attach a note to it.
 
 A node may point to itself (`from: auth, to: auth`); SVGDog draws a small loop.
+
+### The short way
+
+An edge can also be one line of text: two ids with an arrow between them, and a label after a colon.
+
+```yaml
+edges:
+  - "web -> api: POST /orders"
+  - "api --> queue: publish"
+  - api ..> cache
+```
+
+`->` is a solid arrow, `-->` a dashed one (`async`), `..>` a dotted one (`dependency`). `<->` points both ways and `--` has no arrowhead. Put spaces around the arrow, and put quotes around an edge that has a label.
+
+With short edges you can skip the `nodes` list altogether. A name that only appears in an edge becomes a plain box labelled with that name, so this is a complete spec:
+
+```yaml
+version: 1
+diagram: flow
+title: Request path
+edges:
+  - "browser -> api: request"
+  - "api -> database: query"
+```
+
+Add a node to `nodes` when you want a nicer label, a shape or emphasis. If a name in an edge is one letter away from a node you declared, SVGDog treats it as a typing mistake and tells you, so a slip does not quietly add a box.
 
 ## Groups: the frames
 
@@ -139,6 +166,15 @@ and the exit code is 3. An edge that points at a node that does not exist gives:
 ```text
 error[unknown-reference]: edges[0].to names 'bb', which is not defined.
   Did you mean 'a'?
+```
+
+## Start from an example
+
+SVGDog carries a few small specs you can copy:
+
+```bash
+svgdog examples
+svgdog examples flow --format text > my-diagram.yaml
 ```
 
 ## Read the format yourself

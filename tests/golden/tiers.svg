@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 544 512" data-svgdog="1" font-family="Inter, sans-serif">
   <title>Deployment tiers</title>
+  <desc>Layered diagram: CDN to Single-page app; Single-page app to REST API (JSON); REST API to PostgreSQL; REST API to Redis (cache); Job runner to Object storage (upload); REST API to Job runner (enqueue).</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
   </defs>

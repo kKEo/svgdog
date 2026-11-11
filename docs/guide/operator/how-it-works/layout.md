@@ -1,6 +1,6 @@
 # Layout and auto-fit
 
-SVGDog decides where every box goes. This chapter describes how the four diagram types are placed, what the 8 px grid means, and how auto-fit tries to keep a drawing within `max_width` before giving up with `too-wide`. The code is in `src/render/layout.rs`, `src/render/sequence.rs` and `src/render/mod.rs`.
+SVGDog decides where every box goes. This chapter describes how the seven diagram types are placed, what the 8 px grid means, and how auto-fit tries to keep a drawing within `max_width` before giving up with `too-wide`. The code is in `src/render/layout.rs`, `src/render/sequence.rs` and `src/render/mod.rs`.
 
 ## The grid and the constants
 
@@ -16,7 +16,7 @@ Everything lands on an 8 px grid. The sizes that matter to an operator:
 
 Node sizes come from the measured label text (Inter at 14 px) and the node kind. Boxes grow in 16 px steps and have kind-specific minimums, for example 96 x 48 for a plain box and 128 x 64 for a decision (`measure`, `src/render/layout.rs:90-120`). A node can fix its own `width` (at least 40), which also sets where its label wraps.
 
-## The four diagram types
+## The diagram types
 
 ### flow
 
@@ -41,6 +41,26 @@ Nodes become lifelines side by side, in the order they appear in the spec, excep
 Boxes are pinned at the `at: [x, y]` position you give, snapped to the grid. Frames wrap their members with padding, and notes sit beside their targets. Use it for physical layouts such as a rack, where position is the point.
 
 ![A free-form rack diagram: a switch at the top with a note about its 10 GbE uplink, two service nodes inside a Rack 12 frame, and a NAS datastore below, joined by plain, double-headed (labelled NFS) and dotted connectors.](../images/rack.svg)
+
+### state
+
+A state diagram uses the `flow` placement and routing unchanged. What differs is the vocabulary: the default node kind is `state` (corner radius 12), and the `start` and `end` markers are 24 px circles that edges land on exactly, like any other outline.
+
+A labelled loop from a box to itself reserves room beside the box's top right corner (in every diagram type that uses this placement), so the label does not have to sit on the loop.
+
+![A state diagram: a start dot, the states Draft, Placed, Paid, Shipped and Cancelled joined by labelled transitions, including one back to Draft and a loop on Paid, and an end marker.](../images/states.svg)
+
+### timeline
+
+Nodes keep spec order; the members of a phase are pulled together at the place of its first member. With `direction: right`, each node takes a slot as wide as its box or its `when`, whichever is wider, and slots are 32 px apart. A phase adds 16 px of padding on each side. Units (a phase, or a node outside any phase) are laid in rows; a unit that would pass `max_width` minus 48 starts a new row, and each row gets its own axis segment. With `direction: down` there is one column: `when` texts right-aligned to the left of the axis, boxes 24 px to its right. There is no routing (`src/render/timeline.rs`).
+
+![A timeline with two framed phases on the first row and one more entry on a second row; each entry has a date above a dot on the axis and a box below it.](../images/migration.svg)
+
+### compare
+
+The two groups become two columns 64 px apart, each as wide as its widest node or its label. Rows are built by walking the left side in order and looking ahead on the right side for the same key: nodes before the match on the right get rows of their own, the pair shares a row, and a left node without a match gets its own row. Each row is as tall as its taller node. Both frames get the same height. Edges are then routed by the same router as a flow (`src/render/compare.rs`).
+
+![A before and after comparison in two frames with matching nodes on the same rows and one highlighted node present only on the right.](../images/split.svg)
 
 ## Notes
 

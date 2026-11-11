@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 376 376" data-svgdog="1" font-family="Inter, sans-serif">
   <title>Rack layout</title>
+  <desc>Diagram: Switch to Node A; Switch to Node B; Node A to and from NAS (NFS); Node B with NAS.</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
     <marker id="arrow-start" markerWidth="10" markerHeight="8" refX="0" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M10 0L0 4L10 8Z" fill="#1f2937"/></marker>

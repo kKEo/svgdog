@@ -1,8 +1,12 @@
 //! The create path: a spec in, deterministic SVG out.
 
+mod compare;
+mod explain;
+pub mod interactive;
 pub mod layout;
 pub mod route;
 mod sequence;
+mod timeline;
 pub mod theme;
 
 use std::collections::BTreeMap;
@@ -24,6 +28,10 @@ pub struct Options<'a> {
     /// `[style] fonts` from the config; empty uses the bundled family.
     pub fonts: &'a [String],
     pub text_as_paths: bool,
+    /// The spec document to store in the drawing, when asked for.
+    pub embed: Option<&'a serde_json::Value>,
+    /// Add the classes and the style block of the `css` interactive version.
+    pub interactive: bool,
 }
 
 const STUB: f64 = 16.0;
@@ -33,6 +41,16 @@ pub(crate) enum Part {
     Path { d: String, filled: bool },
     Polygon(Vec<Point>),
     Line(Point, Point),
+    /// A circle; `ink` fills it with the stroke colour, as a solid dot.
+    Disc { c: Point, r: f64, ink: bool },
+}
+
+/// Something drawn with a node that is not its shape: its place on a timeline's axis.
+#[derive(Clone)]
+pub(crate) enum Mark {
+    Stem(Point, Point),
+    Dot(Point),
+    When { at: Point, text: String, anchor: &'static str, width: f64 },
 }
 
 pub(crate) struct Shape {
@@ -62,6 +80,13 @@ fn shape(kind: Kind, r: Rect) -> Shape {
     };
     match kind {
         Kind::Box => rounded(0.0, false, vec![]),
+        Kind::State => rounded(12.0, false, vec![]),
+        Kind::Start | Kind::End => {
+            let (c, r) = (r.center(), w.min(h) / 2.0);
+            let outline = svg::flatten(&kurbo::Circle::new(c, r).to_path(0.05));
+            let parts = if kind == Kind::Start { vec![Part::Disc { c, r, ink: true }] } else { vec![Part::Disc { c, r: r - STROKE / 2.0, ink: false }, Part::Disc { c, r: r - 5.0, ink: true }] };
+            Shape { outline, parts }
+        }
         Kind::Service => rounded(8.0, false, vec![]),
         Kind::External => rounded(4.0, true, vec![]),
         Kind::Actor => rounded(h / 2.0, false, vec![]),
@@ -141,9 +166,9 @@ fn sides(a: Rect, b: Rect, dir: Direction, diagram: Diagram) -> (Dir, Dir) {
         (true, false) => along_main,
         (false, true) => along_cross,
         (true, true) => match diagram {
-            Diagram::Flow => along_main,
+            Diagram::Flow | Diagram::State => along_main,
             Diagram::Layers => along_cross,
-            Diagram::Free | Diagram::Sequence => if mg >= cg { along_main } else { along_cross },
+            Diagram::Free | Diagram::Sequence | Diagram::Timeline | Diagram::Compare => if mg >= cg { along_main } else { along_cross },
         },
         (false, false) => (fwd, back),
     }
@@ -179,7 +204,38 @@ pub(crate) struct Drawn {
     leaders: Vec<Option<(Point, Point)>>,
     /// Sequence diagrams only: the line under each node's header.
     lifelines: Vec<Option<(Point, Point)>>,
+    /// Timelines only: what each node carries on the axis, and the axis itself.
+    marks: Vec<Vec<Mark>>,
+    axis: Vec<(Point, Point)>,
     size: (f64, f64),
+}
+
+impl Drawn {
+    /// Move everything drawn by `v`.
+    fn shift(&mut self, v: Vec2) {
+        for r in self.geo.nodes.iter_mut().chain(self.geo.groups.iter_mut()).chain(self.geo.notes.iter_mut().flatten()) {
+            *r = *r + v;
+        }
+        for p in self.routes.iter_mut().flatten() {
+            *p += v;
+        }
+        for l in self.labels.iter_mut().flatten() {
+            l.rect = l.rect + v;
+        }
+        for l in self.leaders.iter_mut().chain(self.lifelines.iter_mut()).flatten() {
+            *l = (l.0 + v, l.1 + v);
+        }
+        for l in self.axis.iter_mut() {
+            *l = (l.0 + v, l.1 + v);
+        }
+        for mark in self.marks.iter_mut().flatten() {
+            match mark {
+                Mark::Stem(a, b) => (*a, *b) = (*a + v, *b + v),
+                Mark::Dot(c) => *c += v,
+                Mark::When { at, .. } => *at += v,
+            }
+        }
+    }
 }
 
 fn box_of(geo: &Geometry, r: Ref) -> Rect {
@@ -212,7 +268,11 @@ fn midpoint(route: &[Point]) -> Point {
 }
 
 fn arrange(spec: &Spec, m: &Measured, t: &Tuning, shapes_of: &dyn Fn(usize, Rect) -> Shape) -> Drawn {
-    let mut geo = layout::layout(spec, m, t);
+    connect(spec, m, layout::layout(spec, m, t), shapes_of)
+}
+
+/// Route the edges between boxes that are already placed, then set labels and notes.
+fn connect(spec: &Spec, m: &Measured, mut geo: Geometry, shapes_of: &dyn Fn(usize, Rect) -> Shape) -> Drawn {
 
     // Work in positive coordinates with room around the content for routes.
     let all = |geo: &Geometry| geo.nodes.iter().chain(&geo.groups).chain(geo.notes.iter().flatten()).copied().reduce(|a, b| a.union(b)).unwrap_or(Rect::ZERO);
@@ -345,10 +405,11 @@ fn arrange(spec: &Spec, m: &Measured, t: &Tuning, shapes_of: &dyn Fn(usize, Rect
     let mut taken: Vec<Rect> = Vec::new();
     let mut labels: Vec<Option<Label>> = Vec::new();
     for (i, e) in spec.edges.iter().enumerate() {
-        let (Some(text), Some((w, h))) = (&e.label, m.edge_label[i]) else {
+        let Some((w, h)) = m.edge_label[i] else {
             labels.push(None);
             continue;
         };
+        let text = e.label.clone().unwrap_or_default();
         let mut segs: Vec<(usize, Point, Point)> = segments(&routes[i]).enumerate().map(|(k, (a, b))| (k, a, b)).collect();
         segs.sort_by(|x, y| y.1.distance(y.2).total_cmp(&x.1.distance(x.2)).then(x.0.cmp(&y.0)));
         let mut options: Vec<Rect> = Vec::new();
@@ -364,10 +425,16 @@ fn arrange(spec: &Spec, m: &Measured, t: &Tuning, shapes_of: &dyn Fn(usize, Rect
                 }
             }
         }
+        // A loop is too small to carry a label along its sides: try beside it and above it first.
+        if ends[i].0 == ends[i].1 {
+            let r = box_of(&geo, ends[i].0);
+            options.insert(0, Rect::new(r.x1 + 22.0, r.y0 - h / 2.0, r.x1 + 22.0 + w, r.y0 + h / 2.0));
+            options.insert(1, Rect::new(r.x1 - 4.0 - w / 2.0, r.y0 - 21.0 - h, r.x1 - 4.0 + w / 2.0, r.y0 - 21.0));
+        }
         // The first free spot, or failing that the least crowded one.
         let rect = options.iter().enumerate().min_by_key(|(k, r)| (trouble(**r, &routes, &taken, &geo), *k)).map(|(_, r)| *r).unwrap_or(Rect::ZERO);
         taken.push(rect);
-        labels.push(Some(Label { rect, text: text.clone() }));
+        labels.push(Some(Label { rect, text }));
     }
 
     // Notes on edges go in free space near the middle of the route.
@@ -483,7 +550,7 @@ pub(crate) fn fit(mut geo: Geometry, mut routes: Vec<Vec<Point>>, mut labels: Ve
     for l in leaders.iter_mut().chain(lifelines.iter_mut()).flatten() {
         *l = (l.0 + shift, l.1 + shift);
     }
-    Drawn { geo, routes, labels, leaders, lifelines, size: (cw + 2.0 * mx, ch + 2.0 * my) }
+    Drawn { geo, routes, labels, leaders, lifelines, marks: Vec::new(), axis: Vec::new(), size: (cw + 2.0 * mx, ch + 2.0 * my) }
 }
 
 struct Writer {
@@ -501,7 +568,11 @@ impl Writer {
         if self.as_paths {
             for (i, line) in lines.iter().enumerate() {
                 let w = layout::text_width(line, size);
-                let start = if anchor == "middle" { x - w / 2.0 } else { x };
+                let start = match anchor {
+                    "middle" => x - w / 2.0,
+                    "end" => x - w,
+                    _ => x,
+                };
                 let d = text::outline(line, size, start, baseline(i));
                 if !d.is_empty() {
                     self.out.push_str(&format!("{indent}<path d=\"{d}\" fill=\"{fill}\"/>\n"));
@@ -509,7 +580,11 @@ impl Writer {
             }
             return;
         }
-        let anchor_attr = if anchor == "middle" { " text-anchor=\"middle\"" } else { "" };
+        let anchor_attr = match anchor {
+            "middle" => " text-anchor=\"middle\"",
+            "end" => " text-anchor=\"end\"",
+            _ => "",
+        };
         if lines.len() == 1 {
             self.out.push_str(&format!("{indent}<text x=\"{}\" y=\"{}\"{anchor_attr} font-size=\"{}\" fill=\"{fill}\">{}</text>\n", fmt(x), fmt(baseline(0)), fmt(size), esc(&lines[0])));
         } else {
@@ -518,6 +593,33 @@ impl Writer {
                 self.out.push_str(&format!("<tspan x=\"{}\" y=\"{}\">{}</tspan>", fmt(x), fmt(baseline(i)), esc(line)));
             }
             self.out.push_str("</text>\n");
+        }
+    }
+
+    /// A numbered step badge centred on `c`; `quiet` greys it, for a step that is not the current one.
+    fn badge(&mut self, indent: &str, c: Point, number: usize, theme: &theme::Theme, quiet: bool) {
+        let (disc, ink) = if quiet { (theme.muted, theme.background) } else { (theme.accent_fill, theme.accent_text) };
+        self.out.push_str(&format!("{indent}<circle cx=\"{}\" cy=\"{}\" r=\"{}\" fill=\"{disc}\" data-badge=\"{number}\"/>\n", fmt(c.x), fmt(c.y), fmt(explain::BADGE / 2.0)));
+        self.text(indent, &[number.to_string()], c.x, c.y, SMALL, 16.0, ink, "middle");
+    }
+
+    /// What every drawn thing opens with: its group, with the steps that name it, a
+    /// link around it and its detail as a tooltip, where the spec gives them.
+    fn open(&mut self, id: &str, steps: &[usize], link: Option<&str>, detail: Option<&str>, extra: &str) {
+        if let Some(href) = link {
+            self.out.push_str(&format!("  <a href=\"{}\">\n", esc_attr(href)));
+        }
+        let data = if steps.is_empty() { String::new() } else { format!(" data-step=\"{}\"", steps.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(" ")) };
+        self.out.push_str(&format!("  <g id=\"{id}\"{data}{extra}>\n"));
+        if let Some(d) = detail {
+            self.out.push_str(&format!("    <title>{}</title>\n", esc(d)));
+        }
+    }
+
+    fn close(&mut self, link: Option<&str>) {
+        self.out.push_str("  </g>\n");
+        if link.is_some() {
+            self.out.push_str("  </a>\n");
         }
     }
 
@@ -540,6 +642,12 @@ impl Writer {
             Part::Line(a, b) => {
                 self.out.push_str(&format!("    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" {pen}/>\n", fmt(a.x), fmt(a.y), fmt(b.x), fmt(b.y)));
             }
+            Part::Disc { c, r, ink: true } => {
+                self.out.push_str(&format!("    <circle cx=\"{}\" cy=\"{}\" r=\"{}\" fill=\"{stroke}\"/>\n", fmt(c.x), fmt(c.y), fmt(*r)));
+            }
+            Part::Disc { c, r, ink: false } => {
+                self.out.push_str(&format!("    <circle cx=\"{}\" cy=\"{}\" r=\"{}\" fill=\"{fill}\" {pen}/>\n", fmt(c.x), fmt(c.y), fmt(*r)));
+            }
         }
     }
 }
@@ -558,6 +666,8 @@ pub fn render(spec: &Spec, opt: &Options) -> Result<String, AppError> {
         let m = layout::measure(spec, t);
         let d = match spec.diagram {
             Diagram::Sequence => sequence::arrange(spec, &m, t, &|i, r| shape(kinds[i], r)),
+            Diagram::Timeline => timeline::arrange(spec, &m),
+            Diagram::Compare => connect(spec, &m, compare::layout(spec, &m), &|i, r| shape(kinds[i], r)),
             _ => arrange(spec, &m, t, &|i, r| shape(kinds[i], r)),
         };
         let fits = d.size.0 <= spec.max_width + 1e-6;
@@ -566,24 +676,37 @@ pub fn render(spec: &Spec, opt: &Options) -> Result<String, AppError> {
             break;
         }
     }
-    let (m, d) = chosen.expect("there is at least one layout level");
+    let (m, mut d) = chosen.expect("there is at least one layout level");
+    explain::grow_for_badges(spec, &mut d);
     let (w, h) = d.size;
     if w > spec.max_width + 1e-6 {
-        let hint = if matches!(spec.diagram, Diagram::Flow | Diagram::Layers) && spec.direction == Direction::Right { "Try 'direction: down', shorter labels, or a larger max_width." } else { "Try shorter labels, fewer boxes side by side, or a larger max_width." };
+        let hint = if matches!(spec.diagram, Diagram::Flow | Diagram::Layers | Diagram::State | Diagram::Timeline) && spec.direction == Direction::Right { "Try 'direction: down', shorter labels, or a larger max_width." } else { "Try shorter labels, fewer boxes side by side, or a larger max_width." };
         return Err(AppError::input("too-wide", format!("The drawing is {} px wide even at the tightest spacing; max_width allows {}.", fmt(w), fmt(spec.max_width))).path("max_width").suggest(Some(hint.into())));
     }
+
+    // The legend, the steps and the caption go under the drawing; a drawing narrower
+    // than they are is centred above them.
+    let footer = explain::Footer::plan(spec, w);
+    let (drawing_w, drawing_h) = (w, h);
+    let w = w.max(footer.canvas());
+    let h = h + footer.height;
+    d.shift(Vec2::new(((w - drawing_w) / 16.0).floor() * 8.0, 0.0));
+    let dim: Vec<bool> = (0..spec.edges.len()).map(|i| !spec.in_focus(Ref::Edge(i))).collect();
 
     let family = if opt.fonts.is_empty() { "Inter, sans-serif".to_string() } else { opt.fonts.join(", ") };
     let mut wr = Writer { out: String::new(), as_paths: opt.text_as_paths };
     let font_attr = if opt.text_as_paths { String::new() } else { format!(" font-family=\"{}\"", esc_attr(&family)) };
     wr.out.push_str(&format!("<svg xmlns=\"{SVG_NS}\" viewBox=\"0 0 {} {}\" data-svgdog=\"1\"{font_attr}>\n", fmt(w), fmt(h)));
     wr.out.push_str(&format!("  <title>{}</title>\n", esc(&spec.title)));
-    if let Some(desc) = &spec.description {
-        wr.out.push_str(&format!("  <desc>{}</desc>\n", esc(desc)));
+    // Without a description of its own, the drawing says in a sentence what it shows.
+    let desc = spec.description.clone().unwrap_or_else(|| crate::describe::short(spec));
+    wr.out.push_str(&format!("  <desc>{}</desc>\n", esc(&desc)));
+    if let Some(doc) = opt.embed {
+        wr.out.push_str(&format!("  <metadata id=\"{}\">{}</metadata>\n", crate::describe::EMBED_ID, esc(&doc.to_string())));
     }
-    let need_end = spec.edges.iter().any(|e| e.arrow != Arrow::None);
-    let need_start = spec.edges.iter().any(|e| e.arrow == Arrow::Both);
-    if need_end || need_start {
+    let need = |start: bool, dimmed: bool| spec.edges.iter().zip(&dim).any(|(e, d)| *d == dimmed && if start { e.arrow == Arrow::Both } else { e.arrow != Arrow::None });
+    let (need_end, need_start) = (need(false, false), need(true, false));
+    if need_end || need_start || need(false, true) || need(true, true) {
         wr.out.push_str("  <defs>\n");
         if need_end {
             wr.out.push_str(&format!("    <marker id=\"arrow\" markerWidth=\"10\" markerHeight=\"8\" refX=\"10\" refY=\"4\" orient=\"auto\" markerUnits=\"userSpaceOnUse\"><path d=\"M0 0L10 4L0 8Z\" fill=\"{}\"/></marker>\n", theme.edge));
@@ -591,34 +714,81 @@ pub fn render(spec: &Spec, opt: &Options) -> Result<String, AppError> {
         if need_start {
             wr.out.push_str(&format!("    <marker id=\"arrow-start\" markerWidth=\"10\" markerHeight=\"8\" refX=\"0\" refY=\"4\" orient=\"auto\" markerUnits=\"userSpaceOnUse\"><path d=\"M10 0L0 4L10 8Z\" fill=\"{}\"/></marker>\n", theme.edge));
         }
+        if need(false, true) {
+            wr.out.push_str(&format!("    <marker id=\"arrow-dim\" markerWidth=\"10\" markerHeight=\"8\" refX=\"10\" refY=\"4\" orient=\"auto\" markerUnits=\"userSpaceOnUse\"><path d=\"M0 0L10 4L0 8Z\" fill=\"{}\"/></marker>\n", theme.muted));
+        }
+        if need(true, true) {
+            wr.out.push_str(&format!("    <marker id=\"arrow-start-dim\" markerWidth=\"10\" markerHeight=\"8\" refX=\"0\" refY=\"4\" orient=\"auto\" markerUnits=\"userSpaceOnUse\"><path d=\"M10 0L0 4L10 8Z\" fill=\"{}\"/></marker>\n", theme.muted));
+        }
         wr.out.push_str("  </defs>\n");
     }
     wr.out.push_str(&format!("  <rect x=\"0\" y=\"0\" width=\"{}\" height=\"{}\" fill=\"{}\"/>\n", fmt(w), fmt(h), theme.background));
 
+    // What the interactive version adds to a thing: its classes, and a place in the tab order for nodes.
+    let live = |r: Ref, focusable: bool| -> String {
+        if !opt.interactive {
+            return String::new();
+        }
+        format!(" class=\"{}\"{}", interactive::classes(spec, r), if focusable { " tabindex=\"0\"" } else { "" })
+    };
     // Frames first, outermost first, so everything else paints over them.
     let mut order: Vec<usize> = (0..spec.groups.len()).collect();
     order.sort_by_key(|g| (spec.ancestors(Ref::Group(*g)).len(), *g));
     for g in order {
         let f = d.geo.groups[g];
-        wr.out.push_str(&format!("  <g id=\"group-{}\">\n", spec.groups[g].id));
+        let gr = &spec.groups[g];
+        let steps = spec.steps_of(Ref::Group(g));
+        wr.open(&format!("group-{}", gr.id), &steps, gr.link.as_deref(), gr.detail.as_deref(), &live(Ref::Group(g), false));
         wr.out.push_str(&format!("    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"8\" fill=\"none\" stroke=\"{}\" stroke-width=\"{}\"/>\n", fmt(f.x0), fmt(f.y0), fmt(f.width()), fmt(f.height()), theme.muted, fmt(THIN)));
         if let Some(label) = &spec.groups[g].label {
             wr.text("    ", std::slice::from_ref(label), f.x0 + 12.0, f.y0 + 20.0, SMALL, 16.0, theme.muted, "start");
+        }
+        for (c, number) in explain::group_badges(f, steps.len()).into_iter().zip(&steps) {
+            if spec.marks(*number) {
+                wr.badge("    ", c, *number, theme, false);
+            }
+        }
+        wr.close(gr.link.as_deref());
+    }
+    if !d.axis.is_empty() {
+        wr.out.push_str("  <g id=\"axis\">\n");
+        for (a, b) in &d.axis {
+            wr.out.push_str(&format!("    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-linecap=\"round\"/>\n", fmt(a.x), fmt(a.y), fmt(b.x), fmt(b.y), theme.edge, fmt(STROKE)));
         }
         wr.out.push_str("  </g>\n");
     }
     for (i, n) in spec.nodes.iter().enumerate() {
         let r = d.geo.nodes[i];
-        let (fill, ink) = if n.emphasis { (theme.accent_fill, theme.accent_text) } else { (theme.node_fill, theme.text) };
-        wr.out.push_str(&format!("  <g id=\"node-{}\">\n", n.id));
+        // Out of focus, a node keeps its shape and loses its colour.
+        let (fill, ink, pen) = match (spec.in_focus(Ref::Node(i)), n.emphasis || spec.one_sided(i)) {
+            (false, _) => (theme.background, theme.muted, theme.muted),
+            (true, true) => (theme.accent_fill, theme.accent_text, theme.node_stroke),
+            (true, false) => (theme.node_fill, theme.text, theme.node_stroke),
+        };
+        let steps = spec.steps_of(Ref::Node(i));
+        wr.open(&format!("node-{}", n.id), &steps, n.link.as_deref(), n.detail.as_deref(), &live(Ref::Node(i), true));
         if let Some((a, b)) = d.lifelines[i] {
             wr.out.push_str(&format!("    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-dasharray=\"4 4\"/>\n", fmt(a.x), fmt(a.y), fmt(b.x), fmt(b.y), theme.muted, fmt(THIN)));
         }
-        for p in &shape(n.kind, r).parts {
-            wr.part(p, fill, theme.node_stroke);
+        for mark in d.marks.get(i).into_iter().flatten() {
+            match mark {
+                Mark::Stem(a, b) => wr.out.push_str(&format!("    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" stroke-width=\"{}\"/>\n", fmt(a.x), fmt(a.y), fmt(b.x), fmt(b.y), theme.muted, fmt(THIN))),
+                Mark::Dot(c) => wr.out.push_str(&format!("    <circle cx=\"{}\" cy=\"{}\" r=\"5\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\"/>\n", fmt(c.x), fmt(c.y), theme.background, pen, fmt(STROKE))),
+                Mark::When { at, text, anchor, .. } => wr.text("    ", std::slice::from_ref(text), at.x, at.y, SMALL, 16.0, if spec.in_focus(Ref::Node(i)) { theme.text } else { theme.muted }, anchor),
+            }
         }
-        wr.text("    ", &m.nodes[i].text.lines, r.center().x, r.center().y + m.nodes[i].text_dy, FONT, 20.0, ink, "middle");
-        wr.out.push_str("  </g>\n");
+        for p in &shape(n.kind, r).parts {
+            wr.part(p, fill, pen);
+        }
+        if !n.label.is_empty() {
+            wr.text("    ", &m.nodes[i].text.lines, r.center().x, r.center().y + m.nodes[i].text_dy, FONT, 20.0, ink, "middle");
+        }
+        for (c, number) in explain::node_badges(n.kind, r, steps.len()).into_iter().zip(&steps) {
+            if spec.marks(*number) {
+                wr.badge("    ", c, *number, theme, false);
+            }
+        }
+        wr.close(n.link.as_deref());
     }
     for (i, e) in spec.edges.iter().enumerate() {
         let pts = &d.routes[i];
@@ -631,28 +801,49 @@ pub fn render(spec: &Spec, opt: &Options) -> Result<String, AppError> {
             EdgeStyle::Async => " stroke-dasharray=\"6 4\"",
             EdgeStyle::Dependency => " stroke-dasharray=\"2 4\"",
         };
-        let markers = match e.arrow {
-            Arrow::End => " marker-end=\"url(#arrow)\"",
-            Arrow::Both => " marker-start=\"url(#arrow-start)\" marker-end=\"url(#arrow)\"",
-            Arrow::None => "",
+        let markers = match (e.arrow, dim[i]) {
+            (Arrow::End, false) => " marker-end=\"url(#arrow)\"",
+            (Arrow::Both, false) => " marker-start=\"url(#arrow-start)\" marker-end=\"url(#arrow)\"",
+            (Arrow::End, true) => " marker-end=\"url(#arrow-dim)\"",
+            (Arrow::Both, true) => " marker-start=\"url(#arrow-start-dim)\" marker-end=\"url(#arrow-dim)\"",
+            (Arrow::None, _) => "",
         };
-        wr.out.push_str(&format!("  <g id=\"edge-{}\">\n", e.id));
-        wr.out.push_str(&format!("    <path d=\"{path}\" fill=\"none\" stroke=\"{}\" stroke-width=\"{}\"{dash}{markers}/>\n", theme.edge, fmt(STROKE)));
+        let (line, ink) = if dim[i] { (theme.muted, theme.muted) } else { (theme.edge, theme.text) };
+        let steps = spec.steps_of(Ref::Edge(i));
+        wr.open(&format!("edge-{}", e.id), &steps, e.link.as_deref(), e.detail.as_deref(), &live(Ref::Edge(i), false));
+        wr.out.push_str(&format!("    <path d=\"{path}\" fill=\"none\" stroke=\"{line}\" stroke-width=\"{}\"{dash}{markers}/>\n", fmt(STROKE)));
         if let Some(l) = &d.labels[i] {
-            wr.text("    ", std::slice::from_ref(&l.text), l.rect.center().x, l.rect.center().y, SMALL, 16.0, theme.text, "middle");
+            // Badges take the left of the label's box; the words are centred in the rest.
+            let room = explain::badge_room(steps.len(), !l.text.is_empty());
+            for (k, number) in steps.iter().enumerate() {
+                if spec.marks(*number) {
+                    wr.badge("    ", Point::new(l.rect.x0 + explain::BADGE / 2.0 + k as f64 * explain::PITCH, l.rect.center().y), *number, theme, false);
+                }
+            }
+            if !l.text.is_empty() {
+                wr.text("    ", std::slice::from_ref(&l.text), (l.rect.x0 + room + l.rect.x1) / 2.0, l.rect.center().y, SMALL, 16.0, ink, "middle");
+            }
         }
-        wr.out.push_str("  </g>\n");
+        wr.close(e.link.as_deref());
     }
     for (i, _) in spec.notes.iter().enumerate() {
         let Some(r) = d.geo.notes[i] else { continue };
-        wr.out.push_str(&format!("  <g id=\"note-{}\">\n", i + 1));
+        let class = if opt.interactive { format!(" class=\"{}\"", interactive::note_classes(spec, &spec.notes[i].attach)) } else { String::new() };
+        wr.out.push_str(&format!("  <g id=\"note-{}\"{class}>\n", i + 1));
         if let Some((a, b)) = d.leaders[i] {
             wr.out.push_str(&format!("    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-dasharray=\"2 3\"/>\n", fmt(a.x), fmt(a.y), fmt(b.x), fmt(b.y), theme.muted, fmt(THIN)));
         }
         wr.out.push_str(&format!("    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"4\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\"/>\n", fmt(r.x0), fmt(r.y0), fmt(r.width()), fmt(r.height()), theme.note_fill, theme.muted, fmt(THIN)));
-        wr.text("    ", &m.notes[i].text.lines, r.center().x, r.center().y, SMALL, 16.0, theme.text, "middle");
+        let ink = if spec.lookup(&spec.notes[i].attach).is_none_or(|r| spec.in_focus(r)) { theme.text } else { theme.muted };
+        wr.text("    ", &m.notes[i].text.lines, r.center().x, r.center().y, SMALL, 16.0, ink, "middle");
         wr.out.push_str("  </g>\n");
     }
+    footer.write(&mut wr, theme, drawing_h);
     wr.out.push_str("</svg>\n");
-    Ok(wr.out)
+    let mut out = if theme.name == theme::AUTO { theme::adapt(&wr.out) } else { wr.out };
+    if opt.interactive {
+        let accent = if theme.name == theme::AUTO { theme::THEMES[0].accent_fill } else { theme.accent_fill };
+        out = interactive::style(&out, spec, theme, accent);
+    }
+    Ok(out)
 }

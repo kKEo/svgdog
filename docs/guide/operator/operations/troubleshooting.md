@@ -76,7 +76,7 @@ Other codes: `unknown-rule` (with a did-you-mean), `unknown-profile`, `invalid-c
 | Symptom | Explanation and fix |
 | --- | --- |
 | `render` exits 1 for a spec you just wrote | The drawing has an error-level finding. Read the findings; many carry a `fix`. Run `svgdog fix out.svg --in-place`, or change the spec and render again |
-| A rendered file shows `desc-missing` | The spec has no `description`. Add one; it becomes the SVG `<desc>` that screen readers use. This is a warning, so it does not fail the default gate |
+| A file shows `desc-missing` | The SVG was not rendered by this version of SVGDog, or its `<desc>` was removed. A rendered file always carries one: the spec's `description`, or a generated sentence. Run `svgdog describe SPEC --short` to see that sentence |
 | `fix` finishes but findings remain | `fix` applies only safe fixes without `--unsafe`, and many findings have no fix. `fix` exits 1 if findings remain. Read `fixable` in the summary |
 | A finding has a fix but `fix` does not apply it | The fix is marked `unsafe` (it moves or recolours content). Pass `--unsafe` after reading what it does with `--dry-run` |
 | A geometry finding on a hand-drawn SVG is only a warning | Geometry findings on files SVGDog did not render are heuristic: they carry `"approximate": true` and are capped at warning. See [The rule engine](../how-it-works/rules-engine.md#findings-that-cannot-be-exact) |

@@ -24,7 +24,7 @@ const LEGACY: &[&str] = &["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"
 const META_VERSION: &str = "io.modelcontextprotocol/protocolVersion";
 const META_CAPS: &str = "io.modelcontextprotocol/clientCapabilities";
 const META_SERVER: &str = "io.modelcontextprotocol/serverInfo";
-const INSTRUCTIONS: &str = "SVGDog compiles diagram specs to SVG and checks any SVG. Typical loop: svgdog_schema (name: spec) once, write a spec file, svgdog_render, read the findings, svgdog_fix for those marked fixable or change the spec, repeat until there are no errors; svgdog_preview with annotate for a look. All paths are relative to the server's root directory.";
+const INSTRUCTIONS: &str = "SVGDog compiles diagram specs to SVG and checks any SVG. Typical loop: svgdog_examples for a spec to start from (svgdog_schema, name: spec, has every field), then svgdog_render with the spec as text and preview: true, read the findings and look at the image, svgdog_fix for those marked fixable or change the spec, repeat until there are no errors; svgdog_preview with annotate for a look. All paths are relative to the server's root directory.";
 
 #[derive(Clone, Copy, PartialEq)]
 enum Kind {
@@ -35,6 +35,8 @@ enum Kind {
     Bool,
     Int,
     Json,
+    /// Content handed over inline, not a path.
+    Text,
 }
 
 struct Arg {
@@ -70,13 +72,19 @@ const TOOLS: &[Tool] = &[
     Tool {
         name: "svgdog_render",
         command: "render",
-        about: "Compile a diagram spec (YAML or JSON) to SVG and validate the result. Returns the envelope with findings and the output path.",
+        about: "Compile a diagram spec (YAML or JSON) to SVG and validate the result. Give the spec as text in 'spec' or as a path in 'file'. Without 'output' the SVG comes back in the envelope's 'svg' field; with it, the file is written. Returns the envelope with findings.",
         read_only: false,
         config: true,
         args: &[
-            arg("spec", Kind::Path, None, true, "Diagram spec file"),
-            arg("output", Kind::Path, Some("-o"), true, "Where to write the SVG"),
-            arg("theme", Kind::Str, Some("--theme"), false, "docs-light or docs-dark"),
+            arg("spec", Kind::Text, None, false, "The diagram spec itself, as YAML or JSON text (see svgdog_examples)"),
+            arg("file", Kind::Path, None, false, "Diagram spec file, in place of 'spec'"),
+            arg("output", Kind::Path, Some("-o"), false, "Where to write the SVG; omit to get it back in the result"),
+            arg("preview", Kind::Bool, None, false, "Also return a PNG image of the result, to look at"),
+            arg("theme", Kind::Str, Some("--theme"), false, "docs-light, docs-dark, or docs-auto (follows the reader's light or dark mode)"),
+            arg("interactive", Kind::Str, Some("--interactive"), false, "css: one SVG that highlights related things on hover and focus. html: a self-contained page with step controls and details. Default none"),
+            arg("embed_spec", Kind::Bool, Some("--embed-spec"), false, "Store the spec inside the SVG, so svgdog_describe can read the drawing back"),
+            arg("check", Kind::Bool, Some("--check"), false, "Write nothing; report whether 'output' is what the spec renders now"),
+            arg("frames", Kind::Bool, Some("--frames"), false, "Write one picture per step of the spec's 'steps', each with its step in focus; needs 'output'"),
             arg("no_validate", Kind::Bool, Some("--no-validate"), false, "Skip the checks on the result"),
             arg("force", Kind::Bool, Some("--force"), false, "Replace an existing output file"),
             arg("text_as_paths", Kind::Bool, Some("--text-as-paths"), false, "Convert text to outlines"),
@@ -122,6 +130,7 @@ const TOOLS: &[Tool] = &[
             arg("background", Kind::Str, Some("--background"), false, "light or dark page behind a transparent drawing"),
             arg("annotate", Kind::Bool, Some("--annotate"), false, "Outline each finding's box and print its rule id"),
             arg("crop", Kind::Str, Some("--crop"), false, "Show only the matching elements and their surroundings"),
+            arg("step", Kind::Int, Some("--step"), false, "Show the drawing with this step of its walk-through chosen, the rest faded"),
             arg("force", Kind::Bool, Some("--force"), false, "Replace an existing output file"),
         ],
     },
@@ -171,6 +180,36 @@ const TOOLS: &[Tool] = &[
         config: false,
         args: &[arg("explain", Kind::Str, Some("--explain"), false, "Rule id to explain")],
     },
+    Tool {
+        name: "svgdog_docs",
+        command: "docs",
+        about: "Render the diagrams written inside Markdown pages (fenced blocks with the info word svgdog) to SVG files next to each page, and keep the image line after each block pointing at its picture. With check, write nothing and report what is out of date.",
+        read_only: false,
+        config: true,
+        args: &[
+            arg("paths", Kind::PathList, None, true, "Markdown files, or folders to search for them"),
+            arg("check", Kind::Bool, Some("--check"), false, "Write nothing; report what is out of date"),
+            arg("assets", Kind::Str, Some("--assets"), false, "Folder for the pictures, next to each page; default diagrams"),
+            arg("theme", Kind::Str, Some("--theme"), false, "docs-light, docs-dark or docs-auto, for every diagram"),
+            arg("interactive", Kind::Str, Some("--interactive"), false, "css or html; default none"),
+        ],
+    },
+    Tool {
+        name: "svgdog_describe",
+        command: "describe",
+        about: "Say in words what a diagram shows: its nodes, connections, notes and steps. Takes a spec file, or an SVG rendered with embed_spec; the answer also carries the spec itself.",
+        read_only: true,
+        config: false,
+        args: &[arg("file", Kind::Path, None, true, "Diagram spec, or an SVG rendered with embed_spec"), arg("short", Kind::Bool, Some("--short"), false, "One or two sentences, as for alt text")],
+    },
+    Tool {
+        name: "svgdog_examples",
+        command: "examples",
+        about: "List the bundled example specs, or return one in full to start from. Each is small and renders without findings.",
+        read_only: true,
+        config: false,
+        args: &[arg("name", Kind::Str, None, false, "Example to return; omit to list them")],
+    },
 ];
 
 fn all_args(t: &Tool) -> impl Iterator<Item = &'static Arg> {
@@ -182,7 +221,7 @@ fn tool_json(t: &Tool) -> Value {
     let mut required = Vec::new();
     for a in all_args(t) {
         let schema = match a.kind {
-            Kind::Path | Kind::Str => json!({ "type": "string", "description": a.about }),
+            Kind::Path | Kind::Str | Kind::Text => json!({ "type": "string", "description": a.about }),
             Kind::PathList | Kind::StrList => json!({ "type": "array", "items": { "type": "string" }, "description": a.about }),
             Kind::Bool => json!({ "type": "boolean", "description": a.about }),
             Kind::Int => json!({ "type": "integer", "minimum": 0, "description": a.about }),
@@ -253,12 +292,22 @@ fn call(root: &Path, tool: &Tool, args: &Map<String, Value>) -> Result<crate::en
     }
     let mut argv: Vec<String> = vec!["svgdog".into(), "--format".into(), "json".into(), "--quiet".into(), tool.command.into()];
     let mut inline_ops = None;
+    let mut inline_spec = None;
+    let render = tool.command == "render";
+    let given = |name: &str| args.get(name).is_some_and(|v| !v.is_null());
+    if render {
+        match (given("spec"), given("file")) {
+            (true, true) => return Err(AppError::usage("argument-conflict", "Give 'spec' (the text) or 'file' (a path), not both.")),
+            (false, false) => return Err(AppError::usage("missing-argument", "svgdog_render needs 'spec' (the text) or 'file' (a path).").suggest(Some("svgdog_examples returns specs to start from.".into()))),
+            _ => {}
+        }
+    }
     for a in all_args(tool) {
         let value = match args.get(a.name) {
             None | Some(Value::Null) if a.required => return Err(AppError::usage("missing-argument", format!("{} needs '{}'.", tool.name, a.name))),
             None | Some(Value::Null) => {
                 // No output for a preview means: hand the image back.
-                if tool.command == "preview" && a.name == "output" {
+                if (tool.command == "preview" || render) && a.name == "output" {
                     argv.extend(["-o".into(), "-".into()]);
                 }
                 continue;
@@ -298,15 +347,44 @@ fn call(root: &Path, tool: &Tool, args: &Map<String, Value>) -> Result<crate::en
             }
             Kind::Int => push(vec![value.as_u64().ok_or_else(|| bad(a.name, "a whole number"))?.to_string()]),
             Kind::Bool => {
-                if value.as_bool().ok_or_else(|| bad(a.name, "true or false"))? {
-                    argv.push(a.flag.unwrap().to_string());
+                // A switch without a flag is handled here, after the command has run.
+                if value.as_bool().ok_or_else(|| bad(a.name, "true or false"))?
+                    && let Some(f) = a.flag
+                {
+                    argv.push(f.to_string());
                 }
             }
             Kind::Json => inline_ops = Some(value.clone()),
+            Kind::Text => {
+let text = value.as_str().ok_or_else(|| bad(a.name, "text"))?;
+                let t = text.trim();
+                if !t.contains('\n') && [".yaml", ".yml", ".json"].iter().any(|ext| t.ends_with(ext)) {
+                    return Err(AppError::usage("invalid-argument", format!("'spec' is the spec text itself, but '{t}' looks like a path.")).suggest(Some(format!("Pass it as 'file': \"{t}\"."))));
+                }
+                inline_spec = Some(text.to_string());
+                argv.push("-".into());
+            }
         }
     }
     let cli = Cli::try_parse_from(&argv).map_err(|e| crate::usage_error(e, &argv))?;
-    execute(&cli, &Env { color: false, ceiling: Some(root.to_path_buf()), inline_ops })
+    let mut out = execute(&cli, &Env { color: false, ceiling: Some(root.to_path_buf()), inline_ops, inline_spec })?;
+    if render {
+        // Hand the drawing back as data: the SVG text when no file was asked for, and a picture on request.
+        let svg = match out.raw.take() {
+            Some(bytes) => {
+                let text = String::from_utf8(bytes).unwrap_or_default();
+                out.json["svg"] = json!(text);
+                text
+            }
+            None => args.get("output").and_then(|v| v.as_str()).and_then(|p| std::fs::read_to_string(root.join(p)).ok()).unwrap_or_default(),
+        };
+        if args.get("preview").and_then(|v| v.as_bool()) == Some(true) {
+            let shot = commands::preview::picture(&svg)?;
+            out.json["image"] = json!({ "width": shot.width, "height": shot.height, "scale": crate::util::num(shot.scale), "region": crate::rules::bbox_json(shot.region), "background": "light", "annotated": 0 });
+            out.raw = Some(shot.png);
+        }
+    }
+    Ok(out)
 }
 
 fn tool_result(root: &Path, name: &str, args: &Map<String, Value>) -> Option<Value> {
@@ -439,7 +517,7 @@ mod tests {
     #[test]
     fn every_command_has_a_tool_and_every_tool_argument_is_a_real_flag() {
         let names: Vec<&str> = TOOLS.iter().map(|t| t.command).collect();
-        assert_eq!(names, vec!["render", "validate", "inspect", "preview", "edit", "fix", "schema", "rules"]);
+        assert_eq!(names, vec!["render", "validate", "inspect", "preview", "edit", "fix", "schema", "rules", "docs", "describe", "examples"]);
         use clap::CommandFactory;
         let cmd = Cli::command();
         for t in TOOLS {

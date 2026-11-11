@@ -24,10 +24,36 @@ cargo test                 # unit, command line and MCP tests
 No network, browser or language runtime is needed at run time. Fonts (Inter and
 JetBrains Mono, both under the SIL Open Font License, see `fonts/`) are compiled in.
 
+## Diagram types
+
+`flow`, `layers`, `sequence` and `free` for structure; `state` for state machines,
+`timeline` for things in time order, and `compare` for two versions side by side.
+`svgdog examples` lists a small spec for each.
+
+## Explaining, not only drawing
+
+A spec can carry the story as well as the structure: `steps` number a walk-through and
+list it under the drawing, `focus` dims everything else, `legend` and `caption` add the
+words a figure needs, and `detail` and `link` on any item give tooltips and links.
+`render --frames` writes one picture per step. `svgdog examples steps` shows all of it.
+
+For readers on a web page there are two interactive versions, both the same drawing
+with something added: `--interactive css` is an SVG that highlights what a hovered box
+is connected to, with no script; `--interactive html` is a self-contained page with
+Previous and Next buttons for the steps. The static SVG stays the default.
+
+## In documentation
+
+`svgdog docs docs/` renders every `svgdog` code block in your Markdown pages to an SVG
+next to the page and keeps an image line under the block pointing at it; `--check`
+fails when a picture is out of date. `--theme docs-auto` gives one file that follows
+the reader's light or dark mode. `svgdog describe` turns a diagram into words, and
+`render --embed-spec` stores the spec in the SVG so it can be read back.
+
 ## The loop
 
 ```sh
-svgdog schema spec                       # learn the spec format, once
+svgdog examples flow --format text      # a spec to start from (schema spec has every field)
 svgdog render orders.yaml -o orders.svg  # compile and check in one call
 svgdog fix orders.svg --in-place         # apply the safe fixes findings carry
 svgdog preview orders.svg -o orders.png --annotate   # look at it
@@ -47,6 +73,9 @@ Repeat render (or fix) until the exit code is 0.
 | `fix <file.svg>` | Apply autofixes; `--unsafe` adds those that move or recolour |
 | `schema spec\|config\|findings\|scene\|ops` | Print a JSON Schema |
 | `rules [--explain ID]` | List rules, or explain one with a failing and a passing example |
+| `examples [NAME]` | List the bundled example specs, or print one to start from |
+| `docs <path>... [--check]` | Render the `svgdog` blocks inside Markdown pages |
+| `describe <spec or svg>` | Say in words what a diagram shows |
 | `mcp --root DIR` | Serve the commands as Model Context Protocol tools over stdio |
 
 Every command has `--help` with one example. With `--format json` (the default
@@ -119,7 +148,9 @@ svgdog mcp --root ./docs
 ```
 
 The server exposes `svgdog_render`, `svgdog_validate`, `svgdog_inspect`,
-`svgdog_preview`, `svgdog_edit`, `svgdog_fix`, `svgdog_schema` and `svgdog_rules`.
+`svgdog_preview`, `svgdog_edit`, `svgdog_fix`, `svgdog_schema`, `svgdog_rules` and
+`svgdog_examples`. `svgdog_render` also takes the spec as text and can return the SVG
+and a PNG directly, so an agent needs no files to draw.
 Inputs mirror the flags and results are the same JSON envelope. Every path is
 relative to the root and paths outside it are refused. It serves both the
 `initialize` handshake and the per-request protocol style of MCP 2026-07-28.

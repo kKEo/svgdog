@@ -17,7 +17,7 @@ The spec can come from a file or from standard input (`-`). The file extension d
 - **Unknown fields are errors.** Each object type has a fixed list of allowed keys (`ROOT_FIELDS`, `NODE_FIELDS`, `EDGE_FIELDS`, `GROUP_FIELDS`). An unknown key fails with `unknown-field` and a did-you-mean suggestion when one is close.
 - **Required fields.** `version`, `diagram`, `title` and `nodes` must be present (`missing-field`), and `nodes` must not be empty. `version` must be `1` (`invalid-value` otherwise).
 - **Shape and length.** A value of the wrong type, an empty string or one over its length limit fails with `invalid-spec`.
-- **Value ranges.** For example `max_width` must be a whole number from 200 to 2000 (default 960), titles are 1 to 120 characters, node labels at most 80, and `diagram` must be one of `flow`, `layers`, `sequence`, `free` (`invalid-value`). The full table is in the [spec reference](../reference/spec.md).
+- **Value ranges.** For example `max_width` must be a whole number from 200 to 2000 (default 960), titles are 1 to 120 characters, node labels at most 80, and `diagram` must be one of `flow`, `layers`, `sequence`, `free`, `state`, `timeline`, `compare` (`invalid-value`). The full table is in the [spec reference](../reference/spec.md).
 - **Ids.** Node and group ids are lowercase slugs of at most 63 characters, and ids must be unique across nodes, groups and edges (`duplicate-id`). An edge without an `id` gets `<from>--<to>`.
 - **References.** Every `from`, `to`, group member and note `attach` must name something that exists (`unknown-reference`).
 - **Groups.** Groups may nest, but cycles are rejected (`group-cycle`) and two groups may not overlap unless one contains the other (`group-overlap`).
@@ -32,7 +32,7 @@ The checked values become a `Spec` structure: nodes with kind, emphasis, optiona
 
 ## Choosing a theme
 
-The theme is resolved when rendering starts: the `--theme` flag wins over the spec's `theme` key, which wins over the default `docs-light`. The two themes are `docs-light` and `docs-dark` (`src/render/theme.rs`). An unknown name is a usage error (exit 2) when it came from the flag and an input error (exit 3) when it came from the spec.
+The theme is resolved when rendering starts: the `--theme` flag wins over the spec's `theme` key, which wins over the default `docs-light`. The themes are `docs-light`, `docs-dark` and `docs-auto` (`src/render/theme.rs`). `docs-auto` is rendered with a placeholder per colour role; a last pass writes the light colours as ordinary attributes, gives each element a class per role (`f-tx`, `s-ed` and so on), and adds one `<style>` rule under `@media (prefers-color-scheme: dark)` with the dark colours. Take away the classes and that rule and the file is the `docs-light` output byte for byte. An unknown name is a usage error (exit 2) when it came from the flag and an input error (exit 3) when it came from the spec.
 
 ## What happens next
 

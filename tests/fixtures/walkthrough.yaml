@@ -1,0 +1,24 @@
+version: 1
+diagram: flow
+title: Order placement
+description: How an order moves from the storefront to fulfilment.
+caption: Figure 1. The order path. Payment is taken before the order is stored, so a failed charge leaves no record behind.
+legend: true
+nodes:
+  - { id: web, label: Storefront, kind: client, link: "https://example.com/storefront" }
+  - { id: api, label: Order API, kind: service, emphasis: true, detail: Owns the order lifecycle. }
+  - { id: db, label: Orders DB, kind: datastore }
+  - { id: queue, label: Fulfilment queue, kind: queue }
+  - { id: check, label: In stock?, kind: decision }
+groups:
+  - { id: backend, label: Backend, members: [api, db, queue, check] }
+edges:
+  - "web -> api: POST /orders"
+  - "api -> check"
+  - "check -> db: insert"
+  - "api --> queue: publish"
+steps:
+  - { text: The storefront sends the order to the API., show: [web, web--api] }
+  - { text: "The API checks stock, then stores the order in the database.", show: [api, api--check, check--db, db] }
+  - { text: The order is published for fulfilment; delivery is at least once so consumers must be idempotent., show: [api--queue, queue, backend] }
+  - A step with nothing to point at still gets a line.

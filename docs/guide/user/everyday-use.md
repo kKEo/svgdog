@@ -1,6 +1,6 @@
 # Everyday use: which command for which job
 
-SVGDog has nine commands. Most days you will use three or four of them. This page tells you which one to pick, and what its exit code means.
+SVGDog has twelve commands. Most days you will use three or four of them. This page tells you which one to pick, and what its exit code means.
 
 ## The loop
 

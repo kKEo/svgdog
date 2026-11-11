@@ -153,13 +153,13 @@ pub fn arrange(spec: &Spec, m: &Measured, t: &Tuning, shapes_of: &dyn Fn(usize, 
         if a == b {
             let x = centre[*a];
             routes.push(vec![Point::new(x, y), Point::new(x + LOOP, y), Point::new(x + LOOP, y + 16.0), Point::new(x, y + 16.0)]);
-            labels.push(text.zip(size).map(|(text, (w, h))| Label { rect: Rect::new(x + LOOP + 8.0, y + 8.0 - h / 2.0, x + LOOP + 8.0 + w, y + 8.0 + h / 2.0), text }));
+            labels.push(size.map(|(w, h)| Label { rect: Rect::new(x + LOOP + 8.0, y + 8.0 - h / 2.0, x + LOOP + 8.0 + w, y + 8.0 + h / 2.0), text: text.unwrap_or_default() }));
             y += STEP + 16.0;
         } else {
             routes.push(vec![Point::new(centre[*a], y), Point::new(centre[*b], y)]);
             let next = if a < b { a + 1 } else { a - 1 };
             let mid = (centre[*a] + centre[next]) / 2.0;
-            labels.push(text.zip(size).map(|(text, (w, h))| Label { rect: Rect::new(mid - w / 2.0, y - 5.0 - h, mid + w / 2.0, y - 5.0), text }));
+            labels.push(size.map(|(w, h)| Label { rect: Rect::new(mid - w / 2.0, y - 5.0 - h, mid + w / 2.0, y - 5.0), text: text.unwrap_or_default() }));
             y += STEP;
         }
     }

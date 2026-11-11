@@ -1,6 +1,6 @@
 # Diagram types
 
-SVGDog draws four kinds of diagram. You choose one with the `diagram:` line of your spec. This page shows each one with a real example and says when to pick it.
+SVGDog draws seven kinds of diagram. You choose one with the `diagram:` line of your spec. This page shows each one with a real example and says when to pick it.
 
 | Type | Best for | You decide the positions? |
 |---|---|---|
@@ -8,6 +8,9 @@ SVGDog draws four kinds of diagram. You choose one with the `diagram:` line of y
 | `layers` | Stacks and tiers: architecture layers, deployment tiers | No |
 | `sequence` | Who sends which message to whom, in time order | No |
 | `free` | Drawings where position carries meaning: a rack, a floor plan | Yes |
+| `state` | The states something can be in and what moves it between them | No |
+| `timeline` | Things in time order: a plan, a history, a release schedule | No |
+| `compare` | Two versions side by side: before and after, option A and option B | No |
 
 In every type SVGDog places things on an 8-pixel grid, routes arrows around boxes, and keeps the result the same every time.
 
@@ -113,9 +116,79 @@ notes:
 
 ![A free-form diagram titled Rack layout. A Switch box sits at the top with the note 10 GbE uplink. Below it, Node A and Node B sit side by side inside a frame labelled Rack 12. A NAS box is lower down. The switch connects to both nodes, Node A connects to the NAS with a double-headed arrow labelled NFS, and Node B connects to the NAS with a dotted line without arrowheads.](images/rack.svg)
 
+## State
+
+A state diagram shows the states of one thing, such as an order or a connection, and the events that move it from one state to the next. Every node is a state, drawn with round corners. Two special kinds mark where it begins and ends: `kind: start` is a solid dot and `kind: end` is a ringed dot. They need no label.
+
+```yaml
+version: 1
+diagram: state
+title: Order states
+nodes:
+  - { id: begin, kind: start }
+  - { id: draft, label: Draft }
+  - { id: placed, label: Placed }
+  - { id: done, kind: end }
+edges:
+  - "begin -> draft"
+  - "draft -> placed: submit"
+  - "placed -> draft: edit"
+  - "placed -> done: delivered"
+```
+
+An arrow may lead back to an earlier state, or from a state to itself. Use `direction: down` for a tall diagram.
+
+![A state diagram titled Order states. From a start dot the order becomes Draft, then Placed on submit, with an edit arrow back to Draft. From Placed it becomes Paid on payment ok, or Cancelled on payment failed. Paid has a retry loop on itself and leads to Shipped on dispatch. Shipped and Cancelled both lead to the end marker.](images/states.svg)
+
+## Timeline
+
+A timeline puts its nodes along a line in the order you list them. Give each node a `when`, the date or moment printed on the line. Groups become phases, framed around their members. A timeline has no edges: the order is the connection.
+
+```yaml
+version: 1
+diagram: timeline
+title: Migration plan
+nodes:
+  - { id: audit, label: Schema audit, when: Jan 2026 }
+  - { id: dual, label: Dual writes on, when: Mar 2026 }
+  - { id: cutover, label: Read cutover, when: Jun 2026 }
+groups:
+  - { id: prep, label: Preparation, members: [audit, dual] }
+```
+
+A long timeline continues on a new row when it reaches `max_width`; a phase is never split across rows. With `direction: down` the line runs from top to bottom, with the dates on its left, which suits many entries or long labels.
+
+![A timeline titled Migration plan. A Preparation phase holds Schema audit in January 2026 and Dual writes on in March 2026. A Migration phase holds Backfill complete in April, which is highlighted, and Read cutover in June, marked as step 1. On a second row, Old cluster retired follows in August 2026.](images/migration.svg)
+
+## Compare
+
+A comparison shows two versions next to each other. Make two groups, one per side, and put every node in one of them. Nodes with the same label land on the same row, so the reader sees at once what stayed. A node that exists on one side only gets a row of its own and is highlighted.
+
+```yaml
+version: 1
+diagram: compare
+title: Checkout before and after
+nodes:
+  - { id: b-web, label: Web app }
+  - { id: b-mono, label: Monolith }
+  - { id: a-web, label: Web app }
+  - { id: a-orders, label: Orders service, match: Monolith }
+  - { id: a-pay, label: Payments service }
+groups:
+  - { id: before, label: Before, members: [b-web, b-mono] }
+  - { id: after, label: After, members: [a-web, a-orders, a-pay] }
+```
+
+When a node was renamed, tell SVGDog what it corresponds to with `match`: above, `Orders service` takes the row of `Monolith`. Ids must still be unique across both sides, so a prefix such as `b-` and `a-` helps. Arrows work as in a flow.
+
+![A comparison titled Checkout before and after. On the left, in a frame labelled Before, a Web app calls a Monolith, which uses a Database. On the right, in a frame labelled After, the Web app calls an Orders service on the same row as the Monolith; a highlighted Payments service is new, and the Database is on the same row as before.](images/split.svg)
+
 ## Which one should I pick?
 
 - Start with `flow`. It is the most forgiving and covers most diagrams.
 - Choose `layers` the moment you think "this is a stack".
 - Choose `sequence` when the order of messages matters more than the structure.
 - Choose `free` only when you must control where things sit.
+- Choose `state` when the boxes are conditions of one thing, not separate things.
+- Choose `timeline` when the only relationship is "then".
+- Choose `compare` when the point is what changed.

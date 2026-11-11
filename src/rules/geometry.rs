@@ -42,7 +42,8 @@ fn units(scene: &Scene) -> BTreeMap<usize, Vec<(usize, Rect)>> {
     let mut map: BTreeMap<usize, Vec<(usize, Rect)>> = BTreeMap::new();
     for (i, e) in scene.elems.iter().enumerate() {
         let (Some(_), Some(b), Some(p)) = (e.closed_shape(), e.bbox, e.parent) else { continue };
-        if !e.painted() || scene.is_background(e) {
+        // A step badge is a marker pinned onto a shape, not a shape beside it.
+        if !e.painted() || scene.is_background(e) || e.node.has_attribute("data-badge") {
             continue;
         }
         map.entry(p).or_default().push((i, b));

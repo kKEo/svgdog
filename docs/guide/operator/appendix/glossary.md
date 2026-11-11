@@ -14,7 +14,7 @@ This glossary defines the words the operator guide uses, in alphabetical order. 
 
 **Catalogue.** The list of 38 rules with their groups, severities, autofix levels and options (`src/catalogue.rs`). `svgdog rules` prints it.
 
-**Diagram type.** One of `flow`, `layers`, `sequence` or `free`, chosen by the `diagram` key in a **spec**.
+**Diagram type.** One of `flow`, `layers`, `sequence`, `free`, `state`, `timeline` or `compare`, chosen by the `diagram` key in a **spec**.
 
 **Envelope.** The single JSON object every command prints, with `tool`, `version`, `command`, `ok` and either results or an `error`. See [Envelope and exit codes](../reference/envelope-exit-codes.md).
 

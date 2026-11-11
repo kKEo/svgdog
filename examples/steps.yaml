@@ -1,0 +1,20 @@
+# A walk-through: numbered steps point at parts of the drawing; a legend and a caption sit below it.
+version: 1
+diagram: flow
+title: Password reset
+description: How a password reset request becomes a new password.
+caption: The reset link works once and expires after an hour.
+legend: true
+nodes:
+  - { id: user, label: User, kind: actor }
+  - { id: site, label: Website, kind: client }
+  - { id: accounts, label: Accounts service, kind: service, emphasis: true, detail: Creates and checks reset tokens. }
+  - { id: mail, label: Mail provider, kind: external, link: "https://example.com/mail" }
+edges:
+  - "user -> site: asks for a reset"
+  - "site -> accounts: create token"
+  - "accounts --> mail: send link"
+steps:
+  - { text: The user asks the website for a password reset., show: [user, user--site] }
+  - { text: The accounts service creates a one-time token., show: [accounts, site--accounts] }
+  - { text: The link is sent by email; the request does not wait for it., show: [accounts--mail, mail] }

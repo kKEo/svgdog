@@ -1,0 +1,12 @@
+# Free: every node is placed by hand with at: [x, y]; edges are still routed.
+version: 1
+diagram: free
+title: Two regions
+description: The primary replicates to a replica and is backed up nightly.
+nodes:
+  - { id: primary, label: Primary, kind: datastore, at: [40, 40] }
+  - { id: replica, label: Replica, kind: datastore, at: [320, 40] }
+  - { id: backup, label: Backup, kind: document, at: [320, 200] }
+edges:
+  - "primary -> replica: replicate"
+  - "primary --> backup: nightly"

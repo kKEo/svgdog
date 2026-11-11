@@ -1,5 +1,8 @@
 pub mod change;
+pub mod describe;
+pub mod docs;
 pub mod edit;
+pub mod examples;
 pub mod fix;
 pub mod inspect;
 pub mod preview;

@@ -105,6 +105,7 @@ pub fn measure(spec: &Spec, t: &Tuning) -> Measured {
             let text = block(&n.label, FONT, fixed.map(|w| (w - 32.0).max(24.0)).unwrap_or(t.wrap));
             let lines = text.lines.len() as f64;
             let (w, h, text_dy) = match n.kind {
+                Kind::Start | Kind::End => (24.0, 24.0, 0.0),
                 Kind::Decision => (up(text.width * 1.5 + 48.0, 16.0).max(128.0), up(lines * 20.0 + 44.0, 16.0).max(64.0), 0.0),
                 Kind::Datastore => (up(text.width + 32.0, 16.0).max(96.0), up(lines * 20.0 + 44.0, 16.0).max(64.0), 6.0),
                 Kind::Client => (up(text.width + 32.0, 16.0).max(96.0), up(lines * 20.0 + 44.0, 16.0).max(64.0), 8.0),
@@ -126,7 +127,17 @@ pub fn measure(spec: &Spec, t: &Tuning) -> Measured {
         .collect();
     let group_label = spec.groups.iter().map(|g| g.label.as_deref().map(|l| text_width(l, SMALL) * (1.0 + RESERVE)).unwrap_or(0.0)).collect();
     let (asc, desc) = text::vmetrics(Class::Sans, false);
-    let edge_label = spec.edges.iter().map(|e| e.label.as_deref().map(|l| (text_width(l, SMALL) * (1.0 + RESERVE), (asc + desc) * SMALL))).collect();
+    // An edge named by a step carries its number beside the label, or alone.
+    let edge_label = spec
+        .edges
+        .iter()
+        .enumerate()
+        .map(|(i, e)| {
+            let badges = spec.steps_of(crate::spec::Ref::Edge(i)).len();
+            let text = e.label.as_deref().map(|l| text_width(l, SMALL) * (1.0 + RESERVE));
+            (text.is_some() || badges > 0).then(|| (text.unwrap_or(0.0) + super::explain::badge_room(badges, text.is_some()), if badges > 0 { super::explain::BADGE } else { (asc + desc) * SMALL }))
+        })
+        .collect();
     Measured { nodes, notes, group_label, edge_label }
 }
 
@@ -171,7 +182,13 @@ fn foot(spec: &Spec, m: &Measured, me: Ref, w: f64, h: f64) -> Foot {
             notes.push((i, r));
         }
     }
-    let all = notes.iter().fold(Rect::new(0.0, 0.0, w, h), |a, (_, r)| a.union(*r));
+    let mut all = notes.iter().fold(Rect::new(0.0, 0.0, w, h), |a, (_, r)| a.union(*r));
+    // A labelled loop back to the same box needs room beside its top right corner for the words.
+    for (i, e) in spec.edges.iter().enumerate() {
+        if let (Some(label), true) = (m.edge_label[i], spec.lookup(&e.from) == Some(me) && e.from == e.to) {
+            all = all.union(Rect::new(w, -16.0, w + 22.0 + label.0, 16.0));
+        }
+    }
     let (ox, oy) = (up(-all.x0, 8.0), up(-all.y0, 8.0));
     Foot { w: ox + up(all.x1, 8.0), h: oy + up(all.y1, 8.0), ox, oy, notes }
 }

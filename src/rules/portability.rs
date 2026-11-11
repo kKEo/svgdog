@@ -48,7 +48,8 @@ fn css_features(text: &str) -> Vec<&'static str> {
     if text.contains("var(") || custom_decl {
         f.push("custom properties");
     }
-    if text.contains("@media") {
+    // A dark-mode override is fine: a renderer that skips it still shows the complete light drawing.
+    if text.matches("@media").count() > text.matches("@media (prefers-color-scheme:").count() {
         f.push("media queries");
     }
     if text.contains("mix-blend-mode") {
@@ -121,7 +122,9 @@ pub fn run(ctx: &mut Ctx) {
                 GENERATOR_WORDS.iter().any(|k| t.contains(k))
             })
             .count();
-        let metadata = scene.doc.descendants().filter(|n| n.is_element() && n.tag_name().name() == "metadata").count();
+        // The spec a drawing was rendered from is its source, not an editor's leftovers.
+        let own = |n: &roxmltree::Node| n.attribute("id") == Some(crate::describe::EMBED_ID);
+        let metadata = scene.doc.descendants().filter(|n| n.is_element() && n.tag_name().name() == "metadata" && !own(n)).count();
         if !namespaces.is_empty() || comments > 0 || metadata > 0 {
             let mut parts = Vec::new();
             if !namespaces.is_empty() {
@@ -138,7 +141,7 @@ pub fn run(ctx: &mut Ctx) {
             let editor = |n: &roxmltree::Node| n.is_element() && n.tag_name().namespace().is_some_and(|ns| EDITOR_NS.iter().any(|e| ns.contains(e)));
             let mut ops = Vec::new();
             for n in scene.doc.descendants().filter(|n| n.is_element()) {
-                let strip = n.tag_name().name() == "metadata" && scene.is_svg(n) || editor(&n);
+                let strip = n.tag_name().name() == "metadata" && scene.is_svg(n) && !own(&n) || editor(&n);
                 if strip && !n.ancestors().skip(1).any(|a| a.tag_name().name() == "metadata" || editor(&a)) {
                     ops.push(json!({ "op": "remove", "target": ctx.target(n) }));
                 }

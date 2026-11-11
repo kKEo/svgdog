@@ -1,0 +1,21 @@
+version: 1
+diagram: compare
+title: Checkout before and after
+description: The checkout path before and after the payment service was split out.
+nodes:
+  - { id: b-web, label: Web app, kind: client }
+  - { id: b-mono, label: Monolith, kind: service }
+  - { id: b-db, label: Database, kind: datastore }
+  - { id: a-web, label: Web app, kind: client }
+  - { id: a-orders, label: Orders service, kind: service, match: Monolith }
+  - { id: a-pay, label: Payments service, kind: service }
+  - { id: a-db, label: Database, kind: datastore }
+groups:
+  - { id: before, label: Before, members: [b-web, b-mono, b-db] }
+  - { id: after, label: After, members: [a-web, a-orders, a-pay, a-db] }
+edges:
+  - "b-web -> b-mono"
+  - "b-mono -> b-db"
+  - "a-web -> a-orders"
+  - "a-orders -> a-pay: charge"
+  - "a-orders -> a-db"

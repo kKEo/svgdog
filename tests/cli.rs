@@ -219,7 +219,7 @@ fn malformed_xml_is_a_finding_for_validate_and_an_input_error_for_inspect() {
 
 #[test]
 fn r6_help_is_short_and_has_an_example() {
-    for args in [vec!["--help"], vec!["render", "--help"], vec!["validate", "--help"], vec!["inspect", "--help"], vec!["preview", "--help"], vec!["edit", "--help"], vec!["fix", "--help"], vec!["mcp", "--help"], vec!["schema", "--help"], vec!["rules", "--help"]] {
+    for args in [vec!["--help"], vec!["render", "--help"], vec!["validate", "--help"], vec!["inspect", "--help"], vec!["preview", "--help"], vec!["edit", "--help"], vec!["fix", "--help"], vec!["mcp", "--help"], vec!["schema", "--help"], vec!["rules", "--help"], vec!["examples", "--help"], vec!["describe", "--help"], vec!["docs", "--help"]] {
         let r = run(&args);
         assert_eq!(r.code, 0);
         let lines = r.stdout.lines().count();
@@ -840,7 +840,7 @@ fn r16_ids_survive_adding_a_node() {
 #[test]
 fn spec_fixtures_satisfy_the_published_schema() {
     let v = schema("spec");
-    for name in [ORDERS, "tests/fixtures/checkout.yaml", "tests/fixtures/tiers.yaml", "tests/fixtures/rack.yaml", "tests/fixtures/login.yaml"] {
+    for name in [ORDERS, "tests/fixtures/checkout.yaml", "tests/fixtures/tiers.yaml", "tests/fixtures/rack.yaml", "tests/fixtures/login.yaml", "tests/fixtures/walkthrough.yaml", "tests/fixtures/states.yaml", "tests/fixtures/migration.yaml", "tests/fixtures/split.yaml"] {
         let doc: Value = serde_yaml_ng::from_str(&fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(name)).unwrap()).unwrap();
         assert_valid(&v, &doc);
     }
@@ -866,9 +866,9 @@ fn spec_errors_name_the_path_and_suggest_a_fix() {
         (base.replace("{id: b, label: B}", "{id: a, label: B}"), "duplicate-id", "nodes[1].id"),
         (base.replace("{id: b, label: B}", "{id: B_2, label: B}"), "invalid-value", "nodes[1].id"),
         (base.replace("{id: b, label: B}", "{id: b, label: B, kind: databse}"), "invalid-value", "nodes[1].kind"),
-        (format!("{base}edges:\n  - {{from: a, to: c}}\n"), "unknown-reference", "edges[0].to"),
+        (format!("{base}notes:\n  - {{attach: c, text: x}}\n"), "unknown-reference", "notes[0].attach"),
         (format!("{base}edges:\n  - {{from: a, to: b}}\n  - {{from: a, to: b}}\n"), "duplicate-id", "edges[1].id"),
-        (format!("{base}groups:\n  - {{id: g, members: [a, zz]}}\n"), "unknown-reference", "groups[0].members[1]"),
+        (format!("{base}groups:\n  - {{id: g, members: [a, Zz]}}\n"), "unknown-reference", "groups[0].members[1]"),
         (format!("{base}groups:\n  - {{id: g, members: [a]}}\n  - {{id: h, members: [a]}}\n"), "group-overlap", "groups[1].members"),
         (format!("{base}groups:\n  - {{id: g, members: [a, h]}}\n  - {{id: h, members: [g]}}\n"), "group-cycle", "groups[0].members"),
         (base.replace("{id: b, label: B}", "{id: b, label: B, at: [1, 2]}"), "at-outside-free", "nodes[1].at"),
@@ -1111,13 +1111,17 @@ fn r8_output_matches_the_golden_files() {
     let update = std::env::var_os("SVGDOG_UPDATE_GOLDEN").is_some();
     let dir = tempfile::tempdir().unwrap();
     let mut produced: Vec<(String, Vec<u8>)> = Vec::new();
-    for name in ["orders", "checkout", "tiers", "rack", "login"] {
+    for name in ["orders", "checkout", "tiers", "rack", "login", "walkthrough", "states", "migration", "split"] {
         let spec = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("tests/fixtures/{name}.yaml"));
         let out = format!("{name}.svg");
         let r = run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", &out, "--no-config"], None);
         assert!(r.code <= 1, "{name}: {}", r.stdout);
         produced.push((out.clone(), fs::read(dir.path().join(&out)).unwrap()));
     }
+    // one frame of the walk-through: a step in focus, the rest dimmed
+    let spec = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/walkthrough.yaml");
+    run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "frame.svg", "--frames", "--theme", "docs-dark", "--no-config"], None);
+    produced.push(("walkthrough-dark.2.svg".into(), fs::read(dir.path().join("frame.2.svg")).unwrap()));
     // the dark theme and outlined text exercise the remaining emitter paths
     let spec = Path::new(env!("CARGO_MANIFEST_DIR")).join(ORDERS);
     run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "orders-dark-paths.svg", "--theme", "docs-dark", "--text-as-paths", "--no-config"], None);
@@ -1224,4 +1228,643 @@ fn spec_edits_keep_yaml_comments() {
     fs::write(dir.path().join("o.json"), doc.to_string()).unwrap();
     let j = run_in(dir.path(), &["edit", "o.json", "--set", "#api.label=API", "--in-place"], None).json();
     assert_eq!(j["formatting"], "rewritten");
+}
+
+// ------------------------------------------------------------------ short specs
+
+#[test]
+fn short_edges_and_long_edges_draw_the_same() {
+    let dir = tempfile::tempdir().unwrap();
+    let head = "version: 1\ndiagram: flow\ntitle: T\ndescription: D\n";
+    let long = format!("{head}nodes:\n  - {{id: web, label: web}}\n  - {{id: api, label: api}}\n  - {{id: order-db, label: order db}}\n  - {{id: bus, label: bus}}\nedges:\n  - {{from: web, to: api, label: \"GET /orders: all\"}}\n  - {{from: api, to: order-db, style: async}}\n  - {{from: api, to: bus, style: dependency}}\n  - {{from: web, to: bus, arrow: both}}\n  - {{from: bus, to: order-db, arrow: none}}\n");
+    let short = format!("{head}edges:\n  - \"web -> api: GET /orders: all\"\n  - api --> order-db\n  - api ..> bus\n  - web <-> bus\n  - bus -- order-db\n");
+    fs::write(dir.path().join("long.yaml"), long).unwrap();
+    fs::write(dir.path().join("short.yaml"), short).unwrap();
+    for n in ["long", "short"] {
+        let r = run_in(dir.path(), &["render", &format!("{n}.yaml"), "-o", &format!("{n}.svg")], None);
+        assert_eq!(r.code, 0, "{}", r.stdout);
+    }
+    assert_eq!(fs::read(dir.path().join("long.svg")).unwrap(), fs::read(dir.path().join("short.svg")).unwrap());
+    // the schema accepts what the parser accepts
+    let doc: Value = serde_yaml_ng::from_str(&fs::read_to_string(dir.path().join("short.yaml")).unwrap()).unwrap();
+    assert_valid(&schema("spec"), &doc);
+}
+
+#[test]
+fn short_edge_mistakes_are_explained() {
+    let head = "version: 1\ndiagram: flow\ntitle: T\n";
+    let fails = |body: &str| run_in(Path::new("."), &["render", "-", "-o", "-"], Some(&format!("{head}{body}"))).json()["error"].clone();
+    let e = fails("edges: [\"a => b\"]\n");
+    assert_eq!((e["code"].as_str(), e["path"].as_str()), (Some("invalid-value"), Some("edges[0]")), "{e:#}");
+    assert!(e["message"].as_str().unwrap().contains("'=>' is not an arrow") && e["suggestion"].as_str().unwrap().contains("from -> to: label"));
+    let e = fails("edges: [\"a->b\"]\n");
+    assert!(e["message"].as_str().unwrap().contains("two ids with an arrow between them"), "{e:#}");
+    // a mention one letter away from a declared node is a typo, not a new box
+    let e = fails("nodes: [{id: orders, label: Orders}, {id: api, label: API}]\nedges: [\"api -> order\"]\n");
+    assert_eq!((e["code"].as_str(), e["path"].as_str()), (Some("unknown-reference"), Some("edges[0].to")), "{e:#}");
+    assert!(e["suggestion"].as_str().unwrap().contains("Did you mean 'orders'?"));
+    // declaring it settles the matter
+    let ok = run_in(Path::new("."), &["render", "-", "-o", "-", "--no-validate"], Some(&format!("{head}nodes: [{{id: orders, label: Orders}}, {{id: order, label: Order}}]\nedges: [\"order -> orders\"]\n")));
+    assert_eq!(ok.code, 0, "{}", ok.stdout);
+    // nothing to draw
+    let e = fails("");
+    assert_eq!(e["code"], "missing-field");
+    // a group can bring nodes in too
+    let ok = run_in(Path::new("."), &["render", "-", "-o", "-", "--no-validate"], Some(&format!("{head}groups: [{{id: g, members: [a, b]}}]\n")));
+    assert!(ok.code == 0 && ok.stdout.contains("id=\"node-a\""), "{}", ok.stdout);
+}
+
+#[test]
+fn edits_reach_short_edges_and_mentioned_nodes() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(dir.path().join("s.yaml"), "version: 1\ndiagram: flow\ntitle: T\ndescription: D\nedges:\n  - \"web -> api: call\"\n  - api --> db\n").unwrap();
+    let ops = serde_json::json!([
+        { "op": "set", "target": "#api", "attr": "label", "value": "Order API" },
+        { "op": "set", "target": "#api--db", "attr": "label", "value": "write" },
+        { "op": "rename-id", "target": "#web", "to": "site" }
+    ]);
+    let r = run_in(dir.path(), &["edit", "s.yaml", "--ops", "-", "--in-place"], Some(&ops.to_string()));
+    let v = r.json();
+    assert!(r.code <= 1 && v["operations"]["applied"] == 3, "{v:#}");
+    let doc: Value = serde_yaml_ng::from_str(&fs::read_to_string(dir.path().join("s.yaml")).unwrap()).unwrap();
+    assert_eq!(doc["nodes"], serde_json::json!([{ "id": "api", "label": "Order API" }, { "id": "site", "label": "web" }]));
+    assert_eq!(doc["edges"], serde_json::json!([{ "from": "site", "to": "api", "label": "call" }, { "from": "api", "to": "db", "label": "write", "style": "async" }]));
+    // removing a mentioned node takes its short edges with it
+    let v = run_in(dir.path(), &["edit", "s.yaml", "--set", "#db.label=Store", "--in-place"], None).json();
+    assert_eq!(v["operations"]["applied"], 1, "{v:#}");
+    let rm = run_in(dir.path(), &["edit", "s.yaml", "--ops", "-", "--in-place"], Some("[{\"op\":\"remove\",\"target\":\"#db\"}]"));
+    assert!(rm.code <= 1, "{}", rm.stdout);
+    let doc: Value = serde_yaml_ng::from_str(&fs::read_to_string(dir.path().join("s.yaml")).unwrap()).unwrap();
+    assert_eq!(doc["edges"].as_array().unwrap().len(), 1);
+}
+
+#[test]
+fn every_example_renders_without_findings() {
+    let dir = tempfile::tempdir().unwrap();
+    let list = run(&["examples"]).json();
+    let names: Vec<String> = list["examples"].as_array().unwrap().iter().map(|e| e["name"].as_str().unwrap().to_string()).collect();
+    assert!(names.len() >= 9);
+    let spec_schema = schema("spec");
+    for n in &names {
+        let one = run(&["examples", n]).json();
+        let text = one["examples"][0]["spec"].as_str().unwrap();
+        assert_eq!(run(&["examples", n, "--format", "text"]).stdout, text, "text output is the spec itself");
+        assert_valid(&spec_schema, &serde_yaml_ng::from_str::<Value>(text).unwrap());
+        for theme in ["docs-light", "docs-dark"] {
+            let r = run_in(dir.path(), &["render", "-", "-o", "x.svg", "--force", "--theme", theme, "--profile", "strict"], Some(text));
+            let v = r.json();
+            assert_eq!((r.code, v["findings"].as_array().unwrap().len()), (0, 0), "{n} {theme}: {v:#}");
+        }
+    }
+    let e = run(&["examples", "flwo"]).json();
+    assert_eq!((e["error"]["code"].as_str(), e["error"]["suggestion"].as_str()), (Some("unknown-example"), Some("Did you mean 'flow'?")));
+}
+
+// ------------------------------------------------------------------ explaining
+
+const WALK: &str = "tests/fixtures/walkthrough.yaml";
+
+#[test]
+fn steps_mark_what_they_show_and_are_listed_under_the_drawing() {
+    let dir = tempfile::tempdir().unwrap();
+    let spec = Path::new(env!("CARGO_MANIFEST_DIR")).join(WALK);
+    for theme in ["docs-light", "docs-dark"] {
+        let r = run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "w.svg", "--force", "--theme", theme, "--profile", "strict", "--no-config"], None);
+        assert_eq!((r.code, r.json()["findings"].as_array().unwrap().len()), (0, 0), "{theme}: {}", r.stdout);
+    }
+    let svg = fs::read_to_string(dir.path().join("w.svg")).unwrap();
+    // what a step names carries its number, as data and as a badge
+    assert!(svg.contains("<g id=\"node-web\" data-step=\"1\">") && svg.contains("<g id=\"edge-api--queue\" data-step=\"3\">") && svg.contains("<g id=\"group-backend\" data-step=\"3\">"), "{svg}");
+    assert_eq!(svg.matches("data-badge=\"2\"").count(), 5, "four things and the list entry");
+    // the footer: legend, one entry per step, caption
+    for id in ["legend", "steps", "step-1", "step-4", "caption"] {
+        assert!(svg.contains(&format!("<g id=\"{id}\">")), "{id} is missing");
+    }
+    assert!(svg.contains("asynchronous message") && svg.contains("highlighted") && svg.contains("Figure 1."));
+    // a link wraps its element, a detail is its tooltip
+    assert!(svg.contains("<a href=\"https://example.com/storefront\">\n  <g id=\"node-web\""), "{svg}");
+    assert!(svg.contains("<g id=\"node-api\" data-step=\"2\">\n    <title>Owns the order lifecycle.</title>"));
+    // the scene still sees every element at its place
+    let scene = run_in(dir.path(), &["inspect", "w.svg", "--select", "#node-web", "--fields", "id,bbox"], None).json();
+    assert!(scene.to_string().contains("node-web"));
+}
+
+#[test]
+fn frames_draw_one_step_each_on_the_same_canvas() {
+    let dir = tempfile::tempdir().unwrap();
+    let spec = Path::new(env!("CARGO_MANIFEST_DIR")).join(WALK);
+    let r = run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "out/../w.svg", "--frames", "--profile", "strict", "--no-config"], None);
+    let _ = r;
+    let r = run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "w.svg", "--frames", "--profile", "strict", "--no-config"], None);
+    let v = r.json();
+    assert_eq!((r.code, v["summary"]["files"].as_u64(), v["findings"].as_array().unwrap().len()), (0, Some(4), 0), "{v:#}");
+    let paths: Vec<&str> = v["outputs"].as_array().unwrap().iter().map(|o| o["path"].as_str().unwrap()).collect();
+    assert_eq!(paths, ["w.1.svg", "w.2.svg", "w.3.svg", "w.4.svg"]);
+    assert!(!dir.path().join("w.svg").exists());
+    let frames: Vec<String> = paths.iter().map(|p| fs::read_to_string(dir.path().join(p)).unwrap()).collect();
+    let head = |s: &str| s.lines().next().unwrap().to_string();
+    assert!(frames.iter().all(|f| head(f) == head(&frames[0])), "every frame has the same canvas");
+    let rect_of = |s: &str, id: &str| s.split(&format!("<g id=\"{id}\"")).nth(1).unwrap().lines().find(|l| l.contains("<rect") || l.contains("<path")).unwrap().split(" fill=").next().unwrap().to_string();
+    assert_eq!(rect_of(&frames[0], "node-api"), rect_of(&frames[2], "node-api"), "nothing moves between frames");
+    // frame 1 marks only step 1, keeps the storefront at full strength and dims the database
+    let f1 = &frames[0];
+    assert_eq!((f1.matches("data-badge=\"1\"").count(), f1.matches("data-badge=\"2\"").count()), (3, 1), "badges of other steps appear only in the list");
+    assert!(f1.contains("url(#arrow-dim)") && f1.contains("url(#arrow)"));
+    let fill_of = |s: &str, id: &str| s.split(&format!("<g id=\"{id}\"")).nth(1).unwrap().split("fill=\"").nth(1).unwrap()[..7].to_string();
+    assert_eq!((fill_of(f1, "node-web"), fill_of(f1, "node-db")), ("#dbeafe".to_string(), "#ffffff".to_string()));
+    // a second run needs --force, and frames need steps and a file
+    let again = run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "w.svg", "--frames", "--no-config"], None);
+    assert_eq!((again.code, again.json()["error"]["code"].as_str().map(|s| s.to_string())), (4, Some("output-exists".into())));
+    let orders = Path::new(env!("CARGO_MANIFEST_DIR")).join(ORDERS);
+    let none = run_in(dir.path(), &["render", orders.to_str().unwrap(), "-o", "o.svg", "--frames", "--no-config"], None);
+    assert_eq!((none.code, none.json()["error"]["code"].as_str().map(|s| s.to_string())), (3, Some("no-steps".into())));
+    assert_eq!(run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "-", "--frames"], None).code, 2);
+}
+
+#[test]
+fn focus_dims_everything_else() {
+    let head = "version: 1\ndiagram: flow\ntitle: T\ndescription: D\n";
+    let body = "nodes:\n  - {id: a, label: A}\n  - {id: b, label: B}\n  - {id: c, label: C}\n  - {id: d, label: D, emphasis: true}\ngroups:\n  - {id: g, members: [c, d]}\nedges: [\"a -> b\", \"b -> c\", \"c -> d\"]\n";
+    let draw = |focus: &str| {
+        let r = run_in(Path::new("."), &["render", "-", "-o", "-", "--no-config", "--no-validate"], Some(&format!("{head}{focus}{body}")));
+        assert_eq!(r.code, 0, "{}", r.stdout);
+        r.stdout
+    };
+    let stroke_of = |s: &str, id: &str| s.split(&format!("<g id=\"{id}\">")).nth(1).unwrap().split("stroke=\"").nth(1).unwrap()[..7].to_string();
+    let all = draw("");
+    assert!(!all.contains("arrow-dim"));
+    // two nodes: the edge between them stays, the others fade
+    let two = draw("focus: [a, b]\n");
+    assert_eq!((stroke_of(&two, "edge-a--b"), stroke_of(&two, "edge-b--c"), stroke_of(&two, "node-c")), ("#1f2937".into(), "#6b7280".into(), "#6b7280".into()));
+    // a group brings its members and the edges inside it; emphasis survives only in focus
+    let grp = draw("focus: [g]\n");
+    assert_eq!((stroke_of(&grp, "node-c"), stroke_of(&grp, "edge-c--d"), stroke_of(&grp, "node-a")), ("#1f2937".into(), "#1f2937".into(), "#6b7280".into()));
+    assert!(grp.contains("fill=\"#2563eb\"") && !two.contains("fill=\"#2563eb\""));
+    // dimming changes colours only: the geometry is the same
+    let strip = |s: &str| s.lines().filter(|l| l.contains("<rect") || l.contains("<path d=\"M")).map(|l| l.split(" fill=").next().unwrap().to_string()).filter(|l| !l.contains("marker")).collect::<Vec<_>>();
+    assert_eq!(strip(&all), strip(&two));
+    // dimmed drawings still pass the strict profile, contrast included
+    for theme in ["docs-light", "docs-dark"] {
+        let r = run_in(Path::new("."), &["render", "-", "-o", "-", "--no-config", "--profile", "strict", "--theme", theme, "--format", "json"], Some(&format!("{head}focus: [a, b]\n{body}")));
+        assert_eq!(r.code, 0, "{theme}");
+    }
+}
+
+#[test]
+fn explanation_fields_are_checked() {
+    let base = "version: 1\ndiagram: flow\ntitle: T\nnodes:\n  - {id: a, label: A}\n  - {id: b, label: B}\nedges:\n  - {from: a, to: b}\n";
+    let cases = [
+        (format!("{base}steps:\n  - {{text: x, show: [zz]}}\n"), "unknown-reference", "steps[0].show[0]"),
+        (format!("{base}steps:\n  - {{show: [a]}}\n"), "missing-field", "steps[0].text"),
+        (format!("{base}steps:\n  - {{text: x, shows: [a]}}\n"), "unknown-field", "steps[0].shows"),
+        (format!("{base}steps: [3]\n"), "invalid-spec", "steps[0]"),
+        (format!("{base}focus: [a, nope]\n"), "unknown-reference", "focus[1]"),
+        (format!("{base}legend: yes please\n"), "invalid-spec", "legend"),
+        (format!("{base}legend:\n  - {{text: x}}\n"), "invalid-spec", "legend[0]"),
+        (format!("{base}legend:\n  - {{style: async, kind: box, text: x}}\n"), "invalid-spec", "legend[0]"),
+        (format!("{base}legend:\n  - {{style: wavy, text: x}}\n"), "invalid-value", "legend[0].style"),
+        (base.replace("{id: b, label: B}", "{id: b, label: B, link: \"javascript:alert(1)\"}"), "invalid-value", "nodes[1].link"),
+        (base.replace("{id: b, label: B}", "{id: b, label: B, link: \"data:text/html,x\"}"), "invalid-value", "nodes[1].link"),
+        (base.replace("{from: a, to: b}", "{from: a, to: b, link: \"two words\"}"), "invalid-value", "edges[0].link"),
+        (base.replace("{from: a, to: b}", "{from: a, to: b, link: \"#anchor\"}"), "invalid-value", "edges[0].link"),
+    ];
+    for (spec, code, path) in cases {
+        let e = render_err(&spec);
+        assert_eq!((e["code"].as_str(), e["path"].as_str()), (Some(code), Some(path)), "{spec}\n{e:#}");
+    }
+    let many: String = (0..21).map(|i| format!("  - step {i}\n")).collect();
+    assert_eq!(render_err(&format!("{base}steps:\n{many}"))["path"], "steps");
+    // links a reader may follow
+    for link in ["https://example.com/a?b=1#c", "http://example.com", "mailto:team@example.com", "../guide/page.md#part", "docs/a:b.md"] {
+        let spec = base.replace("{id: b, label: B}", &format!("{{id: b, label: B, link: \"{link}\"}}"));
+        let r = run_in(Path::new("."), &["render", "-", "-o", "-", "--no-config", "--profile", "strict"], Some(&format!("{spec}description: D\n")));
+        assert_eq!(r.code, 0, "{link}: {}", r.stdout);
+    }
+}
+
+#[test]
+fn spec_edits_keep_steps_and_focus_pointing_at_the_right_things() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(dir.path().join("s.yaml"), "version: 1\ndiagram: flow\ntitle: T\ndescription: D\nfocus: [api, db]\nedges:\n  - \"web -> api\"\n  - \"api -> db\"\nsteps:\n  - {text: One, show: [web, web--api]}\n  - {text: Two, show: [api--db, db]}\n").unwrap();
+    let v = run_in(dir.path(), &["edit", "s.yaml", "--ops", "-", "--in-place"], Some("[{\"op\":\"rename-id\",\"target\":\"#db\",\"to\":\"store\"},{\"op\":\"set\",\"target\":\"#api\",\"attr\":\"detail\",\"value\":\"The API.\"}]")).json();
+    assert_eq!(v["operations"]["applied"], 2, "{v:#}");
+    let doc: Value = serde_yaml_ng::from_str(&fs::read_to_string(dir.path().join("s.yaml")).unwrap()).unwrap();
+    assert_eq!((doc["focus"].clone(), doc["steps"][1]["show"].clone()), (serde_json::json!(["api", "store"]), serde_json::json!(["api--store", "store"])), "{doc:#}");
+    // removing a node removes its edges, and the steps stop naming both
+    let rm = run_in(dir.path(), &["edit", "s.yaml", "--ops", "-", "--in-place"], Some("[{\"op\":\"remove\",\"target\":\"#store\"}]"));
+    assert!(rm.code <= 1, "{}", rm.stdout);
+    let doc: Value = serde_yaml_ng::from_str(&fs::read_to_string(dir.path().join("s.yaml")).unwrap()).unwrap();
+    assert_eq!((doc["focus"].clone(), doc["steps"][1].clone()), (serde_json::json!(["api"]), serde_json::json!({ "text": "Two", "show": [] })), "{doc:#}");
+}
+
+// ------------------------------------------------------------------ more diagram types
+
+fn draw(spec: &str, extra: &[&str]) -> (i32, String) {
+    let mut args = vec!["render", "-", "-o", "-", "--no-config", "--profile", "strict"];
+    args.extend(extra);
+    let r = run_in(Path::new(env!("CARGO_MANIFEST_DIR")), &args, Some(spec));
+    (r.code, r.stdout)
+}
+
+/// The x, y, width and height of the first rect in an element's group.
+fn rect_in(svg: &str, id: &str) -> [f64; 4] {
+    let g = svg.split(&format!("<g id=\"{id}\"")).nth(1).unwrap_or_else(|| panic!("{id} is missing"));
+    let line = g.lines().find(|l| l.contains("<rect")).unwrap();
+    let num = |k: &str| line.split(&format!(" {k}=\"")).nth(1).unwrap().split('"').next().unwrap().parse::<f64>().unwrap();
+    [num("x"), num("y"), num("width"), num("height")]
+}
+
+#[test]
+fn state_diagrams_have_states_markers_and_loops() {
+    let spec = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/states.yaml")).unwrap();
+    for theme in ["docs-light", "docs-dark"] {
+        for dir in ["right", "down"] {
+            let (code, out) = draw(&format!("{spec}direction: {dir}\n"), &["--theme", theme]);
+            assert_eq!(code, 0, "{theme} {dir}: {out}");
+        }
+    }
+    let (_, svg) = draw(&spec, &[]);
+    // a node is a rounded state unless it says otherwise; the markers are circles without text
+    assert!(svg.split("<g id=\"node-draft\">").nth(1).unwrap().lines().nth(1).unwrap().contains("rx=\"12\""));
+    let begin = svg.split("<g id=\"node-begin\">").nth(1).unwrap().split("</g>").next().unwrap();
+    assert!(begin.contains("<circle") && !begin.contains("<text"), "{begin}");
+    let done = svg.split("<g id=\"node-done\">").nth(1).unwrap().split("</g>").next().unwrap();
+    assert_eq!(done.matches("<circle").count(), 2, "an end marker is a ring round a dot");
+    // a transition back to the same state, and one back to an earlier state, are both drawn
+    assert!(svg.contains("id=\"edge-paid--paid\"") && svg.contains("id=\"edge-placed--draft\""));
+    // the markers belong to state diagrams
+    let e = render_err("version: 1\ndiagram: flow\ntitle: T\nnodes:\n  - {id: a, kind: start}\n");
+    assert_eq!((e["code"].as_str(), e["path"].as_str()), (Some("invalid-value"), Some("nodes[0].kind")));
+    // and only they may go without a label
+    let e = render_err("version: 1\ndiagram: state\ntitle: T\nnodes:\n  - {id: a}\n");
+    assert_eq!((e["code"].as_str(), e["path"].as_str()), (Some("missing-field"), Some("nodes[0].label")));
+}
+
+#[test]
+fn timelines_keep_order_wrap_by_phase_and_run_either_way() {
+    let spec = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/migration.yaml")).unwrap();
+    let (code, svg) = draw(&spec, &[]);
+    assert_eq!(code, 0, "{svg}");
+    let x = |id: &str| rect_in(&svg, &format!("node-{id}"))[0];
+    let y = |id: &str| rect_in(&svg, &format!("node-{id}"))[1];
+    assert!(x("audit") < x("dual") && x("dual") < x("backfill") && x("backfill") < x("cutover"), "in spec order, left to right");
+    assert_eq!(y("audit"), y("cutover"));
+    assert!(y("retire") > y("audit"), "what does not fit starts a new row");
+    assert!(svg.contains("<g id=\"axis\">") && svg.contains(">Jan 2026<") && svg.contains("<g id=\"group-prep\">"));
+    // a phase is never split over two rows
+    let narrow = spec.replace("title: Migration plan", "title: Migration plan\nmax_width: 700");
+    let (code, n) = draw(&narrow, &[]);
+    assert_eq!(code, 0, "{n}");
+    let ny = |id: &str| rect_in(&n, &format!("node-{id}"))[1];
+    assert!(ny("audit") == ny("dual") && ny("backfill") == ny("cutover") && ny("backfill") > ny("audit"));
+    let width: f64 = n.split("viewBox=\"0 0 ").nth(1).unwrap().split(' ').next().unwrap().parse().unwrap();
+    assert!(width <= 700.0);
+    // downwards: one column, dates to the left of the axis
+    for theme in ["docs-light", "docs-dark"] {
+        let (code, d) = draw(&spec.replace("title: Migration plan", "title: Migration plan\ndirection: down"), &["--theme", theme]);
+        assert_eq!(code, 0, "{d}");
+        let dy = |id: &str| rect_in(&d, &format!("node-{id}"))[1];
+        assert!(dy("audit") < dy("dual") && dy("dual") < dy("backfill") && dy("cutover") < dy("retire"));
+        assert!(d.contains("text-anchor=\"end\""));
+    }
+    // what a timeline does not take
+    let base = "version: 1\ndiagram: timeline\ntitle: T\nnodes:\n  - {id: a, label: A}\n  - {id: b, label: B}\n";
+    for (extra, path) in [("edges: [\"a -> b\"]\n", "edges"), ("notes:\n  - {attach: a, text: x}\n", "notes"), ("groups:\n  - {id: g, members: [a, h]}\n  - {id: h, members: [b]}\n", "groups[1]")] {
+        let e = render_err(&format!("{base}{extra}"));
+        assert_eq!((e["code"].as_str(), e["path"].as_str()), (Some("invalid-spec"), Some(path)), "{e:#}");
+    }
+    let e = render_err("version: 1\ndiagram: flow\ntitle: T\nnodes:\n  - {id: a, label: A, when: now}\n");
+    assert_eq!(e["path"], "nodes[0].when");
+}
+
+#[test]
+fn comparisons_line_up_what_matches_and_mark_what_does_not() {
+    let spec = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/split.yaml")).unwrap();
+    for theme in ["docs-light", "docs-dark"] {
+        assert_eq!(draw(&spec, &["--theme", theme]).0, 0, "{theme}");
+    }
+    let (_, svg) = draw(&spec, &[]);
+    let at = |id: &str| rect_in(&svg, &format!("node-{id}"));
+    let mid = |id: &str| at(id)[1] + at(id)[3] / 2.0;
+    // same label, or the same match key, means the same row; the two sides are side by side
+    assert_eq!(mid("b-web"), mid("a-web"));
+    assert_eq!(mid("b-mono"), mid("a-orders"));
+    assert!(at("b-web")[0] + at("b-web")[2] < at("a-web")[0]);
+    assert!(mid("a-pay") > mid("a-orders") + at("a-orders")[3], "the new node has a row of its own");
+    let frames = [rect_in(&svg, "group-before"), rect_in(&svg, "group-after")];
+    assert_eq!((frames[0][1], frames[0][3]), (frames[1][1], frames[1][3]), "both frames are the same height");
+    // only what has no counterpart is highlighted
+    let fill = |id: &str| svg.split(&format!("<g id=\"node-{id}\">")).nth(1).unwrap().split("fill=\"").nth(1).unwrap()[..7].to_string();
+    assert_eq!((fill("a-pay"), fill("a-orders"), fill("b-mono")), ("#2563eb".to_string(), "#dbeafe".to_string(), "#dbeafe".to_string()));
+    // what a comparison needs
+    let base = "version: 1\ndiagram: compare\ntitle: T\nnodes:\n  - {id: a, label: A}\n  - {id: b, label: B}\n  - {id: c, label: C}\n";
+    for (extra, path) in [("groups:\n  - {id: g, members: [a, b, c]}\n", "groups"), ("groups:\n  - {id: g, members: [a]}\n  - {id: h, members: [b]}\n", "nodes[2]"), ("groups:\n  - {id: g, members: [a]}\n  - {id: h, members: [b]}\n  - {id: k, members: [c]}\n", "groups")] {
+        let e = render_err(&format!("{base}{extra}"));
+        assert_eq!((e["code"].as_str(), e["path"].as_str()), (Some("invalid-spec"), Some(path)), "{e:#}");
+    }
+    let e = render_err("version: 1\ndiagram: flow\ntitle: T\nnodes:\n  - {id: a, label: A, match: x}\n");
+    assert_eq!(e["path"], "nodes[0].match");
+}
+
+// ------------------------------------------------------------------ living in documentation
+
+#[test]
+fn describe_says_what_a_diagram_shows() {
+    let v = run(&["describe", WALK]).json();
+    assert_eq!((v["ok"].as_bool(), v["title"].as_str()), (Some(true), Some("Order placement")));
+    let text = v["text"].as_str().unwrap();
+    for part in ["Order placement (flow diagram, left to right)", "- Order API (service, highlighted, in Backend) - Owns the order lifecycle.", "- Order API to Fulfilment queue (publish) [asynchronous]", "Steps:\n1. The storefront sends the order to the API.", "Figure 1."] {
+        assert!(text.contains(part), "missing {part:?} in:\n{text}");
+    }
+    assert_eq!(run(&["describe", WALK, "--format", "text"]).stdout, text);
+    assert_eq!(v["spec"]["title"], "Order placement", "the spec comes back as data");
+    // one or two sentences for alt text, per diagram type
+    let short = |f: &str| run(&["describe", f, "--short", "--format", "text"]).stdout;
+    assert_eq!(short("examples/minimal.yaml"), "Flow diagram: browser to api (request); api to database (query); api to queue (publish).\n");
+    assert!(short("tests/fixtures/migration.yaml").starts_with("Timeline: Jan 2026, Schema audit; "));
+    assert_eq!(short("tests/fixtures/split.yaml"), "Comparison of Before (Web app, Monolith, Database) with After (Web app, Orders service, Payments service, Database).\n");
+    let states = short("tests/fixtures/states.yaml");
+    assert!(states.starts_with("State diagram: the start to Draft; Draft to Placed (submit); ") && states.contains("Paid to itself") && states.ends_with("and 3 more connections.\n"), "{states}");
+}
+
+#[test]
+fn a_spec_without_a_description_gets_one_in_the_drawing() {
+    let (code, svg) = draw("version: 1\ndiagram: flow\ntitle: T\nedges: [\"a -> b: go\"]\n", &[]);
+    assert_eq!(code, 0, "no desc-missing warning any more: {svg}");
+    assert!(svg.contains("<desc>Flow diagram: a to b (go).</desc>"));
+    let (_, own) = draw("version: 1\ndiagram: flow\ntitle: T\ndescription: Mine & yours.\nedges: [\"a -> b\"]\n", &[]);
+    assert!(own.contains("<desc>Mine &amp; yours.</desc>"));
+}
+
+#[test]
+fn an_embedded_spec_can_be_read_back() {
+    let dir = tempfile::tempdir().unwrap();
+    let spec = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/steps.yaml")).unwrap();
+    fs::write(dir.path().join("s.yaml"), &spec).unwrap();
+    let r = run_in(dir.path(), &["render", "s.yaml", "-o", "s.svg", "--embed-spec", "--profile", "strict", "--no-config"], None);
+    assert_eq!((r.code, r.json()["findings"].as_array().unwrap().len()), (0, 0), "the embedded spec is not editor metadata: {}", r.stdout);
+    let svg = fs::read_to_string(dir.path().join("s.svg")).unwrap();
+    assert!(svg.contains("<metadata id=\"svgdog-spec\">{"));
+    // the drawing describes itself, and gives the spec back exactly
+    let d = run_in(dir.path(), &["describe", "s.svg"], None).json();
+    assert_eq!(d["spec"], serde_yaml_ng::from_str::<Value>(&spec).unwrap());
+    assert_eq!(d["text"], run_in(dir.path(), &["describe", "s.yaml"], None).json()["text"]);
+    // rendering what came back gives the same drawing
+    fs::write(dir.path().join("back.json"), d["spec"].to_string()).unwrap();
+    run_in(dir.path(), &["render", "back.json", "-o", "back.svg", "--embed-spec", "--no-config"], None);
+    assert_eq!(fs::read(dir.path().join("back.svg")).unwrap(), fs::read(dir.path().join("s.svg")).unwrap());
+    // fix leaves the spec in place; a drawing without one says so
+    let fixed = run_in(dir.path(), &["fix", "s.svg", "--dry-run", "--no-config"], None).json();
+    assert_eq!(fixed["changed"], false, "{fixed:#}");
+    run_in(dir.path(), &["render", "s.yaml", "-o", "plain.svg", "--no-config"], None);
+    assert!(!fs::read_to_string(dir.path().join("plain.svg")).unwrap().contains("<metadata"));
+    let e = run_in(dir.path(), &["describe", "plain.svg"], None);
+    assert_eq!((e.code, e.json()["error"]["code"].as_str().map(|s| s.to_string())), (3, Some("no-spec".into())));
+}
+
+#[test]
+fn render_check_reports_stale_output_without_writing() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::copy(Path::new(env!("CARGO_MANIFEST_DIR")).join(ORDERS), dir.path().join("o.yaml")).unwrap();
+    let missing = run_in(dir.path(), &["render", "o.yaml", "-o", "o.svg", "--check"], None);
+    let v = missing.json();
+    assert_eq!((missing.code, v["ok"].as_bool(), v["stale"][0]["reason"].as_str()), (1, Some(false), Some("missing")), "{v:#}");
+    assert!(!dir.path().join("o.svg").exists());
+    run_in(dir.path(), &["render", "o.yaml", "-o", "o.svg"], None);
+    let fresh = run_in(dir.path(), &["render", "o.yaml", "-o", "o.svg", "--check"], None);
+    assert_eq!((fresh.code, fresh.json()["stale"].as_array().unwrap().len(), fresh.json()["checked"].as_u64()), (0, 0, Some(1)));
+    // the spec moves on, the picture does not
+    let edited = fs::read_to_string(dir.path().join("o.yaml")).unwrap().replace("Storefront", "Shop");
+    fs::write(dir.path().join("o.yaml"), edited).unwrap();
+    let before = fs::read(dir.path().join("o.svg")).unwrap();
+    let old = run_in(dir.path(), &["render", "o.yaml", "-o", "o.svg", "--check"], None);
+    assert_eq!((old.code, old.json()["stale"][0]["reason"].as_str().map(|s| s.to_string())), (1, Some("differs".into())));
+    assert_eq!(fs::read(dir.path().join("o.svg")).unwrap(), before);
+    assert_eq!(run_in(dir.path(), &["render", "o.yaml", "-o", "-", "--check"], None).code, 2);
+}
+
+#[test]
+fn the_adaptive_theme_is_the_light_drawing_with_a_dark_override() {
+    let dir = tempfile::tempdir().unwrap();
+    let spec = Path::new(env!("CARGO_MANIFEST_DIR")).join(WALK);
+    for (theme, out) in [("docs-auto", "auto.svg"), ("docs-light", "light.svg"), ("docs-dark", "dark.svg")] {
+        let r = run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", out, "--theme", theme, "--profile", "strict", "--no-config"], None);
+        assert_eq!((r.code, r.json()["findings"].as_array().unwrap().len()), (0, 0), "{theme}: {}", r.stdout);
+    }
+    let read = |n: &str| fs::read_to_string(dir.path().join(n)).unwrap();
+    let (auto, light, dark) = (read("auto.svg"), read("light.svg"), read("dark.svg"));
+    assert!(!auto.contains("\"@"), "no placeholder is left behind");
+    // strip the classes and the one style rule, and it is the light drawing byte for byte
+    let style = auto.lines().find(|l| l.contains("<style>")).unwrap().to_string();
+    let mut plain = auto.replace(&format!("{style}\n"), "");
+    while let Some(i) = plain.find(" class=\"") {
+        let end = i + 8 + plain[i + 8..].find('"').unwrap() + 1;
+        plain.replace_range(i..end, "");
+    }
+    assert_eq!(plain, light);
+    // the override holds exactly the dark theme's colours
+    assert!(style.trim().starts_with("<style>@media (prefers-color-scheme: dark){") && style.contains(".f-bg{fill:#0d1117}") && style.contains(".s-ns{stroke:#94a3b8}"), "{style}");
+    for colour in style.split('#').skip(1).map(|c| format!("#{}", &c[..6])) {
+        assert!(dark.contains(&colour), "{colour} is not a dark theme colour");
+    }
+    // a media query of any other kind is still reported
+    let other = auto.replace("(prefers-color-scheme: dark)", "(min-width: 600px)");
+    fs::write(dir.path().join("other.svg"), other).unwrap();
+    assert!(rules_of(&run_in(dir.path(), &["validate", "other.svg", "--no-config"], None).json()).contains(&"css-unsupported".to_string()));
+    // the picture made from it is the light one
+    for n in ["auto", "light"] {
+        run_in(dir.path(), &["preview", &format!("{n}.svg"), "-o", &format!("{n}.png"), "--width", "600"], None);
+    }
+    assert_eq!(fs::read(dir.path().join("auto.png")).unwrap(), fs::read(dir.path().join("light.png")).unwrap());
+}
+
+const PAGE: &str = "# Page\n\nWords.\n\n```svgdog request-path\nversion: 1\ndiagram: flow\ntitle: Request path\nedges:\n  - \"browser -> api: request\"\n```\nMore words.\n\n```yaml\nnot: ours\n```\n\n<!-- svgdog\nversion: 1\ndiagram: timeline\ntitle: Plan\ndescription: Two [milestones].\nnodes:\n  - { id: a, label: Start, when: Jan }\n  - { id: b, label: Finish, when: Mar }\n-->\n\nThe end.\n";
+
+#[test]
+fn docs_renders_the_diagrams_inside_markdown_pages() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::create_dir_all(dir.path().join("guide/deep")).unwrap();
+    fs::write(dir.path().join("guide/page.md"), PAGE).unwrap();
+    fs::write(dir.path().join("guide/deep/Other.md"), "~~~svgdog\nversion: 1\ndiagram: flow\ntitle: Other\nedges: [\"a -> b\"]\n~~~").unwrap();
+    fs::write(dir.path().join("guide/plain.md"), "# No diagrams here\n").unwrap();
+
+    // check first: everything is missing, nothing is written
+    let c = run_in(dir.path(), &["docs", "guide", "--check"], None);
+    let v = c.json();
+    assert_eq!((c.code, v["ok"].as_bool(), v["stale"].as_array().unwrap().len()), (1, Some(false), 5), "three pictures and two pages: {v:#}");
+    assert_valid(&schema("findings"), &v);
+    assert!(!dir.path().join("guide/diagrams").exists() && fs::read_to_string(dir.path().join("guide/page.md")).unwrap() == PAGE);
+
+    let w = run_in(dir.path(), &["docs", "guide", "--profile", "strict"], None);
+    let v = w.json();
+    assert_eq!((w.code, v["summary"]["files"].as_u64(), v["summary"]["errors"].as_u64(), v["documents"].as_array().unwrap().len()), (0, Some(3), Some(0), 2), "{v:#}");
+    assert_valid(&schema("findings"), &v);
+    let paths: Vec<&str> = v["outputs"].as_array().unwrap().iter().map(|o| o["path"].as_str().unwrap()).collect();
+    assert_eq!(paths, ["guide/deep/diagrams/other-1.svg", "guide/deep/Other.md", "guide/diagrams/page-request-path.svg", "guide/diagrams/page-2.svg", "guide/page.md"]);
+    let page = fs::read_to_string(dir.path().join("guide/page.md")).unwrap();
+    // an image line follows each block; the rest of the page is untouched
+    assert!(page.contains("```\n\n![Request path. Flow diagram: browser to api (request).](diagrams/page-request-path.svg)\n\nMore words.\n"), "{page}");
+    assert!(page.contains("-->\n\n![Plan. Two milestones.](diagrams/page-2.svg)\n\nThe end.\n"), "brackets are dropped from alt text: {page}");
+    assert!(page.contains("```yaml\nnot: ours\n```\n") && page.starts_with("# Page\n\nWords.\n"));
+    assert_eq!(fs::read_to_string(dir.path().join("guide/deep/Other.md")).unwrap().lines().last().unwrap(), "![Other. Flow diagram: a to b.](diagrams/other-1.svg)");
+    assert!(fs::read_to_string(dir.path().join("guide/diagrams/page-2.svg")).unwrap().contains("<g id=\"axis\">"));
+
+    // a second run changes nothing, and check agrees
+    let again = run_in(dir.path(), &["docs", "guide"], None).json();
+    assert_eq!(again["outputs"].as_array().unwrap().len(), 0, "{again:#}");
+    assert_eq!(run_in(dir.path(), &["docs", "guide", "--check"], None).code, 0);
+
+    // editing a spec makes its picture stale; the image line is updated in place, not duplicated
+    fs::write(dir.path().join("guide/page.md"), page.replace("title: Request path", "title: Request route")).unwrap();
+    let stale = run_in(dir.path(), &["docs", "guide/page.md", "--check"], None).json();
+    assert_eq!(stale["stale"].as_array().unwrap().len(), 2, "the picture and the alt text: {stale:#}");
+    run_in(dir.path(), &["docs", "guide/page.md"], None);
+    let page = fs::read_to_string(dir.path().join("guide/page.md")).unwrap();
+    assert_eq!((page.matches("![").count(), page.matches("![Request route.").count()), (2, 1), "{page}");
+
+    // themes, another folder for the pictures, and the mistakes
+    let auto = run_in(dir.path(), &["docs", "guide/deep", "--theme", "docs-auto", "--assets", "img"], None);
+    assert_eq!(auto.code, 0, "{}", auto.stdout);
+    assert!(fs::read_to_string(dir.path().join("guide/deep/img/other-1.svg")).unwrap().contains("prefers-color-scheme"));
+    assert_eq!(run_in(dir.path(), &["docs", "guide", "--assets", "../out"], None).code, 2);
+    assert_eq!(run_in(dir.path(), &["docs", "nowhere"], None).code, 3);
+    fs::write(dir.path().join("bad.md"), "text\n\n```svgdog\nversion: 1\ndiagram: flwo\ntitle: T\n```\n").unwrap();
+    let e = run_in(dir.path(), &["docs", "bad.md"], None);
+    let err = e.json()["error"].clone();
+    assert_eq!((e.code, err["code"].as_str()), (3, Some("invalid-value")));
+    assert!(err["message"].as_str().unwrap().starts_with("bad.md, diagram starting on line 4: ") && err["suggestion"] == "Did you mean 'flow'?", "{err:#}");
+    fs::write(dir.path().join("twice.md"), "```svgdog a\nversion: 1\ndiagram: flow\ntitle: T\nedges: [\"a -> b\"]\n```\n\n```svgdog a\nversion: 1\ndiagram: flow\ntitle: T\nedges: [\"a -> b\"]\n```\n").unwrap();
+    assert_eq!(run_in(dir.path(), &["docs", "twice.md"], None).json()["error"]["code"], "duplicate-id");
+}
+
+// ------------------------------------------------------------------ interactive versions
+
+/// Remove every ` name="..."` attribute from a document.
+fn without_attr(text: &str, name: &str) -> String {
+    let mut out = text.to_string();
+    let key = format!(" {name}=\"");
+    while let Some(i) = out.find(&key) {
+        let end = i + key.len() + out[i + key.len()..].find('"').unwrap() + 1;
+        out.replace_range(i..end, "");
+    }
+    out
+}
+
+#[test]
+fn the_css_version_is_the_static_drawing_plus_classes_and_one_style_block() {
+    let dir = tempfile::tempdir().unwrap();
+    let spec = Path::new(env!("CARGO_MANIFEST_DIR")).join(WALK);
+    for theme in ["docs-light", "docs-dark", "docs-auto"] {
+        let plain = run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "plain.svg", "--force", "--theme", theme, "--no-config"], None);
+        assert_eq!(plain.code, 0);
+        let live = run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "live.svg", "--force", "--theme", theme, "--interactive", "css", "--profile", "strict", "--no-config"], None);
+        assert_eq!((live.code, live.json()["findings"].as_array().unwrap().len()), (0, 0), "{theme}: no script, nothing for a rule to object to: {}", live.stdout);
+        let (plain, live) = (fs::read_to_string(dir.path().join("plain.svg")).unwrap(), fs::read_to_string(dir.path().join("live.svg")).unwrap());
+        assert!(!live.contains("<script") && live.contains("data-interactive=\"css\""));
+        // take away what was added and the static drawing is left, byte for byte
+        let style = live.lines().rfind(|l| l.contains("<style>")).unwrap().to_string();
+        assert!(style.contains(":has(#node-api:hover,#node-api:focus-visible) .it:not(.r-api){opacity:.25}") && style.contains("[data-current=\"2\"] .it:not(.st-2){opacity:.25}"), "{style}");
+        let mut bare = live.replace(&format!("{style}\n"), "");
+        for attr in ["data-interactive", "tabindex"] {
+            bare = without_attr(&bare, attr);
+        }
+        // classes: the scope on the root and the relations on each thing; the adaptive theme's own classes stay
+        let scoped: Vec<String> = bare.split(" class=\"").skip(1).map(|c| c.split('"').next().unwrap().to_string()).filter(|c| c.starts_with("svgdog-") || c.starts_with("it")).collect();
+        for c in scoped {
+            bare = bare.replacen(&format!(" class=\"{c}\""), "", 1);
+        }
+        assert_eq!(bare, plain, "{theme}");
+        // what a hover keeps lit: the node, its neighbours, its frame, and the edges between them
+        let class_of = |id: &str| live.split(&format!("id=\"{id}\"")).nth(1).unwrap().split("class=\"").nth(1).unwrap().split('"').next().unwrap().to_string();
+        assert_eq!(class_of("node-web"), "it r-api r-web st-1");
+        assert_eq!(class_of("edge-web--api"), "it r-api r-web st-1");
+        assert!(class_of("node-api").contains("r-backend") && class_of("group-backend").contains("r-queue"));
+        // and the picture a static renderer makes of it is the same
+        for n in ["plain", "live"] {
+            run_in(dir.path(), &["preview", &format!("{n}.svg"), "-o", &format!("{n}.png"), "--width", "500", "--force"], None);
+        }
+        assert_eq!(fs::read(dir.path().join("plain.png")).unwrap(), fs::read(dir.path().join("live.png")).unwrap(), "{theme}");
+    }
+}
+
+#[test]
+fn the_html_version_is_one_page_that_works_without_its_script() {
+    let dir = tempfile::tempdir().unwrap();
+    let spec = Path::new(env!("CARGO_MANIFEST_DIR")).join(WALK);
+    let r = run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "w.html", "--interactive", "html", "--theme", "docs-auto", "--profile", "strict", "--no-config"], None);
+    assert_eq!((r.code, r.json()["findings"].as_array().unwrap().len(), r.json()["outputs"][0]["path"].as_str().map(|s| s.to_string())), (0, 0, Some("w.html".into())), "{}", r.stdout);
+    let page = fs::read_to_string(dir.path().join("w.html")).unwrap();
+    assert!(page.starts_with("<!doctype html>") && page.contains("<title>Order placement</title>") && page.trim_end().ends_with("</html>"));
+    // self-contained: nothing is fetched
+    for needle in ["src=", "<link", "@import", "url(http", "fetch("] {
+        assert!(!page.contains(needle), "the page reaches outside itself with {needle}");
+    }
+    // the drawing inside is the css version, complete with its step list, so the page reads without the script
+    run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "w.svg", "--interactive", "css", "--theme", "docs-auto", "--no-config"], None);
+    assert!(page.contains(&fs::read_to_string(dir.path().join("w.svg")).unwrap()));
+    assert!(page.contains("<div class=\"bar\" hidden>") && page.contains("var total = 4;"), "controls stay hidden until the script shows them");
+    assert!(page.contains("@media (prefers-color-scheme: dark){:root{--bg:#0d1117"));
+    // no steps, no controls
+    let orders = Path::new(env!("CARGO_MANIFEST_DIR")).join(ORDERS);
+    run_in(dir.path(), &["render", orders.to_str().unwrap(), "-o", "o.html", "--interactive", "html", "--no-config"], None);
+    let plain = fs::read_to_string(dir.path().join("o.html")).unwrap();
+    assert!(!plain.contains("class=\"bar\"") && plain.contains("var total = 0;"));
+    // frames and the page are two answers to the same question
+    let both = run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "x.html", "--interactive", "html", "--frames"], None);
+    assert_eq!((both.code, both.json()["error"]["code"].as_str().map(|s| s.to_string())), (2, Some("argument-conflict".into())));
+    // check compares the page like any other output
+    assert_eq!(run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "w.html", "--interactive", "html", "--theme", "docs-auto", "--check", "--no-config"], None).code, 0);
+}
+
+#[test]
+fn preview_can_show_one_step() {
+    let dir = tempfile::tempdir().unwrap();
+    let spec = Path::new(env!("CARGO_MANIFEST_DIR")).join(WALK);
+    run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "w.svg", "--no-config"], None);
+    for (args, out) in [(vec![], "all.png"), (vec!["--step", "2"], "two.png"), (vec!["--step", "3"], "three.png")] {
+        let mut a = vec!["preview", "w.svg", "-o", out, "--width", "500"];
+        a.extend(args);
+        assert_eq!(run_in(dir.path(), &a, None).code, 0);
+    }
+    let read = |n: &str| fs::read(dir.path().join(n)).unwrap();
+    assert!(read("all.png") != read("two.png") && read("two.png") != read("three.png"));
+    let e = run_in(dir.path(), &["preview", "w.svg", "-o", "x.png", "--step", "9"], None);
+    assert_eq!((e.code, e.json()["error"]["code"].as_str().map(|s| s.to_string())), (3, Some("no-match".into())));
+    let none = run_in(dir.path(), &["preview", Path::new(env!("CARGO_MANIFEST_DIR")).join(CLEAN).to_str().unwrap(), "-o", "y.png", "--step", "1"], None);
+    assert_eq!(none.code, 3, "a drawing without steps has no step 1");
+}
+
+#[test]
+fn docs_can_write_the_interactive_versions() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(dir.path().join("page.md"), PAGE).unwrap();
+    let r = run_in(dir.path(), &["docs", "page.md", "--interactive", "html"], None);
+    let v = r.json();
+    assert_eq!(r.code, 0, "{v:#}");
+    let paths: Vec<&str> = v["outputs"].as_array().unwrap().iter().map(|o| o["path"].as_str().unwrap()).collect();
+    assert_eq!(paths, ["diagrams/page-request-path.svg", "diagrams/page-request-path.html", "diagrams/page-2.svg", "diagrams/page-2.html", "page.md"]);
+    let page = fs::read_to_string(dir.path().join("page.md")).unwrap();
+    assert!(page.contains("(diagrams/page-request-path.svg) [Interactive version](diagrams/page-request-path.html)\n"), "{page}");
+    // the picture in the page stays static; the page beside it is the interactive one
+    assert!(!fs::read_to_string(dir.path().join("diagrams/page-2.svg")).unwrap().contains("data-interactive"));
+    assert!(fs::read_to_string(dir.path().join("diagrams/page-2.html")).unwrap().contains("data-interactive=\"css\""));
+    assert_eq!(run_in(dir.path(), &["docs", "page.md", "--interactive", "html", "--check"], None).code, 0);
+    // without the switch the link goes away again, and check with other flags sees the difference
+    assert_eq!(run_in(dir.path(), &["docs", "page.md", "--check"], None).code, 1);
+    run_in(dir.path(), &["docs", "page.md", "--interactive", "css"], None);
+    let page = fs::read_to_string(dir.path().join("page.md")).unwrap();
+    assert!(!page.contains("Interactive version") && page.matches("![").count() == 2, "{page}");
+    assert!(fs::read_to_string(dir.path().join("diagrams/page-2.svg")).unwrap().contains("data-interactive=\"css\""));
+}
+
+#[test]
+fn the_page_script_steps_and_shows_details() {
+    // The script is plain JavaScript; it is run against a stand-in document where Node is available.
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let Ok(out) = Command::new("node").arg(root.join("tests/player.test.js")).arg(root.join("src/render/player.js")).output() else {
+        eprintln!("node is not installed; skipping the page script test");
+        return;
+    };
+    assert!(out.status.success(), "{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
+    assert!(String::from_utf8_lossy(&out.stdout).contains("player ok"));
 }

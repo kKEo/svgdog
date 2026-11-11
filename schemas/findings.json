@@ -141,6 +141,40 @@
       "type": "boolean",
       "description": "false when the command skipped the checks"
     },
+    "svg": {
+      "type": "string",
+      "description": "render as a tool call without an output path: the drawing itself"
+    },
+    "checked": {
+      "type": "integer",
+      "description": "render --check: how many files were compared"
+    },
+    "stale": {
+      "type": "array",
+      "description": "render --check and docs --check: what is missing or out of date; ok is false when it is not empty",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "reason"],
+        "properties": {
+          "path": { "type": "string" },
+          "reason": { "enum": ["missing", "differs", "image links differ"] }
+        }
+      }
+    },
+    "documents": {
+      "type": "array",
+      "description": "docs: the pages that hold diagrams",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "diagrams"],
+        "properties": {
+          "path": { "type": "string" },
+          "diagrams": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
     "image": {
       "type": "object",
       "additionalProperties": false,

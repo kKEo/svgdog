@@ -1,0 +1,14 @@
+# A sequence: nodes are lifelines, edges are messages from top to bottom.
+version: 1
+diagram: sequence
+title: Sign-in
+description: The user signs in through the app, which verifies the password with the auth service.
+nodes:
+  - { id: user, label: User, kind: actor }
+  - { id: app, label: App, kind: client }
+  - { id: auth, label: Auth service, kind: service }
+edges:
+  - "user -> app: enter password"
+  - "app -> auth: verify"
+  - { id: reply, from: auth, to: app, label: token, style: async }
+  - { id: done, from: app, to: user, label: signed in, style: async }

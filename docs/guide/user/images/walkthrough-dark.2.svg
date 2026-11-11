@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 944 440" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>Order placement</title>
+  <desc>How an order moves from the storefront to fulfilment.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#e5e7eb"/></marker>
+    <marker id="arrow-dim" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#94a3b8"/></marker>
+  </defs>
+  <rect x="0" y="0" width="944" height="440" fill="#0d1117"/>
+  <g id="group-backend" data-step="3">
+    <rect x="280" y="24" width="640" height="208" rx="8" fill="none" stroke="#94a3b8" stroke-width="1"/>
+    <text x="292" y="48.37" font-size="12" fill="#94a3b8">Backend</text>
+  </g>
+  <a href="https://example.com/storefront">
+  <g id="node-web" data-step="1">
+    <rect x="24" y="104" width="112" height="64" rx="8" fill="#0d1117" stroke="#94a3b8" stroke-width="1.5"/>
+    <line x1="24" y1="120" x2="136" y2="120" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="80" y="149.09" text-anchor="middle" font-size="14" fill="#94a3b8">Storefront</text>
+  </g>
+  </a>
+  <g id="node-api" data-step="2">
+    <title>Owns the order lifecycle.</title>
+    <rect x="304" y="112" width="112" height="48" rx="8" fill="#60a5fa" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="360" y="141.09" text-anchor="middle" font-size="14" fill="#0d1117">Order API</text>
+    <circle cx="304" cy="112" r="9" fill="#60a5fa" data-badge="2"/>
+    <text x="304" y="116.37" text-anchor="middle" font-size="12" fill="#0d1117">2</text>
+  </g>
+  <g id="node-db" data-step="2">
+    <path d="M792 160 A56 8 0 0 1 904 160 L904 208 A56 8 0 0 1 792 208 Z" fill="#1e293b" stroke="#94a3b8" stroke-width="1.5"/>
+    <path d="M792 160 A56 8 0 0 0 904 160" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="848" y="195.09" text-anchor="middle" font-size="14" fill="#e5e7eb">Orders DB</text>
+    <circle cx="792" cy="152" r="9" fill="#60a5fa" data-badge="2"/>
+    <text x="792" y="156.37" text-anchor="middle" font-size="12" fill="#0d1117">2</text>
+  </g>
+  <g id="node-queue" data-step="3">
+    <path d="M528 64 L688 64 A8 24 0 0 1 688 112 L528 112 A8 24 0 0 1 528 64 Z" fill="#0d1117" stroke="#94a3b8" stroke-width="1.5"/>
+    <path d="M688 64 A8 24 0 0 0 688 112" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="608" y="93.09" text-anchor="middle" font-size="14" fill="#94a3b8">Fulfilment queue</text>
+  </g>
+  <g id="node-check">
+    <polygon points="608,152 680,184 608,216 536,184" fill="#0d1117" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="608" y="189.09" text-anchor="middle" font-size="14" fill="#94a3b8">In stock?</text>
+  </g>
+  <g id="edge-web--api" data-step="1">
+    <path d="M136 136 L304 136" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow-dim)"/>
+    <text x="232" y="126.37" text-anchor="middle" font-size="12" fill="#94a3b8">POST /orders</text>
+  </g>
+  <g id="edge-api--check" data-step="2">
+    <path d="M416 144 L480 144 L480 168 L572 168" fill="none" stroke="#e5e7eb" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <circle cx="448" cy="158" r="9" fill="#60a5fa" data-badge="2"/>
+    <text x="448" y="162.37" text-anchor="middle" font-size="12" fill="#0d1117">2</text>
+  </g>
+  <g id="edge-check--db" data-step="2">
+    <path d="M680 184 L792 184" fill="none" stroke="#e5e7eb" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <circle cx="715.74" cy="170" r="9" fill="#60a5fa" data-badge="2"/>
+    <text x="715.74" y="174.37" text-anchor="middle" font-size="12" fill="#0d1117">2</text>
+    <text x="748" y="174.37" text-anchor="middle" font-size="12" fill="#e5e7eb">insert</text>
+  </g>
+  <g id="edge-api--queue" data-step="3">
+    <path d="M416 128 L472 128 L472 96 L520.52 96" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow-dim)"/>
+    <text x="490.07" y="86.37" text-anchor="middle" font-size="12" fill="#94a3b8">publish</text>
+  </g>
+  <g id="legend">
+    <line x1="24" y1="274" x2="52" y2="274" stroke="#e5e7eb" stroke-width="1.5"/>
+    <text x="60" y="278.37" font-size="12" fill="#e5e7eb">call</text>
+    <line x1="112" y1="274" x2="140" y2="274" stroke="#e5e7eb" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="148" y="278.37" font-size="12" fill="#e5e7eb">asynchronous message</text>
+    <rect x="322" y="268" width="24" height="12" rx="2" fill="#60a5fa" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="356" y="278.37" font-size="12" fill="#e5e7eb">highlighted</text>
+  </g>
+  <g id="steps">
+    <g id="step-1">
+      <circle cx="33" cy="305" r="9" fill="#94a3b8" data-badge="1"/>
+      <text x="33" y="309.37" text-anchor="middle" font-size="12" fill="#0d1117">1</text>
+      <text x="52" y="309.37" font-size="12" fill="#94a3b8">The storefront sends the order to the API.</text>
+    </g>
+    <g id="step-2">
+      <circle cx="33" cy="331" r="9" fill="#60a5fa" data-badge="2"/>
+      <text x="33" y="335.37" text-anchor="middle" font-size="12" fill="#0d1117">2</text>
+      <text x="52" y="335.37" font-size="12" fill="#e5e7eb">The API checks stock, then stores the order in the database.</text>
+    </g>
+    <g id="step-3">
+      <circle cx="33" cy="357" r="9" fill="#94a3b8" data-badge="3"/>
+      <text x="33" y="361.37" text-anchor="middle" font-size="12" fill="#0d1117">3</text>
+      <text x="52" y="361.37" font-size="12" fill="#94a3b8">The order is published for fulfilment; delivery is at least once so consumers must be idempotent.</text>
+    </g>
+    <g id="step-4">
+      <circle cx="33" cy="383" r="9" fill="#94a3b8" data-badge="4"/>
+      <text x="33" y="387.37" text-anchor="middle" font-size="12" fill="#0d1117">4</text>
+      <text x="52" y="387.37" font-size="12" fill="#94a3b8">A step with nothing to point at still gets a line.</text>
+    </g>
+  </g>
+  <g id="caption">
+    <text x="24" y="416.37" font-size="12" fill="#94a3b8">Figure 1. The order path. Payment is taken before the order is stored, so a failed charge leaves no record behind.</text>
+  </g>
+</svg>

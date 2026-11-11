@@ -7,7 +7,7 @@ These are the words this guide uses, in plain language. The [Operator guide](../
 | **annotate** | Draw a labelled outline around each problem on a preview picture (`preview --annotate`) |
 | **async** | An arrow style for messages that do not wait for an answer; drawn as a dashed line |
 | **band** | In a `layers` diagram, one full-width stripe that holds a group |
-| **diagram type** | The kind of picture: `flow`, `layers`, `sequence` or `free` |
+| **diagram type** | The kind of picture: `flow`, `layers`, `sequence`, `free`, `state`, `timeline` or `compare` |
 | **dry run** | Showing what a command would change without changing anything (`--dry-run`) |
 | **edge** | An arrow between two nodes |
 | **emphasis** | Drawing a node with a stronger outline so it stands out |

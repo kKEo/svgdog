@@ -62,9 +62,9 @@ When the output is not a terminal (for example it is piped or captured by a scri
 
 No. `preview` writes a PNG file when you run it; it has no window or watch mode. Run it again after each change.
 
-### Why is there a warning `desc-missing` when `render` succeeded?
+### Why is there a warning `desc-missing`?
 
-Your spec has no `description`. Add one sentence saying what the diagram shows; screen readers speak it.
+The SVG has no `<desc>` saying what it shows; screen readers speak that text. You see this on SVGs made by other tools. A diagram rendered by SVGDog always has one: your spec's `description`, or a sentence SVGDog writes from the diagram when you leave it out.
 
 ### Why does SVGDog change my SVG's width and height?
 

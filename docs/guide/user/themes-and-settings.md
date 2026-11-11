@@ -4,10 +4,11 @@ This page shows how to change how diagrams look and how to set house rules for a
 
 ## Light and dark themes
 
-SVGDog has two built-in themes:
+SVGDog has three built-in themes:
 
 - `docs-light`: dark text on a white page. This is the default.
 - `docs-dark`: light text on a dark page (`#0d1117`).
+- `docs-auto`: one file that follows the reader. It is the light drawing, with a rule inside that switches to the dark colours when the reader's system is in dark mode.
 
 Choose one in the spec:
 
@@ -21,7 +22,9 @@ or for a single run, on the command line (the command line wins over the spec):
 svgdog --format text render hello.yaml -o hello-dark.svg --theme docs-dark
 ```
 
-Both themes use the same sizes: text at 14 px (12 px for arrow labels), lines 1.5 px thick (1 px for the thinner ones).
+Use `docs-auto` when the same page is read in light and dark mode, for example a README. It works wherever a browser shows the SVG, including as a plain image. A viewer that does not understand the rule shows the light version, and so does `svgdog preview`. To see the dark version, render once with `--theme docs-dark`.
+
+All themes use the same sizes: text at 14 px (12 px for arrow labels), lines 1.5 px thick (1 px for the thinner ones).
 
 ## Text as outlines
 

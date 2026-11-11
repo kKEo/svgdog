@@ -2,6 +2,7 @@ mod catalogue;
 mod cli;
 mod commands;
 mod config;
+mod describe;
 mod diff;
 mod envelope;
 mod mcp;
@@ -108,6 +109,8 @@ pub struct Env {
     pub ceiling: Option<std::path::PathBuf>,
     /// Edit operations supplied as data in place of an --ops file.
     pub inline_ops: Option<serde_json::Value>,
+    /// A diagram spec supplied as text in place of a spec file.
+    pub inline_spec: Option<String>,
 }
 
 /// Run one parsed command and hand back its output; nothing is printed here.
@@ -118,18 +121,21 @@ pub fn execute(cli: &Cli, env: &Env) -> Result<Output, AppError> {
     };
     let paint = commands::validate::Paint { color: env.color };
     let mut loader = match &cli.command {
-        Command::Validate { .. } | Command::Edit { .. } | Command::Fix { .. } | Command::Render { .. } | Command::Preview { .. } => Some(config::Loader::new(cli.global.config.as_deref(), cli.global.no_config, env.ceiling.clone())?),
+        Command::Validate { .. } | Command::Edit { .. } | Command::Fix { .. } | Command::Render { .. } | Command::Preview { .. } | Command::Docs { .. } => Some(config::Loader::new(cli.global.config.as_deref(), cli.global.no_config, env.ceiling.clone())?),
         _ => None,
     };
     let out = match &cli.command {
         Command::Validate { files, rules, skip, fail_on, max_findings } => commands::validate::run(files, rules, skip, *fail_on, *max_findings, loader.as_mut().unwrap(), profile, &paint),
         Command::Edit { file, set, ops, dry_run, output, in_place } => commands::edit::run(file, set, ops.as_deref(), env.inline_ops.as_ref(), *dry_run, output.as_deref(), *in_place, loader.as_mut().unwrap(), profile, &paint),
         Command::Fix { file, rules, allow_unsafe, dry_run, output, in_place } => commands::fix::run(file, rules, *allow_unsafe, *dry_run, output.as_deref(), *in_place, loader.as_mut().unwrap(), profile, &paint),
-        Command::Render { spec, output, theme, no_validate, force, text_as_paths } => commands::render::run(spec, output, theme.as_deref(), *no_validate, *force, *text_as_paths, loader.as_mut().unwrap(), profile, &paint),
-        Command::Preview { file, output, width, background, annotate, crop, force } => commands::preview::run(file, output, *width, *background, *annotate, crop.as_deref(), *force, loader.as_mut().unwrap(), profile, &paint),
+        Command::Render { spec, output, theme, interactive, frames, embed_spec, check, no_validate, force, text_as_paths } => commands::render::run(spec, env.inline_spec.as_deref(), output, theme.as_deref(), *interactive, *frames, *embed_spec, *check, *no_validate, *force, *text_as_paths, loader.as_mut().unwrap(), profile, &paint),
+        Command::Preview { file, output, width, background, annotate, crop, step, force } => commands::preview::run(file, output, *width, *background, *annotate, crop.as_deref(), *step, *force, loader.as_mut().unwrap(), profile, &paint),
         Command::Inspect { file, select, depth, fields } => commands::inspect::run(file, select.as_deref(), *depth, fields),
         Command::Schema { name } => commands::schema::run(*name),
         Command::Rules { explain } => commands::rules::run(explain.as_deref()),
+        Command::Examples { name } => commands::examples::run(name.as_deref()),
+        Command::Describe { file, short } => commands::describe::run(file, *short),
+        Command::Docs { paths, check, assets, theme, interactive } => commands::docs::run(paths, *check, assets, theme.as_deref(), *interactive, loader.as_mut().unwrap(), profile, &paint),
         Command::Mcp { .. } => Err(AppError::usage("invalid-argument", "The mcp server cannot be started from inside a tool call.")),
     }?;
     if let Some(loader) = &loader {
@@ -165,7 +171,7 @@ fn run(args: &[String]) -> i32 {
         };
     }
     let color = format == Format::Text && std::io::stdout().is_terminal() && !cli.global.no_color && std::env::var_os("NO_COLOR").is_none_or(|v| v.is_empty());
-    let result = execute(&cli, &Env { color, ceiling: None, inline_ops: None });
+    let result = execute(&cli, &Env { color, ceiling: None, inline_ops: None, inline_spec: None });
     if !cli.global.quiet {
         LOADED.with(|l| {
             for p in l.borrow().iter() {

@@ -4,34 +4,62 @@
   "title": "svgdog diagram spec",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "diagram", "title", "nodes"],
+  "required": ["version", "diagram", "title"],
   "properties": {
     "version": { "const": 1 },
-    "diagram": { "enum": ["flow", "layers", "sequence", "free"] },
+    "diagram": { "enum": ["flow", "layers", "sequence", "free", "state", "timeline", "compare"] },
     "title": { "type": "string", "minLength": 1, "maxLength": 120 },
     "description": { "type": "string", "maxLength": 500 },
     "direction": { "enum": ["right", "down"], "default": "right" },
     "theme": { "type": "string", "default": "docs-light" },
     "max_width": { "type": "integer", "minimum": 200, "maximum": 2000, "default": 960 },
-    "nodes": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/node" } },
-    "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" } },
+    "nodes": {
+      "description": "Optional when edges name the nodes: an id that is only mentioned becomes a box labelled with the id.",
+      "type": "array", "items": { "$ref": "#/$defs/node" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "oneOf": [{ "$ref": "#/$defs/edge" }, { "$ref": "#/$defs/short-edge" }] }
+    },
     "groups": { "type": "array", "items": { "$ref": "#/$defs/group" } },
-    "notes": { "type": "array", "items": { "$ref": "#/$defs/note" } }
+    "notes": { "type": "array", "items": { "$ref": "#/$defs/note" } },
+    "steps": {
+      "description": "An ordered walk-through. Each step is numbered; the things it shows carry its number, and the sentences are listed under the drawing.",
+      "type": "array",
+      "maxItems": 20,
+      "items": { "oneOf": [{ "type": "string", "minLength": 1, "maxLength": 200 }, { "$ref": "#/$defs/step" }] }
+    },
+    "focus": {
+      "description": "Ids of nodes, edges or groups to keep at full strength; everything else is dimmed. A group brings its members; an edge between two focused ends is focused too.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "legend": {
+      "description": "true explains the edge styles and emphasis the drawing uses; a list gives your own entries.",
+      "oneOf": [{ "type": "boolean" }, { "type": "array", "items": { "$ref": "#/$defs/legend-entry" } }],
+      "default": false
+    },
+    "caption": { "description": "Text drawn under the figure.", "type": "string", "maxLength": 300 }
   },
   "$defs": {
     "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,62}$" },
     "node": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "label"],
+      "required": ["id"],
+      "if": { "properties": { "kind": { "enum": ["start", "end"] } }, "required": ["kind"] },
+      "else": { "required": ["label"] },
       "properties": {
         "id": { "$ref": "#/$defs/id" },
-        "label": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "label": { "description": "Required, except for the start and end markers of a state diagram, which are drawn without one.", "type": "string", "minLength": 1, "maxLength": 80 },
         "kind": {
+          "description": "state, start and end belong to state diagrams, where state is the default.",
           "enum": ["box", "service", "client", "datastore", "queue",
-                   "actor", "external", "decision", "document"],
+                   "actor", "external", "decision", "document", "state", "start", "end"],
           "default": "box"
         },
+        "when": { "description": "timeline only: the date or moment shown on the axis.", "type": "string", "maxLength": 30 },
+        "match": { "description": "compare only: nodes on the two sides with the same key share a row; the label is the key when this is absent.", "type": "string", "minLength": 1, "maxLength": 80 },
         "emphasis": { "type": "boolean", "default": false },
         "width": { "type": "number", "minimum": 40 },
         "at": {
@@ -39,8 +67,16 @@
           "prefixItems": [{ "type": "number" }, { "type": "number" }],
           "items": false,
           "minItems": 2
-        }
+        },
+        "detail": { "description": "A sentence about this item, shown as a tooltip.", "type": "string", "maxLength": 300 },
+        "link": { "description": "Where a click leads: an http, https or mailto address, or a relative path.", "type": "string", "maxLength": 500 }
       }
+    },
+    "short-edge": {
+      "description": "'from ARROW to' with an optional ': label'. Arrows: -> sync, --> async, ..> dependency, <-> and <--> both ends, -- no arrowhead.",
+      "type": "string",
+      "pattern": "^\\s*[a-z][a-z0-9-]{0,62}\\s+(->|-->|\\.\\.>|<->|<-->|--)\\s+[a-z][a-z0-9-]{0,62}\\s*(:.*)?$",
+      "examples": ["api -> db: reads", "api --> queue"]
     },
     "edge": {
       "type": "object",
@@ -52,7 +88,9 @@
         "to": { "$ref": "#/$defs/id" },
         "label": { "type": "string", "maxLength": 40 },
         "style": { "enum": ["sync", "async", "dependency"], "default": "sync" },
-        "arrow": { "enum": ["end", "both", "none"], "default": "end" }
+        "arrow": { "enum": ["end", "both", "none"], "default": "end" },
+        "detail": { "description": "A sentence about this item, shown as a tooltip.", "type": "string", "maxLength": 300 },
+        "link": { "description": "Where a click leads: an http, https or mailto address, or a relative path.", "type": "string", "maxLength": 500 }
       }
     },
     "group": {
@@ -67,8 +105,32 @@
           "minItems": 1,
           "uniqueItems": true,
           "items": { "$ref": "#/$defs/id" }
-        }
+        },
+        "detail": { "description": "A sentence about this item, shown as a tooltip.", "type": "string", "maxLength": 300 },
+        "link": { "description": "Where a click leads: an http, https or mailto address, or a relative path.", "type": "string", "maxLength": 500 }
       }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "show": { "type": "array", "items": { "$ref": "#/$defs/id" } }
+      }
+    },
+    "legend-entry": {
+      "description": "Exactly one of style, kind or emphasis, and the text that explains it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text"],
+      "properties": {
+        "style": { "enum": ["sync", "async", "dependency"] },
+        "kind": { "enum": ["box", "service", "client", "datastore", "queue", "actor", "external", "decision", "document", "state"] },
+        "emphasis": { "const": true },
+        "text": { "type": "string", "minLength": 1, "maxLength": 60 }
+      },
+      "oneOf": [{ "required": ["style"] }, { "required": ["kind"] }, { "required": ["emphasis"] }]
     },
     "note": {
       "type": "object",

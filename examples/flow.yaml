@@ -1,0 +1,18 @@
+# A flow with node kinds, a group, emphasis and a note.
+version: 1
+diagram: flow
+title: Order placement
+description: How an order moves from the storefront to fulfilment.
+nodes:
+  - { id: web, label: Storefront, kind: client }
+  - { id: api, label: Order API, kind: service, emphasis: true }
+  - { id: db, label: Orders DB, kind: datastore }
+  - { id: queue, label: Fulfilment queue, kind: queue }
+groups:
+  - { id: backend, label: Backend, members: [api, db, queue] }
+edges:
+  - "web -> api: POST /orders"
+  - "api -> db: insert"
+  - "api --> queue: publish"
+notes:
+  - { attach: queue, text: At-least-once delivery }

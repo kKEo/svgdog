@@ -1,0 +1,9 @@
+# The shortest useful spec: edges only; nodes are created from the ids.
+version: 1
+diagram: flow
+title: Request path
+description: A browser calls the API, which queries the database and publishes to a queue.
+edges:
+  - "browser -> api: request"
+  - "api -> database: query"
+  - "api --> queue: publish"

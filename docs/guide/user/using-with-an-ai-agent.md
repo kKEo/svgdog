@@ -26,6 +26,11 @@ The server offers eight tools, named after the commands you already know:
 | `svgdog_fix` | `svgdog fix` |
 | `svgdog_schema` | `svgdog schema` |
 | `svgdog_rules` | `svgdog rules` |
+| `svgdog_examples` | `svgdog examples` |
+| `svgdog_docs` | `svgdog docs` |
+| `svgdog_describe` | `svgdog describe` |
+
+The assistant does not need files to draw. `svgdog_render` accepts the spec as text and, with `preview: true`, answers with the checked drawing and a picture of it in one step. Ask for files only when you want to keep the result.
 
 `svgdog_preview` can return the picture straight to the assistant, so that it can look at its own work, when you do not give an output file. The details of each tool are in the [Operator guide](../operator/).
 

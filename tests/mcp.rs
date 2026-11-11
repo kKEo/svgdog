@@ -96,7 +96,7 @@ fn handshake_lists_one_tool_per_command() {
 
     let tools = s.request("tools/list", json!({}))["result"]["tools"].as_array().unwrap().clone();
     let names: Vec<&str> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
-    assert_eq!(names, ["svgdog_render", "svgdog_validate", "svgdog_inspect", "svgdog_preview", "svgdog_edit", "svgdog_fix", "svgdog_schema", "svgdog_rules"]);
+    assert_eq!(names, ["svgdog_render", "svgdog_validate", "svgdog_inspect", "svgdog_preview", "svgdog_edit", "svgdog_fix", "svgdog_schema", "svgdog_rules", "svgdog_docs", "svgdog_describe", "svgdog_examples"]);
     for t in &tools {
         assert!(!t["description"].as_str().unwrap().is_empty());
         // every input schema is itself a valid JSON Schema
@@ -119,9 +119,9 @@ fn tools_return_the_same_envelope_as_the_cli() {
     let cli = Command::new(BIN).args(["validate", "broken.svg", "--no-config", "--max-findings", "500"]).current_dir(dir.path()).output().unwrap();
     assert_eq!(v, serde_json::from_slice::<Value>(&cli.stdout).unwrap(), "the tool adds no behaviour");
 
-    let (r, is_error, _) = s.call("svgdog_render", json!({ "spec": "orders.yaml", "output": "out/o.svg" }));
+    let (r, is_error, _) = s.call("svgdog_render", json!({ "file": "orders.yaml", "output": "out/o.svg" }));
     assert!(is_error, "the output directory does not exist: {r}");
-    let (r, is_error, _) = s.call("svgdog_render", json!({ "spec": "orders.yaml", "output": "o.svg" }));
+    let (r, is_error, _) = s.call("svgdog_render", json!({ "file": "orders.yaml", "output": "o.svg" }));
     assert!(!is_error);
     check(&r);
     assert_eq!((r["ok"].as_bool(), r["outputs"][0]["path"].as_str()), (Some(true), Some("o.svg")));
@@ -264,7 +264,7 @@ fn per_request_protocol_version_is_served_without_a_handshake() {
     // no initialize: a request states its own version
     let list = s.request("tools/list", json!({ "_meta": meta("2026-07-28") }));
     assert_eq!(list["result"]["resultType"], "complete");
-    assert_eq!(list["result"]["tools"].as_array().unwrap().len(), 8);
+    assert_eq!(list["result"]["tools"].as_array().unwrap().len(), 11);
     let call = s.request("tools/call", json!({ "name": "svgdog_rules", "arguments": {}, "_meta": meta("2026-07-28") }));
     assert_eq!(call["result"]["resultType"], "complete");
     assert_eq!(call["result"]["structuredContent"]["rules"].as_array().unwrap().len(), 38);
@@ -284,4 +284,84 @@ fn a_missing_root_is_an_input_error() {
     let v: Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(v["error"]["code"], "root-not-found");
     assert_eq!(Command::new(BIN).arg("mcp").stdin(Stdio::null()).output().unwrap().status.code(), Some(2));
+}
+
+#[test]
+fn render_takes_the_spec_as_text_and_returns_the_drawing() {
+    let dir = project();
+    let mut s = Server::start(dir.path());
+    let spec = "version: 1\ndiagram: flow\ntitle: Request path\ndescription: A browser calls the API.\nedges:\n  - \"browser -> api: request\"\n  - \"api --> queue\"\n";
+    let (v, is_error, result) = s.call("svgdog_render", json!({ "spec": spec, "preview": true }));
+    assert!(!is_error, "{v:#}");
+    assert_eq!((v["ok"].as_bool(), v["summary"]["errors"].as_u64()), (Some(true), Some(0)), "{v:#}");
+    let svg = v["svg"].as_str().unwrap();
+    assert!(svg.starts_with("<svg") && svg.contains("id=\"node-browser\"") && svg.contains("id=\"node-queue\""), "{svg}");
+    assert!(v.get("outputs").is_none_or(|o| o.as_array().is_some_and(|a| a.is_empty())), "nothing is written: {v:#}");
+    schema("findings").validate(&v).unwrap_or_else(|e| panic!("{e}"));
+    let image = &result["content"][0];
+    assert_eq!((image["type"].as_str(), image["mimeType"].as_str()), (Some("image"), Some("image/png")));
+    assert!(image["data"].as_str().unwrap().starts_with("iVBORw0KGgo"));
+    assert!(v["image"]["width"].as_u64().unwrap() > 100);
+
+    // the same spec from a file, written to a file: no svg field, and a picture only on request
+    fs::write(dir.path().join("p.yaml"), spec).unwrap();
+    let (w, _, result) = s.call("svgdog_render", json!({ "file": "p.yaml", "output": "p.svg" }));
+    assert_eq!(w["outputs"][0]["path"], "p.svg");
+    assert!(w.get("svg").is_none() && result["content"].as_array().unwrap().len() == 1);
+    assert_eq!(fs::read_to_string(dir.path().join("p.svg")).unwrap(), svg, "inline and file specs give the same bytes");
+
+    // one of the two is needed, and only one
+    let (e, is_error, _) = s.call("svgdog_render", json!({}));
+    assert!(is_error && e["error"]["code"] == "missing-argument", "{e:#}");
+    let (e, is_error, _) = s.call("svgdog_render", json!({ "spec": spec, "file": "p.yaml" }));
+    assert!(is_error && e["error"]["code"] == "argument-conflict", "{e:#}");
+    // a path in the wrong argument is caught, not parsed as a spec
+    let (e, is_error, _) = s.call("svgdog_render", json!({ "spec": "p.yaml" }));
+    assert!(is_error && e["error"]["suggestion"].as_str().unwrap().contains("'file'"), "{e:#}");
+    // a spec error comes back as a tool error with its path
+    let (e, is_error, _) = s.call("svgdog_render", json!({ "spec": "version: 1\ndiagram: flow\ntitle: T\nedges: [\"a => b\"]\n" }));
+    assert!(is_error && e["error"]["code"] == "invalid-value" && e["error"]["path"] == "edges[0]", "{e:#}");
+    assert_eq!(s.finish(), 0);
+}
+
+#[test]
+fn examples_are_listed_and_returned() {
+    let dir = project();
+    let mut s = Server::start(dir.path());
+    let (v, is_error, _) = s.call("svgdog_examples", json!({}));
+    assert!(!is_error);
+    let names: Vec<&str> = v["examples"].as_array().unwrap().iter().map(|e| e["name"].as_str().unwrap()).collect();
+    assert!(names.contains(&"minimal") && names.contains(&"sequence"), "{names:?}");
+    let (one, _, _) = s.call("svgdog_examples", json!({ "name": "minimal" }));
+    let text = one["examples"][0]["spec"].as_str().unwrap().to_string();
+    // what comes back renders as it is
+    let (r, is_error, _) = s.call("svgdog_render", json!({ "spec": text }));
+    assert!(!is_error && r["summary"]["errors"] == 0 && r["summary"]["warnings"] == 0, "{r:#}");
+    assert_eq!(s.finish(), 0);
+}
+
+#[test]
+fn docs_and_describe_work_inside_the_root() {
+    let dir = project();
+    fs::write(dir.path().join("page.md"), "# P\n\n```svgdog\nversion: 1\ndiagram: flow\ntitle: T\nedges: [\"a -> b\"]\n```\n").unwrap();
+    let mut s = Server::start(dir.path());
+    let (c, is_error, _) = s.call("svgdog_docs", json!({ "paths": ["page.md"], "check": true }));
+    assert!(!is_error && c["ok"] == false && c["stale"].as_array().unwrap().len() == 2, "{c:#}");
+    let (w, _, _) = s.call("svgdog_docs", json!({ "paths": ["."], "theme": "docs-auto" }));
+    assert_eq!(w["outputs"].as_array().unwrap().len(), 2, "{w:#}");
+    assert!(dir.path().join("diagrams/page-1.svg").exists());
+    // the pictures cannot be sent outside the root
+    let (e, is_error, _) = s.call("svgdog_docs", json!({ "paths": ["page.md"], "assets": "../elsewhere" }));
+    assert!(is_error && e["error"]["code"] == "invalid-argument", "{e:#}");
+    let (e, is_error, _) = s.call("svgdog_docs", json!({ "paths": ["../page.md"] }));
+    assert!(is_error && e["error"]["code"] == "outside-root", "{e:#}");
+
+    // render with the spec inside, then read the drawing back
+    let (r, _, _) = s.call("svgdog_render", json!({ "file": "orders.yaml", "output": "o.svg", "embed_spec": true }));
+    assert_eq!(r["ok"], true, "{r:#}");
+    let (d, is_error, _) = s.call("svgdog_describe", json!({ "file": "o.svg", "short": true }));
+    assert!(!is_error && d["spec"]["title"] == "Order placement" && d["short"].as_str().unwrap().starts_with("Flow diagram: Storefront to Order API"), "{d:#}");
+    let (k, _, _) = s.call("svgdog_render", json!({ "file": "orders.yaml", "output": "o.svg", "embed_spec": true, "check": true }));
+    assert_eq!((k["ok"].as_bool(), k["stale"].as_array().unwrap().len()), (Some(true), 0), "{k:#}");
+    assert_eq!(s.finish(), 0);
 }

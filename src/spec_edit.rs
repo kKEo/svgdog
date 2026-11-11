@@ -12,7 +12,43 @@ fn bad(i: usize, field: &str, message: String) -> AppError {
     AppError::input("invalid-op", format!("ops[{i}]: {message}")).path(format!("ops[{i}].{field}"))
 }
 
+/// The two ends of an edge written in either form.
+fn ends(e: &Value) -> (String, String) {
+    match e {
+        Value::String(text) => crate::spec::shorthand(text).ok().map(|m| (m["from"].as_str().unwrap_or("").to_string(), m["to"].as_str().unwrap_or("").to_string())).unwrap_or_default(),
+        _ => (e["from"].as_str().unwrap_or("").to_string(), e["to"].as_str().unwrap_or("").to_string()),
+    }
+}
+
+/// Write out in full what the spec only implies, wherever `id` is involved:
+/// short edges that are, or touch, `id`, and a node that edges or groups merely
+/// mention. After this the operations below can treat the spec as long form.
+fn spell_out(doc: &mut Value, id: &str) {
+    let mut mentioned = false;
+    if let Some(edges) = doc.get_mut("edges").and_then(|e| e.as_array_mut()) {
+        for e in edges.iter_mut() {
+            let (from, to) = ends(e);
+            mentioned |= from == id || to == id;
+            if e.is_string()
+                && (from == id || to == id || format!("{from}--{to}") == id)
+                && let Ok(m) = crate::spec::shorthand(e.as_str().unwrap_or(""))
+            {
+                *e = Value::Object(m);
+            }
+        }
+    }
+    mentioned |= doc["groups"].as_array().is_some_and(|gs| gs.iter().any(|g| g["members"].as_array().is_some_and(|ms| ms.iter().any(|m| m.as_str() == Some(id)))));
+    let declared = ["nodes", "groups"].iter().any(|l| doc[*l].as_array().is_some_and(|a| a.iter().any(|v| v["id"].as_str() == Some(id))));
+    if mentioned && !declared {
+        list_mut(doc, "nodes").push(serde_json::json!({ "id": id, "label": id.replace('-', " ") }));
+    }
+}
+
 fn edge_id(e: &Value) -> String {
+    if e.is_string() {
+        let (from, to) = ends(e);
+        return format!("{from}--{to}");
+    }
     match e.get("id").and_then(|v| v.as_str()) {
         Some(id) => id.to_string(),
         None => format!("{}--{}", e["from"].as_str().unwrap_or(""), e["to"].as_str().unwrap_or("")),
@@ -69,9 +105,24 @@ fn list_mut<'a>(doc: &'a mut Value, name: &str) -> &'a mut Vec<Value> {
 }
 
 fn rename_refs(doc: &mut Value, old: &str, new: &str) {
+    // An edge without an id of its own is known as from--to, so renaming an end
+    // renames the edge; whatever points at the edge has to follow.
+    let mut pairs = vec![(old.to_string(), new.to_string())];
+    for e in list_mut(doc, "edges").iter().filter(|e| e.get("id").is_none()) {
+        let (from, to) = ends(e);
+        if from == old || to == old {
+            let swapped = |s: &str| if s == old { new.to_string() } else { s.to_string() };
+            pairs.push((format!("{from}--{to}"), format!("{}--{}", swapped(&from), swapped(&to))));
+        }
+    }
     let swap = |v: &mut Value| {
         if v.as_str() == Some(old) {
             *v = Value::String(new.to_string());
+        }
+    };
+    let swap_any = |v: &mut Value| {
+        if let Some((_, to)) = pairs.iter().find(|(from, _)| v.as_str() == Some(from.as_str())) {
+            *v = Value::String(to.clone());
         }
     };
     for e in list_mut(doc, "edges") {
@@ -88,7 +139,18 @@ fn rename_refs(doc: &mut Value, old: &str, new: &str) {
     }
     for n in list_mut(doc, "notes") {
         if let Some(v) = n.get_mut("attach") {
-            swap(v);
+            swap_any(v);
+        }
+    }
+    for st in list_mut(doc, "steps") {
+        if let Some(ids) = st.get_mut("show").and_then(|m| m.as_array_mut()) {
+            ids.iter_mut().for_each(swap_any);
+        }
+    }
+    list_mut(doc, "focus").iter_mut().for_each(swap_any);
+    for name in ["edges", "groups", "notes", "steps", "focus"] {
+        if list_mut(doc, name).is_empty() {
+            doc.as_object_mut().unwrap().remove(name);
         }
     }
 }
@@ -96,10 +158,12 @@ fn rename_refs(doc: &mut Value, old: &str, new: &str) {
 /// Remove an id and everything that would dangle without it.
 fn remove(doc: &mut Value, id: &str, list: &str, at: usize) {
     list_mut(doc, list).remove(at);
+    let mut vanished = vec![id.to_string()];
     if list != "edges" {
         let gone: Vec<String> = list_mut(doc, "edges").iter().filter(|e| e["from"].as_str() == Some(id) || e["to"].as_str() == Some(id)).map(edge_id).collect();
         list_mut(doc, "edges").retain(|e| e["from"].as_str() != Some(id) && e["to"].as_str() != Some(id));
         list_mut(doc, "notes").retain(|n| !gone.iter().any(|g| n["attach"].as_str() == Some(g.as_str())));
+        vanished.extend(gone);
         for g in list_mut(doc, "groups") {
             if let Some(ms) = g.get_mut("members").and_then(|m| m.as_array_mut()) {
                 ms.retain(|m| m.as_str() != Some(id));
@@ -109,7 +173,15 @@ fn remove(doc: &mut Value, id: &str, list: &str, at: usize) {
         list_mut(doc, "groups").retain(|g| g["members"].as_array().is_some_and(|m| !m.is_empty()));
     }
     list_mut(doc, "notes").retain(|n| n["attach"].as_str() != Some(id));
-    for name in ["edges", "groups", "notes"] {
+    // Steps keep their sentence; they just stop pointing at what is gone.
+    let dropped = |v: &Value| v.as_str().is_some_and(|s| vanished.iter().any(|g| g == s));
+    for st in list_mut(doc, "steps") {
+        if let Some(ids) = st.get_mut("show").and_then(|m| m.as_array_mut()) {
+            ids.retain(|v| !dropped(v));
+        }
+    }
+    list_mut(doc, "focus").retain(|v| !dropped(v));
+    for name in ["edges", "groups", "notes", "steps", "focus"] {
         if list_mut(doc, name).is_empty() {
             doc.as_object_mut().unwrap().remove(name);
         }
@@ -153,6 +225,13 @@ pub fn edit(src: &str, doc: &mut Value, ops: &[Op]) -> Result<Edited, AppError> 
 
 fn apply_one(doc: &mut Value, op: &Op, i: usize) -> Result<(), AppError> {
     {
+        let touched = match op {
+            Op::SetAttr { target, .. } | Op::RemoveAttr { target, .. } | Op::RemoveElem { target } | Op::Move { target, .. } | Op::RenameId { target, .. } => target.trim().strip_prefix('#'),
+            _ => None,
+        };
+        if let Some(id) = touched {
+            spell_out(doc, id);
+        }
         match op {
             Op::SetAttr { target, attr, value } => match target_id(target, i)? {
                 None => {

@@ -78,7 +78,7 @@ pub fn contrast(a: &Rgba, b: &Rgba) -> f64 {
     (hi + 0.05) / (lo + 0.05)
 }
 
-fn levenshtein(a: &str, b: &str) -> usize {
+pub fn levenshtein(a: &str, b: &str) -> usize {
     let a: Vec<char> = a.chars().collect();
     let b: Vec<char> = b.chars().collect();
     let mut prev: Vec<usize> = (0..=b.len()).collect();

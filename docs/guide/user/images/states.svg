@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 944 184" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>Order states</title>
+  <desc>The life of an order from draft to delivery or cancellation.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
+  </defs>
+  <rect x="0" y="0" width="944" height="184" fill="#ffffff"/>
+  <g id="node-begin">
+    <circle cx="36" cy="108" r="12" fill="#1f2937"/>
+  </g>
+  <g id="node-draft">
+    <rect x="96" y="80" width="96" height="48" rx="12" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="144" y="109.09" text-anchor="middle" font-size="14" fill="#1f2937">Draft</text>
+  </g>
+  <g id="node-placed">
+    <rect x="256" y="80" width="96" height="48" rx="12" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="304" y="109.09" text-anchor="middle" font-size="14" fill="#1f2937">Placed</text>
+  </g>
+  <g id="node-paid">
+    <rect x="464" y="40" width="96" height="48" rx="12" fill="#2563eb" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="512" y="69.09" text-anchor="middle" font-size="14" fill="#ffffff">Paid</text>
+  </g>
+  <g id="node-shipped">
+    <rect x="720" y="40" width="96" height="48" rx="12" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="768" y="69.09" text-anchor="middle" font-size="14" fill="#1f2937">Shipped</text>
+  </g>
+  <g id="node-cancelled">
+    <rect x="504" y="120" width="112" height="48" rx="12" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="560" y="149.09" text-anchor="middle" font-size="14" fill="#1f2937">Cancelled</text>
+  </g>
+  <g id="node-done">
+    <circle cx="908" cy="100" r="11.25" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <circle cx="908" cy="100" r="7" fill="#1f2937"/>
+  </g>
+  <g id="edge-begin--draft">
+    <path d="M47.28 112 L72 112 L72 104 L96 104" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-draft--placed">
+    <path d="M192 96 L256 96" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="224" y="88.11" text-anchor="middle" font-size="12" fill="#1f2937">submit</text>
+  </g>
+  <g id="edge-placed--paid">
+    <path d="M352 96 L408 96 L408 72 L464 72" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="422" y="64.11" text-anchor="middle" font-size="12" fill="#1f2937">payment ok</text>
+  </g>
+  <g id="edge-placed--cancelled">
+    <path d="M352 112 L432 112 L432 136 L504 136" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="450" y="152.63" text-anchor="middle" font-size="12" fill="#1f2937">payment failed</text>
+  </g>
+  <g id="edge-paid--shipped">
+    <path d="M560 72 L720 72" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="640" y="64.11" text-anchor="middle" font-size="12" fill="#1f2937">dispatch</text>
+  </g>
+  <g id="edge-paid--paid">
+    <path d="M536 40 L536 24 L576 24 L576 56 L560 56" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="612.76" y="44.37" text-anchor="middle" font-size="12" fill="#1f2937">retry label</text>
+  </g>
+  <g id="edge-shipped--done">
+    <path d="M816 72 L856 72 L856 96 L896.72 96" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="890.26" y="82.37" text-anchor="middle" font-size="12" fill="#1f2937">delivered</text>
+  </g>
+  <g id="edge-cancelled--done">
+    <path d="M616 136 L760 136 L760 104 L896.72 104" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-placed--draft">
+    <path d="M256 112 L192 112" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="224" y="128.63" text-anchor="middle" font-size="12" fill="#1f2937">edit</text>
+  </g>
+</svg>

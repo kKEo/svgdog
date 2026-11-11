@@ -1,0 +1,14 @@
+# A timeline: nodes in order along an axis, each with a date; groups are phases.
+version: 1
+diagram: timeline
+title: Migration plan
+description: The four milestones of the database migration across two phases.
+nodes:
+  - { id: audit, label: Schema audit, when: Jan 2026 }
+  - { id: dual, label: Dual writes on, when: Mar 2026 }
+  - { id: backfill, label: Backfill complete, when: Apr 2026, emphasis: true }
+  - { id: cutover, label: Read cutover, when: Jun 2026 }
+  - { id: retire, label: Old cluster retired, when: Aug 2026 }
+groups:
+  - { id: prep, label: Preparation, members: [audit, dual] }
+  - { id: move, label: Migration, members: [backfill, cutover] }

@@ -91,7 +91,7 @@ In text mode the same error is printed on stderr as `error[code]: message` follo
 | `argument-conflict` | 2 | Flags that exclude each other were given (`-o` with `--in-place`, `--set` with `--ops`) |
 | `invalid-argument` | 2 | A value is unusable (a width under 16, a bad selector, stdin used twice) |
 | `unknown-rule`, `unknown-profile` | 2 (3 in a config file) | An id is not in the catalogue or the profile list |
-| `unknown-theme` | 2 (`--theme`) or 3 (spec) | Theme is not `docs-light` or `docs-dark` |
+| `unknown-theme` | 2 (`--theme`) or 3 (spec) | Theme is not `docs-light`, `docs-dark` or `docs-auto` |
 | `file-not-found`, `file-not-readable`, `not-utf8`, `stdin-not-readable` | 3 | An input could not be read |
 | `malformed-spec`, `malformed-xml` | 3 | Input is not valid YAML/JSON or XML |
 | `invalid-spec`, `unknown-field`, `missing-field`, `invalid-value`, `duplicate-id`, `unknown-reference`, `group-cycle`, `group-overlap`, `at-outside-free`, `too-wide` | 3 | A spec failed validation; see [Spec reference](spec.md) |

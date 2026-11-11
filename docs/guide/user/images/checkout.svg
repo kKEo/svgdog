@@ -1,10 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 1208" data-svgdog="1" font-family="Inter, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 1224" data-svgdog="1" font-family="Inter, sans-serif">
   <title>Checkout platform</title>
   <desc>Services behind checkout and how they talk.</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
   </defs>
-  <rect x="0" y="0" width="768" height="1208" fill="#ffffff"/>
+  <rect x="0" y="0" width="768" height="1224" fill="#ffffff"/>
   <g id="group-edge">
     <rect x="176" y="232" width="160" height="208" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
     <text x="188" y="256.37" font-size="12" fill="#6b7280">Edge</text>
@@ -43,8 +43,8 @@
     <text x="120" y="693.09" text-anchor="middle" font-size="14" fill="#1f2937">Payment service</text>
   </g>
   <g id="node-stripe">
-    <rect x="96" y="1008" width="144" height="48" rx="4" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4"/>
-    <text x="168" y="1037.09" text-anchor="middle" font-size="14" fill="#1f2937">Card processor</text>
+    <rect x="96" y="1016" width="144" height="48" rx="4" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="168" y="1045.09" text-anchor="middle" font-size="14" fill="#1f2937">Card processor</text>
   </g>
   <g id="node-odb">
     <path d="M256 672 A56 8 0 0 1 368 672 L368 720 A56 8 0 0 1 256 720 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
@@ -57,16 +57,16 @@
     <text x="464" y="701.09" text-anchor="middle" font-size="14" fill="#1f2937">Event bus</text>
   </g>
   <g id="node-mail">
-    <rect x="272" y="992" width="128" height="80" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
-    <text text-anchor="middle" font-size="14" fill="#1f2937"><tspan x="336" y="1027.09">Notification</tspan><tspan x="336" y="1047.09">worker</tspan></text>
+    <rect x="272" y="1008" width="128" height="80" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text text-anchor="middle" font-size="14" fill="#1f2937"><tspan x="336" y="1043.09">Notification</tspan><tspan x="336" y="1063.09">worker</tspan></text>
   </g>
   <g id="node-ok">
     <polygon points="184,800 248,832 184,864 120,832" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
     <text x="184" y="837.09" text-anchor="middle" font-size="14" fill="#1f2937">Paid?</text>
   </g>
   <g id="node-doc">
-    <path d="M272 1120 L400 1120 L400 1176 Q368 1164 336 1176 Q304 1188 272 1176 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
-    <text x="336" y="1153.09" text-anchor="middle" font-size="14" fill="#1f2937">Invoice PDF</text>
+    <path d="M272 1136 L400 1136 L400 1192 Q368 1180 336 1192 Q304 1204 272 1192 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="336" y="1169.09" text-anchor="middle" font-size="14" fill="#1f2937">Invoice PDF</text>
   </g>
   <g id="edge-user--web">
     <path d="M256 72 L256 120" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
@@ -88,7 +88,7 @@
     <text x="172.74" y="604.37" text-anchor="middle" font-size="12" fill="#1f2937">charge</text>
   </g>
   <g id="edge-pay--stripe">
-    <path d="M120 712 L120 792 L112 792 L112 984 L168 984 L168 1008" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="2 4" marker-end="url(#arrow)"/>
+    <path d="M120 712 L120 792 L112 792 L112 992 L168 992 L168 1016" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="2 4" marker-end="url(#arrow)"/>
     <text x="90.57" y="756.37" text-anchor="middle" font-size="12" fill="#1f2937">capture</text>
   </g>
   <g id="edge-pay--ok">
@@ -107,15 +107,15 @@
     <text x="364" y="640.11" text-anchor="middle" font-size="12" fill="#1f2937">publish</text>
   </g>
   <g id="edge-bus--mail">
-    <path d="M416 720 L416 904 L296 904 L296 968 L352 968 L352 992" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <path d="M416 720 L416 904 L296 904 L296 984 L352 984 L352 1008" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
   </g>
   <g id="edge-mail--doc">
-    <path d="M336 1072 L336 1120" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
-    <text x="362.12" y="1100.37" text-anchor="middle" font-size="12" fill="#1f2937">render</text>
+    <path d="M336 1088 L336 1136" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="362.12" y="1116.37" text-anchor="middle" font-size="12" fill="#1f2937">render</text>
   </g>
   <g id="edge-mail-retry">
-    <path d="M376 992 L376 976 L416 976 L416 1008 L400 1008" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
-    <text x="396" y="968.11" text-anchor="middle" font-size="12" fill="#1f2937">retry</text>
+    <path d="M376 1008 L376 992 L416 992 L416 1024 L400 1024" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="436.41" y="1012.37" text-anchor="middle" font-size="12" fill="#1f2937">retry</text>
   </g>
   <g id="note-1">
     <line x1="552" y1="696" x2="528" y2="696" stroke="#6b7280" stroke-width="1" stroke-dasharray="2 3"/>

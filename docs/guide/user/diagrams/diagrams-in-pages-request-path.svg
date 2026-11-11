@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 504 64" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>Request path</title>
+  <desc>Flow diagram: browser to api (request); api to database (query).</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
+  </defs>
+  <rect x="0" y="0" width="504" height="64" fill="#ffffff"/>
+  <g id="node-browser">
+    <rect x="24" y="8" width="96" height="48" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="72" y="37.09" text-anchor="middle" font-size="14" fill="#1f2937">browser</text>
+  </g>
+  <g id="node-api">
+    <rect x="200" y="8" width="96" height="48" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="248" y="37.09" text-anchor="middle" font-size="14" fill="#1f2937">api</text>
+  </g>
+  <g id="node-database">
+    <rect x="368" y="8" width="112" height="48" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="424" y="37.09" text-anchor="middle" font-size="14" fill="#1f2937">database</text>
+  </g>
+  <g id="edge-browser--api">
+    <path d="M120 32 L200 32" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="160" y="24.11" text-anchor="middle" font-size="12" fill="#1f2937">request</text>
+  </g>
+  <g id="edge-api--database">
+    <path d="M296 32 L368 32" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="332" y="24.11" text-anchor="middle" font-size="12" fill="#1f2937">query</text>
+  </g>
+</svg>

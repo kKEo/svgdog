@@ -44,3 +44,6 @@ jobs:
       # R15: the timing budgets are strict only in release builds.
       - name: Timing budgets
         run: cargo test --locked --release r15
+      # The guide's own diagrams are written in its pages; they must be current.
+      - name: Guide diagrams are up to date
+        run: cargo run --locked --release --quiet -- docs docs/guide README.md --check --format text

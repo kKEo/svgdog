@@ -1,0 +1,22 @@
+version: 1
+diagram: state
+title: Order states
+description: The life of an order from draft to delivery or cancellation.
+nodes:
+  - { id: begin, kind: start }
+  - { id: draft, label: Draft }
+  - { id: placed, label: Placed }
+  - { id: paid, label: Paid, emphasis: true }
+  - { id: shipped, label: Shipped }
+  - { id: cancelled, label: Cancelled }
+  - { id: done, kind: end }
+edges:
+  - "begin -> draft"
+  - "draft -> placed: submit"
+  - "placed -> paid: payment ok"
+  - "placed -> cancelled: payment failed"
+  - "paid -> shipped: dispatch"
+  - "paid -> paid: retry label"
+  - "shipped -> done: delivered"
+  - "cancelled -> done"
+  - "placed -> draft: edit"

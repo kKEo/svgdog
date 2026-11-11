@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 784 392" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>Migration plan</title>
+  <desc>The four milestones of the database migration across two phases.</desc>
+  <rect x="0" y="0" width="784" height="392" fill="#ffffff"/>
+  <g id="group-prep">
+    <rect x="24" y="24" width="352" height="156" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="36" y="48.37" font-size="12" fill="#6b7280">Preparation</text>
+  </g>
+  <g id="group-move">
+    <rect x="408" y="24" width="352" height="156" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="420" y="48.37" font-size="12" fill="#6b7280">Migration</text>
+  </g>
+  <g id="axis">
+    <line x1="88" y1="92" x2="704" y2="92" stroke="#1f2937" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="80" y1="248" x2="128" y2="248" stroke="#1f2937" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+  <g id="node-audit">
+    <line x1="112" y1="92" x2="112" y2="116" stroke="#6b7280" stroke-width="1"/>
+    <circle cx="112" cy="92" r="5" fill="#ffffff" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="112" y="76.37" text-anchor="middle" font-size="12" fill="#1f2937">Jan 2026</text>
+    <rect x="40" y="116" width="144" height="48" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="112" y="145.09" text-anchor="middle" font-size="14" fill="#1f2937">Schema audit</text>
+  </g>
+  <g id="node-dual">
+    <line x1="288" y1="92" x2="288" y2="116" stroke="#6b7280" stroke-width="1"/>
+    <circle cx="288" cy="92" r="5" fill="#ffffff" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="288" y="76.37" text-anchor="middle" font-size="12" fill="#1f2937">Mar 2026</text>
+    <rect x="216" y="116" width="144" height="48" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="288" y="145.09" text-anchor="middle" font-size="14" fill="#1f2937">Dual writes on</text>
+  </g>
+  <g id="node-backfill">
+    <line x1="504" y1="92" x2="504" y2="116" stroke="#6b7280" stroke-width="1"/>
+    <circle cx="504" cy="92" r="5" fill="#ffffff" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="504" y="76.37" text-anchor="middle" font-size="12" fill="#1f2937">Apr 2026</text>
+    <rect x="424" y="116" width="160" height="48" fill="#2563eb" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="504" y="145.09" text-anchor="middle" font-size="14" fill="#ffffff">Backfill complete</text>
+  </g>
+  <g id="node-cutover" data-step="1">
+    <line x1="680" y1="92" x2="680" y2="116" stroke="#6b7280" stroke-width="1"/>
+    <circle cx="680" cy="92" r="5" fill="#ffffff" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="680" y="76.37" text-anchor="middle" font-size="12" fill="#1f2937">Jun 2026</text>
+    <rect x="616" y="116" width="128" height="48" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="680" y="145.09" text-anchor="middle" font-size="14" fill="#1f2937">Read cutover</text>
+    <circle cx="616" cy="116" r="9" fill="#2563eb" data-badge="1"/>
+    <text x="616" y="120.37" text-anchor="middle" font-size="12" fill="#ffffff">1</text>
+  </g>
+  <g id="node-retire">
+    <line x1="104" y1="248" x2="104" y2="272" stroke="#6b7280" stroke-width="1"/>
+    <circle cx="104" cy="248" r="5" fill="#ffffff" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="104" y="232.37" text-anchor="middle" font-size="12" fill="#1f2937">Aug 2026</text>
+    <rect x="24" y="272" width="160" height="48" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="104" y="301.09" text-anchor="middle" font-size="14" fill="#1f2937">Old cluster retired</text>
+  </g>
+  <g id="steps">
+    <g id="step-1">
+      <circle cx="33" cy="361" r="9" fill="#2563eb" data-badge="1"/>
+      <text x="33" y="365.37" text-anchor="middle" font-size="12" fill="#ffffff">1</text>
+      <text x="52" y="365.37" font-size="12" fill="#1f2937">Nothing changes for readers until the cutover.</text>
+    </g>
+  </g>
+</svg>

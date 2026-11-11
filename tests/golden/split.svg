@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 472" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>Checkout before and after</title>
+  <desc>The checkout path before and after the payment service was split out.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
+  </defs>
+  <rect x="0" y="0" width="448" height="472" fill="#ffffff"/>
+  <g id="group-before">
+    <rect x="24" y="24" width="144" height="424" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="36" y="48.37" font-size="12" fill="#6b7280">Before</text>
+  </g>
+  <g id="group-after">
+    <rect x="232" y="24" width="192" height="424" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="244" y="48.37" font-size="12" fill="#6b7280">After</text>
+  </g>
+  <g id="node-b-web">
+    <rect x="48" y="64" width="96" height="64" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <line x1="48" y1="80" x2="144" y2="80" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="96" y="109.09" text-anchor="middle" font-size="14" fill="#1f2937">Web app</text>
+  </g>
+  <g id="node-b-mono">
+    <rect x="48" y="176" width="96" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="96" y="205.09" text-anchor="middle" font-size="14" fill="#1f2937">Monolith</text>
+  </g>
+  <g id="node-b-db">
+    <path d="M40 376 A56 8 0 0 1 152 376 L152 424 A56 8 0 0 1 40 424 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M40 376 A56 8 0 0 0 152 376" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="96" y="411.09" text-anchor="middle" font-size="14" fill="#1f2937">Database</text>
+  </g>
+  <g id="node-a-web">
+    <rect x="280" y="64" width="96" height="64" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <line x1="280" y1="80" x2="376" y2="80" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="328" y="109.09" text-anchor="middle" font-size="14" fill="#1f2937">Web app</text>
+  </g>
+  <g id="node-a-orders">
+    <rect x="256" y="176" width="144" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="328" y="205.09" text-anchor="middle" font-size="14" fill="#1f2937">Orders service</text>
+  </g>
+  <g id="node-a-pay">
+    <rect x="248" y="272" width="160" height="48" rx="8" fill="#2563eb" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="328" y="301.09" text-anchor="middle" font-size="14" fill="#ffffff">Payments service</text>
+  </g>
+  <g id="node-a-db">
+    <path d="M272 376 A56 8 0 0 1 384 376 L384 424 A56 8 0 0 1 272 424 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M272 376 A56 8 0 0 0 384 376" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="328" y="411.09" text-anchor="middle" font-size="14" fill="#1f2937">Database</text>
+  </g>
+  <g id="edge-b-web--b-mono">
+    <path d="M96 128 L96 176" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-b-mono--b-db">
+    <path d="M96 224 L96 368" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-a-web--a-orders">
+    <path d="M328 128 L328 176" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-a-orders--a-pay">
+    <path d="M328 224 L328 272" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="300.74" y="252.37" text-anchor="middle" font-size="12" fill="#1f2937">charge</text>
+  </g>
+  <g id="edge-a-orders--a-db">
+    <path d="M344 224 L344 264 L416 264 L416 344 L344 344 L344 368.41" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+</svg>

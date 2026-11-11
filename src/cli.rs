@@ -59,6 +59,14 @@ pub enum FailOn {
     Warning,
 }
 
+/// How much a rendered drawing responds to its reader.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
+pub enum Live {
+    None,
+    Css,
+    Html,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
 pub enum SchemaName {
     Spec,
@@ -79,9 +87,21 @@ pub enum Command {
         /// Where to write the SVG; - writes it to stdout in place of the report
         #[arg(short = 'o', value_name = "OUT")]
         output: String,
-        /// Theme: docs-light or docs-dark [default: the spec's, else docs-light]
+        /// Theme: docs-light, docs-dark or docs-auto [default: the spec's, else docs-light]
         #[arg(long, value_name = "NAME")]
         theme: Option<String>,
+        /// css: an SVG that highlights on hover; html: a page with step controls [default: none]
+        #[arg(long, value_enum, default_value = "none", value_name = "none|css|html", hide_possible_values = true, hide_default_value = true)]
+        interactive: Live,
+        /// Write one picture per step (OUT.1.svg, OUT.2.svg, ...), each with its step in focus
+        #[arg(long)]
+        frames: bool,
+        /// Store the spec inside the SVG, so the drawing can be read back and edited
+        #[arg(long)]
+        embed_spec: bool,
+        /// Write nothing; exit 1 if OUT is missing or is not what this spec renders now
+        #[arg(long, conflicts_with = "force")]
+        check: bool,
         /// Skip the checks on the result
         #[arg(long)]
         no_validate: bool,
@@ -148,6 +168,9 @@ pub enum Command {
         /// Show only the matching elements and their surroundings
         #[arg(long, value_name = "SELECTOR")]
         crop: Option<String>,
+        /// Show the drawing with this step of its walk-through chosen, the rest faded
+        #[arg(long, value_name = "N")]
+        step: Option<usize>,
         /// Replace an existing output file
         #[arg(long)]
         force: bool,
@@ -216,6 +239,42 @@ pub enum Command {
         #[arg(long, value_name = "ID")]
         explain: Option<String>,
     },
+    /// Render the diagrams written inside Markdown pages
+    #[command(after_help = "Example:\n  svgdog docs docs/ --check")]
+    Docs {
+        /// Markdown files, or folders to search for them
+        #[arg(required = true, value_name = "PATH")]
+        paths: Vec<String>,
+        /// Write nothing; exit 1 if any picture or image link is out of date
+        #[arg(long)]
+        check: bool,
+        /// Folder for the pictures, next to each page
+        #[arg(long, default_value = "diagrams", value_name = "DIR")]
+        assets: String,
+        /// Theme for every diagram: docs-light, docs-dark or docs-auto [default: each spec's]
+        #[arg(long, value_name = "NAME")]
+        theme: Option<String>,
+        /// css: the pictures highlight on hover where the page inlines them; html: also write a page per diagram and link it
+        #[arg(long, value_enum, default_value = "none", value_name = "none|css|html", hide_possible_values = true, hide_default_value = true)]
+        interactive: Live,
+    },
+    /// Say in words what a diagram shows
+    #[command(after_help = "Example:\n  svgdog describe fig/orders.yaml --format text")]
+    Describe {
+        /// A diagram spec, or an SVG rendered with --embed-spec; - reads stdin
+        #[arg(value_name = "FILE")]
+        file: String,
+        /// Print one or two sentences, as for alt text
+        #[arg(long)]
+        short: bool,
+    },
+    /// List the bundled example specs, or print one
+    #[command(after_help = "Example:\n  svgdog examples flow --format text > fig/first.yaml")]
+    Examples {
+        /// Example to print [default: list them]
+        #[arg(value_name = "NAME")]
+        name: Option<String>,
+    },
 }
 
 impl Command {
@@ -230,10 +289,13 @@ impl Command {
             Command::Mcp { .. } => "mcp",
             Command::Schema { .. } => "schema",
             Command::Rules { .. } => "rules",
+            Command::Examples { .. } => "examples",
+            Command::Describe { .. } => "describe",
+            Command::Docs { .. } => "docs",
         }
     }
 }
 
-pub const COMMANDS: &[&str] = &["render", "validate", "inspect", "preview", "edit", "fix", "mcp", "schema", "rules"];
+pub const COMMANDS: &[&str] = &["render", "validate", "inspect", "preview", "edit", "fix", "mcp", "schema", "rules", "examples", "describe", "docs"];
 /// Specified commands that are not built yet.
 pub const PLANNED: &[&str] = &[];

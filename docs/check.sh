@@ -27,10 +27,10 @@ sys.exit(1 if bad else 0)
 PY
 
 ref="$guide/operator"
-for cmd in render validate inspect preview edit fix schema rules mcp; do
+for cmd in render validate inspect preview edit fix schema rules examples describe docs mcp; do
   grep -rqw -- "svgdog $cmd" "$ref" || { echo "operator book never mentions: svgdog $cmd"; fail=1; }
 done
-for tool in render validate inspect preview edit fix schema rules; do
+for tool in render validate inspect preview edit fix schema rules examples describe docs; do
   grep -rq -- "svgdog_$tool" "$ref" || { echo "operator book never mentions MCP tool: svgdog_$tool"; fail=1; }
 done
 if [ -x "$bin" ]; then

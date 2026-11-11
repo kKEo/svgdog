@@ -294,7 +294,7 @@ pub fn patch(src: &str, op: &Op, before: &Value, after: &Value) -> Option<String
                 return Some(v.clone());
             }
         }
-        doc["edges"].as_array()?.iter().find(|e| e["id"].as_str().map(|s| s.to_string()).unwrap_or_else(|| format!("{}--{}", e["from"].as_str().unwrap_or(""), e["to"].as_str().unwrap_or(""))) == id).cloned()
+        doc["edges"].as_array()?.iter().filter(|e| e.is_object()).find(|e| e["id"].as_str().map(|s| s.to_string()).unwrap_or_else(|| format!("{}--{}", e["from"].as_str().unwrap_or(""), e["to"].as_str().unwrap_or(""))) == id).cloned()
     };
     match op {
         Op::SetAttr { target, attr, .. } => set_key(src, find(&root, target)?, attr, item(after, target)?.get(attr)?),

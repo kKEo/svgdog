@@ -14,7 +14,7 @@ use crate::util::{Rgba, fmt};
 use crate::preview;
 
 #[allow(clippy::too_many_arguments)]
-pub fn run(file: &str, output: &str, width: Option<u32>, page: Page, annotate: bool, crop: Option<&str>, force: bool, loader: &mut Loader, profile: Option<Profile>, paint: &Paint) -> Result<Output, AppError> {
+pub fn run(file: &str, output: &str, width: Option<u32>, page: Page, annotate: bool, crop: Option<&str>, step: Option<usize>, force: bool, loader: &mut Loader, profile: Option<Profile>, paint: &Paint) -> Result<Output, AppError> {
     let to_stdout = output == "-";
     if !to_stdout && !force && Path::new(output).exists() {
         return Err(AppError::new(EXIT_OUTPUT, "output-exists", format!("{output} already exists; pass --force to replace it.")).path(output).suggest(Some("Add --force, or choose a new path.".into())));
@@ -28,6 +28,10 @@ pub fn run(file: &str, output: &str, width: Option<u32>, page: Page, annotate: b
         None => None,
     };
     let src = read_input(file)?;
+    let src = match step {
+        Some(n) => at_step(&src, n, file)?,
+        None => src,
+    };
     let doc = roxmltree::Document::parse_with_options(&src, svg::parse_options()).map_err(|e| AppError::input("malformed-xml", format!("{file} is not well-formed XML: {e}.")).path(file))?;
     let scene = Scene::build(&doc);
 
@@ -97,3 +101,42 @@ pub fn run(file: &str, output: &str, width: Option<u32>, page: Page, annotate: b
 }
 
 use kurbo::Rect;
+
+/// The drawing as it looks with one step of its walk-through chosen: what the step
+/// does not show is faded, as the interactive versions fade it.
+fn at_step(src: &str, step: usize, file: &str) -> Result<String, AppError> {
+    let doc = roxmltree::Document::parse_with_options(src, svg::parse_options()).map_err(|e| AppError::input("malformed-xml", format!("{file} is not well-formed XML: {e}.")).path(file))?;
+    let mut fades: Vec<(usize, &str)> = Vec::new();
+    let mut found = false;
+    for n in doc.descendants().filter(|n| n.is_element()) {
+        let Some(id) = n.attribute("id") else { continue };
+        let after_name = n.range().start + 1 + n.tag_name().name().len();
+        if let Some(k) = id.strip_prefix("step-").and_then(|k| k.parse::<usize>().ok()) {
+            found |= k == step;
+            if k != step {
+                fades.push((after_name, " opacity=\"0.45\""));
+            }
+        } else if ["node-", "edge-", "group-", "note-"].iter().any(|p| id.starts_with(p)) {
+            let shown = n.attribute("data-step").is_some_and(|s| s.split_whitespace().any(|t| t.parse::<usize>().ok() == Some(step)));
+            if !shown {
+                fades.push((after_name, " opacity=\"0.25\""));
+            }
+        }
+    }
+    if !found {
+        return Err(AppError::input("no-match", format!("{file} has no step {step}.")).suggest(Some("Steps come from the spec's 'steps' list and are numbered from 1.".into())));
+    }
+    let mut out = src.to_string();
+    fades.sort();
+    for (at, attr) in fades.into_iter().rev() {
+        out.insert_str(at, attr);
+    }
+    Ok(out)
+}
+
+/// A plain picture of an SVG at the default width, for callers that already hold the text.
+pub fn picture(src: &str) -> Result<preview::Shot, AppError> {
+    let doc = roxmltree::Document::parse_with_options(src, svg::parse_options()).map_err(|e| AppError::input("malformed-xml", format!("The drawing is not well-formed XML: {e}.")))?;
+    let canvas = Scene::build(&doc).canvas;
+    preview::rasterize(src, canvas, None, preview::DEFAULT_WIDTH, Rgba::WHITE, None)
+}

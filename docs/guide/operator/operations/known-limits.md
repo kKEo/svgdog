@@ -10,7 +10,8 @@ This page lists what SVGDog does not do, or does only approximately, so you can 
 
 ## Creating
 
-- **Four diagram types:** `flow`, `layers`, `sequence` and `free`. There is no class diagram, entity-relationship diagram, Gantt chart or free-hand drawing.
+- **Interaction is limited to highlighting and stepping.** The `css` and `html` versions fade what is unrelated to a hovered node or a chosen step, and the page shows details. There is no pan and zoom, no collapsing of groups, and no animation. The `css` version needs a browser that supports the `:has()` selector; elsewhere it is the static drawing. The page script is tested against a stand-in document (`tests/player.test.js`, run by `cargo test` when Node is installed), not in a real browser.
+- **Seven diagram types:** `flow`, `layers`, `sequence`, `free`, `state`, `timeline` and `compare`. There is no class diagram, entity-relationship diagram, Gantt chart or free-hand drawing. A `timeline` takes no edges or notes, and a `compare` takes exactly two groups and no notes.
 - **Nine node kinds, three edge styles, two themes.** The kinds are `box`, `service`, `client`, `datastore`, `queue`, `actor`, `external`, `decision` and `document`; the styles are `sync`, `async` and `dependency`; the themes are `docs-light` and `docs-dark`. Colours cannot be set per node, except through `emphasis`.
 - **No manual routing.** You cannot place a bend. Routes come from an automatic search; the levers you have are listed in [Edge routing](../how-it-works/routing.md).
 - **Width is the constraint.** A drawing wider than `max_width` (at most 2000) is first set more tightly and then rejected with `too-wide`. Height is unconstrained.

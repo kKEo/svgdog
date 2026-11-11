@@ -6,6 +6,8 @@
 - [Everyday use: which command for which job](everyday-use.md)
 - [Writing a spec](writing-a-spec.md)
 - [Diagram types](diagram-types.md)
+- [Explaining a diagram](explaining-a-diagram.md)
+- [Diagrams inside your pages](diagrams-in-pages.md)
 - [Checking and fixing SVGs](checking-and-fixing.md)
 - [Looking at your diagram](looking-at-your-diagram.md)
 - [Themes and settings](themes-and-settings.md)
