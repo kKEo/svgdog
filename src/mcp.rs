@@ -1,4 +1,4 @@
-//! `svgdoc mcp`: the same commands as Model Context Protocol tools over stdio.
+//! `svgdog mcp`: the same commands as Model Context Protocol tools over stdio.
 //!
 //! The server adds no behaviour. A tool call is turned into the command line it
 //! mirrors, run in process, and answered with the JSON envelope. Every path is
@@ -24,7 +24,7 @@ const LEGACY: &[&str] = &["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"
 const META_VERSION: &str = "io.modelcontextprotocol/protocolVersion";
 const META_CAPS: &str = "io.modelcontextprotocol/clientCapabilities";
 const META_SERVER: &str = "io.modelcontextprotocol/serverInfo";
-const INSTRUCTIONS: &str = "svgdoc compiles diagram specs to SVG and checks any SVG. Typical loop: svgdoc_schema (name: spec) once, write a spec file, svgdoc_render, read the findings, svgdoc_fix for those marked fixable or change the spec, repeat until there are no errors; svgdoc_preview with annotate for a look. All paths are relative to the server's root directory.";
+const INSTRUCTIONS: &str = "SVGDog compiles diagram specs to SVG and checks any SVG. Typical loop: svgdog_schema (name: spec) once, write a spec file, svgdog_render, read the findings, svgdog_fix for those marked fixable or change the spec, repeat until there are no errors; svgdog_preview with annotate for a look. All paths are relative to the server's root directory.";
 
 #[derive(Clone, Copy, PartialEq)]
 enum Kind {
@@ -62,13 +62,13 @@ struct Tool {
 
 const CONFIG_ARGS: &[Arg] = &[
     arg("profile", Kind::Str, Some("--profile"), false, "Rule profile: minimal, docs or strict"),
-    arg("config", Kind::Path, Some("--config"), false, "Config file to use instead of the nearest svgdoc.toml"),
+    arg("config", Kind::Path, Some("--config"), false, "Config file to use instead of the nearest svgdog.toml"),
     arg("no_config", Kind::Bool, Some("--no-config"), false, "Ignore any config file"),
 ];
 
 const TOOLS: &[Tool] = &[
     Tool {
-        name: "svgdoc_render",
+        name: "svgdog_render",
         command: "render",
         about: "Compile a diagram spec (YAML or JSON) to SVG and validate the result. Returns the envelope with findings and the output path.",
         read_only: false,
@@ -83,7 +83,7 @@ const TOOLS: &[Tool] = &[
         ],
     },
     Tool {
-        name: "svgdoc_validate",
+        name: "svgdog_validate",
         command: "validate",
         about: "Run the rule catalogue on one or more SVG files. Returns the envelope with findings; fixable ones carry a fix.",
         read_only: true,
@@ -97,7 +97,7 @@ const TOOLS: &[Tool] = &[
         ],
     },
     Tool {
-        name: "svgdoc_inspect",
+        name: "svgdog_inspect",
         command: "inspect",
         about: "Describe an SVG's visible elements as data, each with its bounding box in viewBox units. Returns scene JSON.",
         read_only: true,
@@ -110,7 +110,7 @@ const TOOLS: &[Tool] = &[
         ],
     },
     Tool {
-        name: "svgdoc_preview",
+        name: "svgdog_preview",
         command: "preview",
         about: "Rasterize an SVG to PNG. Without output the PNG is returned as image content; with output it is written there.",
         read_only: false,
@@ -126,7 +126,7 @@ const TOOLS: &[Tool] = &[
         ],
     },
     Tool {
-        name: "svgdoc_edit",
+        name: "svgdog_edit",
         command: "edit",
         about: "Apply targeted changes to an SVG or a diagram spec. Give set or ops, and one of dry_run, output or in_place. Returns the envelope with a diff.",
         read_only: false,
@@ -134,14 +134,14 @@ const TOOLS: &[Tool] = &[
         args: &[
             arg("file", Kind::Path, None, true, "SVG or spec file"),
             arg("set", Kind::StrList, Some("--set"), false, "Changes of the form SELECTOR.attr=value"),
-            arg("ops", Kind::Json, None, false, "Operations as JSON: an array, or a finding's fix object (see svgdoc_schema, name: ops)"),
+            arg("ops", Kind::Json, None, false, "Operations as JSON: an array, or a finding's fix object (see svgdog_schema, name: ops)"),
             arg("dry_run", Kind::Bool, Some("--dry-run"), false, "Report the diff and resulting findings; write nothing"),
             arg("output", Kind::Path, Some("-o"), false, "Write the result to a new file"),
             arg("in_place", Kind::Bool, Some("--in-place"), false, "Change the input file"),
         ],
     },
     Tool {
-        name: "svgdoc_fix",
+        name: "svgdog_fix",
         command: "fix",
         about: "Apply the autofixes that findings carry. Give one of dry_run, output or in_place. Returns the envelope with a diff.",
         read_only: false,
@@ -156,7 +156,7 @@ const TOOLS: &[Tool] = &[
         ],
     },
     Tool {
-        name: "svgdoc_schema",
+        name: "svgdog_schema",
         command: "schema",
         about: "Print the JSON Schema of a format: spec, config, findings, scene or ops.",
         read_only: true,
@@ -164,7 +164,7 @@ const TOOLS: &[Tool] = &[
         args: &[arg("name", Kind::Str, None, true, "spec, config, findings, scene or ops")],
     },
     Tool {
-        name: "svgdoc_rules",
+        name: "svgdog_rules",
         command: "rules",
         about: "List every rule with its severity and autofix status, or explain one rule with its thresholds and a failing and a passing example.",
         read_only: true,
@@ -251,7 +251,7 @@ fn call(root: &Path, tool: &Tool, args: &Map<String, Value>) -> Result<crate::en
             return Err(AppError::usage("unknown-field", format!("Unknown argument '{k}' for {}.", tool.name)).path(k.clone()).suggest(did_you_mean(k, all_args(tool).map(|a| a.name))));
         }
     }
-    let mut argv: Vec<String> = vec!["svgdoc".into(), "--format".into(), "json".into(), "--quiet".into(), tool.command.into()];
+    let mut argv: Vec<String> = vec!["svgdog".into(), "--format".into(), "json".into(), "--quiet".into(), tool.command.into()];
     let mut inline_ops = None;
     for a in all_args(tool) {
         let value = match args.get(a.name) {
@@ -311,7 +311,7 @@ fn call(root: &Path, tool: &Tool, args: &Map<String, Value>) -> Result<crate::en
 
 fn tool_result(root: &Path, name: &str, args: &Map<String, Value>) -> Option<Value> {
     let tool = TOOLS.iter().find(|t| t.name == name)?;
-    let outcome = std::panic::catch_unwind(|| call(root, tool, args)).unwrap_or_else(|_| Err(AppError::new(EXIT_INTERNAL, "internal-error", "svgdoc hit a bug while running this tool. Please report it with the arguments and the input file.")));
+    let outcome = std::panic::catch_unwind(|| call(root, tool, args)).unwrap_or_else(|_| Err(AppError::new(EXIT_INTERNAL, "internal-error", "svgdog hit a bug while running this tool. Please report it with the arguments and the input file.")));
     Some(match outcome {
         Ok(out) => {
             let mut content = Vec::new();
@@ -337,7 +337,7 @@ fn rpc_error(id: Value, code: i64, message: &str, data: Option<Value>) -> Value 
 }
 
 fn server_info() -> Value {
-    json!({ "name": "svgdoc", "version": VERSION })
+    json!({ "name": "svgdog", "version": VERSION })
 }
 
 /// Answer one message; `None` for notifications, which get no reply.

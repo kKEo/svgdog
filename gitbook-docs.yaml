@@ -1,0 +1,8 @@
+# Site-level Git Sync mapping: one GitBook space per book.
+spaces:
+  user-guide:
+    path: docs/guide/user
+  operator-guide:
+    path: docs/guide/operator
+  tester-guide:
+    path: docs/guide/tester

@@ -74,12 +74,12 @@ pub fn bbox_json(r: Rect) -> [Value; 4] {
     [num(r.x0), num(r.y0), num(r.width()), num(r.height())]
 }
 
-/// `svgdoc-disable` comments: element node id -> silenced rule ids.
+/// `svgdog-disable` comments: element node id -> silenced rule ids.
 fn suppressions<'a, 'i>(scene: &Scene<'a, 'i>, file: &str, findings: &mut Vec<Finding>) -> HashMap<usize, Vec<&'static str>> {
     let mut map: HashMap<usize, Vec<&'static str>> = HashMap::new();
     for c in scene.doc.descendants().filter(|n| n.is_comment()) {
         let text = c.text().unwrap_or("").trim();
-        let Some(rest) = text.strip_prefix("svgdoc-disable") else { continue };
+        let Some(rest) = text.strip_prefix("svgdog-disable") else { continue };
         let mut invalid = |message: String| {
             findings.push(Finding {
                 rule: INVALID_SUPPRESSION,
@@ -94,7 +94,7 @@ fn suppressions<'a, 'i>(scene: &Scene<'a, 'i>, file: &str, findings: &mut Vec<Fi
             });
         };
         let Some((ids, reason)) = rest.split_once(':') else {
-            invalid("Suppression has no reason; write 'svgdoc-disable <rule>: <reason>'.".into());
+            invalid("Suppression has no reason; write 'svgdog-disable <rule>: <reason>'.".into());
             continue;
         };
         if reason.trim().is_empty() {
@@ -176,7 +176,7 @@ pub fn analyze(file: &str, src: &str, set: &Settings) -> Vec<Finding> {
             continue;
         }
         let geometry = catalogue::rule(raw.rule).is_some_and(|r| r.group == Group::Geometry);
-        let approximate = raw.approximate || (geometry && !scene.svgdoc_output);
+        let approximate = raw.approximate || (geometry && !scene.svgdog_output);
         let mut measured = Map::new();
         for (k, v) in raw.measured {
             measured.insert(k.to_string(), v);

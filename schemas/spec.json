@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://svgdoc.example/schema/spec-1.json",
-  "title": "svgdoc diagram spec",
+  "$id": "https://svgdog.example/schema/spec-1.json",
+  "title": "svgdog diagram spec",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "diagram", "title", "nodes"],

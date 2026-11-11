@@ -1,0 +1,13 @@
+[book]
+title = "SVGDog User guide"
+description = "Plain-language guide to describing, checking and previewing diagrams with SVGDog."
+language = "en"
+src = "."
+
+[build]
+build-dir = "../../../site/user"
+create-missing = false
+
+[output.html]
+site-url = "/svg-diagram-generator/user/"
+git-repository-url = "https://github.com/kKEo/svg-diagram-generator"

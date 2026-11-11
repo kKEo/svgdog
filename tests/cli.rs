@@ -8,7 +8,7 @@ use std::process::{Command, Stdio};
 
 use serde_json::Value;
 
-const BIN: &str = env!("CARGO_BIN_EXE_svgdoc");
+const BIN: &str = env!("CARGO_BIN_EXE_svgdog");
 
 struct Run {
     code: i32,
@@ -77,7 +77,7 @@ fn every_rule_example_fails_and_passes_as_documented() {
         let dir = tempfile::tempdir().unwrap();
         let cfg = rule["example_config"].as_str().unwrap();
         if !cfg.is_empty() {
-            fs::write(dir.path().join("svgdoc.toml"), cfg).unwrap();
+            fs::write(dir.path().join("svgdog.toml"), cfg).unwrap();
         }
         fs::write(dir.path().join("fail.svg"), rule["fail"].as_str().unwrap()).unwrap();
         fs::write(dir.path().join("pass.svg"), rule["pass"].as_str().unwrap()).unwrap();
@@ -161,7 +161,7 @@ fn r2_output_validates_against_the_published_schemas() {
 #[test]
 fn r3_stdout_is_json_with_and_without_quiet_and_has_no_ansi() {
     let dir = tempfile::tempdir().unwrap();
-    fs::write(dir.path().join("svgdoc.toml"), "version = 1\n").unwrap();
+    fs::write(dir.path().join("svgdog.toml"), "version = 1\n").unwrap();
     fs::copy(Path::new(env!("CARGO_MANIFEST_DIR")).join(BROKEN), dir.path().join("b.svg")).unwrap();
     let loud = run_in(dir.path(), &["validate", "b.svg"], None);
     let quiet = run_in(dir.path(), &["validate", "b.svg", "--quiet"], None);
@@ -226,7 +226,7 @@ fn r6_help_is_short_and_has_an_example() {
         assert!(lines <= 40, "{args:?} help is {lines} lines");
         assert!(r.stdout.contains("Example:"), "{args:?} help has no example");
     }
-    assert!(run(&["--version"]).stdout.starts_with("svgdoc "));
+    assert!(run(&["--version"]).stdout.starts_with("svgdog "));
 }
 
 // ------------------------------------------------------------ R7: strict input
@@ -258,7 +258,7 @@ fn r7_misspellings_fail_loudly_with_a_suggestion() {
     ];
     for (toml, code, hint) in cases {
         let dir = tempfile::tempdir().unwrap();
-        fs::write(dir.path().join("svgdoc.toml"), toml).unwrap();
+        fs::write(dir.path().join("svgdog.toml"), toml).unwrap();
         fs::write(dir.path().join("a.svg"), "<svg xmlns=\"http://www.w3.org/2000/svg\"/>").unwrap();
         let r = run_in(dir.path(), &["validate", "a.svg"], None);
         assert_eq!(r.code, 3, "{toml}");
@@ -355,7 +355,7 @@ fn inspect_select_depth_and_fields() {
 
 fn project(toml: &str) -> tempfile::TempDir {
     let dir = tempfile::tempdir().unwrap();
-    fs::write(dir.path().join("svgdoc.toml"), toml).unwrap();
+    fs::write(dir.path().join("svgdog.toml"), toml).unwrap();
     fs::create_dir_all(dir.path().join("docs/fig")).unwrap();
     fs::create_dir_all(dir.path().join("legacy")).unwrap();
     let broken = fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join(BROKEN)).unwrap();
@@ -426,8 +426,8 @@ fn suppression_needs_a_reason_and_silences_one_element() {
         )
     };
     fs::write(dir.path().join("plain.svg"), svg("")).unwrap();
-    fs::write(dir.path().join("ok.svg"), svg("<!-- svgdoc-disable shape-overlap: badge sits on the corner by design -->")).unwrap();
-    fs::write(dir.path().join("bare.svg"), svg("<!-- svgdoc-disable shape-overlap -->")).unwrap();
+    fs::write(dir.path().join("ok.svg"), svg("<!-- svgdog-disable shape-overlap: badge sits on the corner by design -->")).unwrap();
+    fs::write(dir.path().join("bare.svg"), svg("<!-- svgdog-disable shape-overlap -->")).unwrap();
     let args = |f: &'static str| vec!["validate", f, "--rules", "shape-overlap"];
     assert_eq!(rules_of(&run_in(dir.path(), &args("plain.svg"), None).json()), vec!["shape-overlap"]);
     assert!(rules_of(&run_in(dir.path(), &args("ok.svg"), None).json()).is_empty());
@@ -529,7 +529,7 @@ fn r5_applying_a_findings_ops_clears_it() {
         let dir = tempfile::tempdir().unwrap();
         let cfg = rule["example_config"].as_str().unwrap();
         if !cfg.is_empty() {
-            fs::write(dir.path().join("svgdoc.toml"), cfg).unwrap();
+            fs::write(dir.path().join("svgdog.toml"), cfg).unwrap();
         }
         fs::write(dir.path().join("fail.svg"), rule["fail"].as_str().unwrap()).unwrap();
         let before = run_in(dir.path(), &["validate", "fail.svg", "--rules", id, "--quiet"], None).json();
@@ -777,7 +777,7 @@ fn every_node_kind_renders_clean_in_both_directions() {
         spec.push_str("  - {from: n-box, to: n-queue, label: skip}\n  - {from: n-decision, to: n-service, label: back}\n");
         let dir = tempfile::tempdir().unwrap();
         // A wide drawing shrinks on the page; this test is about geometry, not rendered size.
-        fs::write(dir.path().join("svgdoc.toml"), "[target]\nrender_width = 2000\n").unwrap();
+        fs::write(dir.path().join("svgdog.toml"), "[target]\nrender_width = 2000\n").unwrap();
         fs::write(dir.path().join("k.yaml"), &spec).unwrap();
         let r = run_in(dir.path(), &["render", "k.yaml", "-o", "k.svg"], None);
         let v = r.json();
@@ -927,7 +927,7 @@ fn render_output_rules() {
 #[test]
 fn config_fonts_and_long_labels() {
     let dir = tempfile::tempdir().unwrap();
-    fs::write(dir.path().join("svgdoc.toml"), "[style]\nfonts = [\"Inter\", \"Helvetica\", \"sans-serif\"]\n").unwrap();
+    fs::write(dir.path().join("svgdog.toml"), "[style]\nfonts = [\"Inter\", \"Helvetica\", \"sans-serif\"]\n").unwrap();
     fs::write(dir.path().join("s.yaml"), "version: 1\ndiagram: flow\ntitle: Wrap\ndescription: d\nnodes:\n  - {id: a, label: \"A service with quite a long descriptive name\"}\n  - {id: b, label: \"Two\\nlines & <more>\"}\nedges:\n  - {from: a, to: b}\n").unwrap();
     let r = run_in(dir.path(), &["render", "s.yaml", "-o", "s.svg"], None);
     assert_eq!(r.json()["findings"], serde_json::json!([]), "{}", r.stdout);
@@ -1104,11 +1104,11 @@ fn findings_on_drawn_elements_carry_a_box() {
 /// R8: same input, config and version give byte-identical output. The files in
 /// tests/golden were produced on one machine; CI runs this test on Linux, macOS
 /// and Windows, so a pass on all three is the cross-platform comparison.
-/// Regenerate with SVGDOC_UPDATE_GOLDEN=1 after an intended change.
+/// Regenerate with SVGDOG_UPDATE_GOLDEN=1 after an intended change.
 #[test]
 fn r8_output_matches_the_golden_files() {
     let golden = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden");
-    let update = std::env::var_os("SVGDOC_UPDATE_GOLDEN").is_some();
+    let update = std::env::var_os("SVGDOG_UPDATE_GOLDEN").is_some();
     let dir = tempfile::tempdir().unwrap();
     let mut produced: Vec<(String, Vec<u8>)> = Vec::new();
     for name in ["orders", "checkout", "tiers", "rack", "login"] {
@@ -1138,8 +1138,8 @@ fn r8_output_matches_the_golden_files() {
             fs::write(&path, &bytes).unwrap();
             continue;
         }
-        let want = fs::read(&path).unwrap_or_else(|_| panic!("{} is missing; run with SVGDOC_UPDATE_GOLDEN=1", path.display()));
-        assert!(want == bytes, "{name} differs from tests/golden/{name} ({} vs {} bytes). If the change is intended, regenerate with SVGDOC_UPDATE_GOLDEN=1.", bytes.len(), want.len());
+        let want = fs::read(&path).unwrap_or_else(|_| panic!("{} is missing; run with SVGDOG_UPDATE_GOLDEN=1", path.display()));
+        assert!(want == bytes, "{name} differs from tests/golden/{name} ({} vs {} bytes). If the change is intended, regenerate with SVGDOG_UPDATE_GOLDEN=1.", bytes.len(), want.len());
     }
 }
 
@@ -1186,7 +1186,7 @@ fn sequence_diagrams_put_lifelines_in_order_and_messages_top_to_bottom() {
 }
 
 /// Editing a YAML spec keeps its comments and layout; only what cannot be placed
-/// in the text makes svgdoc rewrite the file, and it says so.
+/// in the text makes svgdog rewrite the file, and it says so.
 #[test]
 fn spec_edits_keep_yaml_comments() {
     let dir = tempfile::tempdir().unwrap();

@@ -17,7 +17,7 @@ pub fn run(file: &str, set: &[String], ops_arg: Option<&str>, inline: Option<&se
     let list = match (set.is_empty(), ops_arg) {
         (true, None) if inline.is_some() => ops::parse_ops(inline.unwrap())?,
         (false, Some(_)) => return Err(AppError::usage("argument-conflict", "Give --set or --ops, not both.")),
-        (true, None) => return Err(AppError::usage("missing-argument", "Nothing to change: give --set 'SELECTOR.attr=value' or --ops <file>.").suggest(Some("svgdoc schema ops prints the operation format.".into()))),
+        (true, None) => return Err(AppError::usage("missing-argument", "Nothing to change: give --set 'SELECTOR.attr=value' or --ops <file>.").suggest(Some("svgdog schema ops prints the operation format.".into()))),
         (false, None) => set.iter().map(|s| ops::parse_set(s)).collect::<Result<Vec<_>, _>>()?,
         (true, Some(path)) => {
             if path == "-" && file == "-" {

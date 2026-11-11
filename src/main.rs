@@ -151,7 +151,7 @@ fn run(args: &[String]) -> i32 {
                 print!("{}", e.render());
                 return EXIT_OK;
             }
-            let command = args.iter().skip(1).find(|a| cli::COMMANDS.contains(&a.as_str())).map(|s| s.as_str()).unwrap_or("svgdoc");
+            let command = args.iter().skip(1).find(|a| cli::COMMANDS.contains(&a.as_str())).map(|s| s.as_str()).unwrap_or("svgdog");
             return fail(format_from_args(args), command, &usage_error(e, args));
         }
     };
@@ -169,7 +169,7 @@ fn run(args: &[String]) -> i32 {
     if !cli.global.quiet {
         LOADED.with(|l| {
             for p in l.borrow().iter() {
-                eprintln!("svgdoc: config {}", p.display());
+                eprintln!("svgdog: config {}", p.display());
             }
         });
     }
@@ -190,8 +190,8 @@ fn main() {
         Ok(code) => code,
         Err(payload) => {
             let detail = payload.downcast_ref::<&str>().map(|s| s.to_string()).or_else(|| payload.downcast_ref::<String>().cloned()).unwrap_or_else(|| "unknown panic".into());
-            let err = AppError::new(EXIT_INTERNAL, "internal-error", format!("svgdoc hit a bug ({detail}). Please report it with the command and the input file."));
-            let command = args.iter().skip(1).find(|a| cli::COMMANDS.contains(&a.as_str())).map(|s| s.as_str()).unwrap_or("svgdoc");
+            let err = AppError::new(EXIT_INTERNAL, "internal-error", format!("svgdog hit a bug ({detail}). Please report it with the command and the input file."));
+            let command = args.iter().skip(1).find(|a| cli::COMMANDS.contains(&a.as_str())).map(|s| s.as_str()).unwrap_or("svgdog");
             fail(format_from_args(&args), command, &err)
         }
     };

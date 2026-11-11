@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 
-pub const TOOL: &str = "svgdoc";
+pub const TOOL: &str = "svgdog";
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub const EXIT_OK: i32 = 0;

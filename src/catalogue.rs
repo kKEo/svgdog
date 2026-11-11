@@ -55,13 +55,13 @@ pub struct RuleMeta {
     pub autofix_note: &'static str,
     pub rationale: &'static str,
     pub options: &'static [Opt],
-    /// svgdoc.toml content the examples assume; empty when the defaults apply.
+    /// svgdog.toml content the examples assume; empty when the defaults apply.
     pub example_config: &'static str,
     pub fail: &'static str,
     pub pass: &'static str,
 }
 
-/// Raised for a malformed `svgdoc-disable` comment. Not part of the catalogue and not configurable.
+/// Raised for a malformed `svgdog-disable` comment. Not part of the catalogue and not configurable.
 pub const INVALID_SUPPRESSION: &str = "invalid-suppression";
 
 macro_rules! doc {

@@ -1,0 +1,13 @@
+[book]
+title = "SVGDog Operator guide"
+description = "How SVGDog works inside, how to install and configure it, and how to run it in CI."
+language = "en"
+src = "."
+
+[build]
+build-dir = "../../../site/operator"
+create-missing = false
+
+[output.html]
+site-url = "/svg-diagram-generator/operator/"
+git-repository-url = "https://github.com/kKEo/svg-diagram-generator"

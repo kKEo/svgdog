@@ -1171,7 +1171,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "svgdoc"
+name = "svgdog"
 version = "1.0.0"
 dependencies = [
  "clap",

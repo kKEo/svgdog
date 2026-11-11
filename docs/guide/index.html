@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SVGDog documentation</title>
+<meta name="description" content="SVGDog compiles a short YAML spec into a clean SVG diagram and checks it against 38 rules. Start with the user guide, the operator guide or the tester guide.">
+<style>
+:root {
+  --paper: #f2f5f8;
+  --grid-minor: #e4eaf0;
+  --grid-major: #d3dce6;
+  --ink: #17212e;
+  --muted: #4d5b6c;
+  --accent: #2457d6;
+  --accent-ink: #ffffff;
+  --sheet: #ffffff;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --sans: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0e151d;
+    --grid-minor: #141e29;
+    --grid-major: #1d2a38;
+    --ink: #e8eef5;
+    --muted: #9eacbc;
+    --accent: #8fb0ff;
+    --accent-ink: #0e151d;
+  }
+}
+* { box-sizing: border-box; }
+html { background: var(--paper); }
+body {
+  margin: 0;
+  color: var(--ink);
+  font: 17px/1.55 var(--sans);
+  background-color: var(--paper);
+  /* 8 px minor grid, 64 px major grid: the same grid svgdog snaps every diagram to */
+  background-image:
+    linear-gradient(var(--grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+    linear-gradient(var(--grid-minor) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-minor) 1px, transparent 1px);
+  background-size: 64px 64px, 64px 64px, 8px 8px, 8px 8px;
+}
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+
+header.top { padding: 20px 0 0; font-weight: 600; letter-spacing: .01em; }
+header.top span { font-family: var(--mono); font-weight: 500; }
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 56px;
+  align-items: center;
+  padding: 56px 0 64px;
+}
+h1 {
+  font: 600 clamp(2.2rem, 4.4vw, 3.5rem)/1.06 var(--serif);
+  letter-spacing: -.02em;
+  margin: 0 0 20px;
+  max-width: 13em;
+}
+.lede { font-size: 1.15rem; color: var(--muted); max-width: 34em; margin: 0 0 28px; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
+.btn {
+  display: inline-block;
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.btn:hover { filter: brightness(1.08); }
+.link { font-weight: 600; text-underline-offset: 4px; text-decoration-thickness: 2px; }
+
+.sheet { margin: 0; }
+.sheet .paper {
+  background: var(--sheet);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 8px 8px 0 var(--ink);
+}
+.sheet img { display: block; width: 100%; height: auto; }
+.sheet figcaption { margin-top: 18px; font: 14px/1.4 var(--mono); color: var(--muted); }
+
+h2 { font: 600 1.6rem/1.2 var(--serif); margin: 0 0 8px; }
+.books-intro { color: var(--muted); margin: 0 0 20px; max-width: 40em; }
+
+/* The three books sit in one ruled frame, like the cells of a drawing sheet. */
+.books {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: var(--paper);
+  overflow: hidden;
+}
+.book { display: flex; flex-direction: column; padding: 24px; text-decoration: none; border-left: 2px solid var(--ink); }
+.book:first-child { border-left: 0; }
+.book:hover { background: var(--sheet); }
+.book .for { font-size: .9rem; color: var(--muted); margin: 0 0 4px; }
+.book h3 { font: 600 1.5rem/1.2 var(--serif); margin: 0 0 10px; }
+.book p { margin: 0 0 14px; }
+.book ul { margin: 0; padding-left: 1.1em; color: var(--muted); }
+.book li { margin: 4px 0; }
+.book .go { display: inline-block; margin-top: auto; padding-top: 16px; font-weight: 600; color: var(--accent); }
+
+/* Footer styled as a drawing title block. */
+footer { margin: 64px 0 40px; }
+.block {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: var(--paper);
+  font-size: .95rem;
+}
+.block > div { padding: 14px 18px; border-left: 1px solid var(--ink); min-width: 0; }
+.block > div:first-child { border-left: 0; }
+.block dt { color: var(--muted); font-size: .85rem; }
+.block dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.block code { font-family: var(--mono); font-size: .9em; }
+dl { margin: 0; }
+
+@media (max-width: 860px) {
+  .hero { grid-template-columns: 1fr; gap: 36px; padding: 36px 0 48px; }
+  .books { grid-template-columns: 1fr; }
+  .book { border-left: 0; border-top: 2px solid var(--ink); }
+  .book:first-child { border-top: 0; }
+  .block { grid-template-columns: 1fr; }
+  .block > div { border-left: 0; border-top: 1px solid var(--ink); }
+  .block > div:first-child { border-top: 0; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top"><span>SVGDog</span> documentation</header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <h1>Describe a diagram once. Get an SVG that checks out.</h1>
+        <p class="lede">SVGDog turns a short YAML spec into a clean SVG, then checks it against 38 rules for layout, portability and accessibility. One binary, no network, the same output on every run.</p>
+        <div class="actions">
+          <a class="btn" href="tldr.html">TL;DR in 10 slides</a>
+          <a class="link" href="user/">Start with the user guide</a>
+        </div>
+      </div>
+      <figure class="sheet">
+        <div class="paper">
+          <img src="assets/orders.svg" width="872" height="256" alt="A flow diagram titled Order placement. A Storefront box sends POST /orders to the Order API. Inside a Backend group, the Order API inserts into the Orders DB and publishes to a Fulfilment queue, which carries the note At-least-once delivery.">
+        </div>
+        <figcaption>tests/fixtures/orders.yaml, rendered by SVGDog. Unedited output.</figcaption>
+      </figure>
+    </section>
+
+    <section aria-labelledby="books-h">
+      <h2 id="books-h">Pick the guide that fits your job</h2>
+      <p class="books-intro">Three short books, one for each way of working with SVGDog. Each one points you to the others when you need them.</p>
+      <div class="books">
+        <a class="book" href="user/">
+          <p class="for">For everyone</p>
+          <h3>User guide</h3>
+          <p>Describe a diagram, render it and fix what the checker finds. Plain language, about ten minutes to your first picture.</p>
+          <ul>
+            <li>Quick start</li>
+            <li>Four diagram types, with examples</li>
+            <li>Preview, validate and fix SVGs</li>
+          </ul>
+          <span class="go">Open the user guide</span>
+        </a>
+        <a class="book" href="operator/">
+          <p class="for">For operators and developers</p>
+          <h3>Operator guide</h3>
+          <p>How SVGDog works inside, every command and setting, and how to run it in CI.</p>
+          <ul>
+            <li>Layout, routing and the rule engine</li>
+            <li>CLI, spec, config and MCP reference</li>
+            <li>CI recipes and troubleshooting</li>
+          </ul>
+          <span class="go">Open the operator guide</span>
+        </a>
+        <a class="book" href="tester/">
+          <p class="for">For testers and contributors</p>
+          <h3>Tester guide</h3>
+          <p>How every change is checked, and how to add a test of your own.</p>
+          <ul>
+            <li>Running the test suite</li>
+            <li>Golden files and CI gates</li>
+            <li>Adding tests and exploring by hand</li>
+          </ul>
+          <span class="go">Open the tester guide</span>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <dl class="block">
+      <div><dt>Source</dt><dd><a href="https://github.com/kKEo/svg-diagram-generator">github.com/kKEo/svg-diagram-generator</a></dd></div>
+      <div><dt>Install today</dt><dd><code>cargo build --release</code></dd></div>
+      <div><dt>Licence</dt><dd>Not yet declared</dd></div>
+    </dl>
+  </footer>
+</div>
+</body>
+</html>

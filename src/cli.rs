@@ -6,11 +6,11 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "svgdoc",
+    name = "svgdog",
     version,
     about = "Compile and check SVG diagrams for technical documentation.",
     disable_help_subcommand = true,
-    after_help = "Example:\n  svgdoc validate docs/fig/orders.svg --format json"
+    after_help = "Example:\n  svgdog validate docs/fig/orders.svg --format json"
 )]
 pub struct Cli {
     #[command(flatten)]
@@ -30,7 +30,7 @@ pub struct Global {
     /// Output form [default: text on a terminal, json otherwise]
     #[arg(long, global = true, value_enum, value_name = "json|text")]
     pub format: Option<Format>,
-    /// Config file to use [default: nearest svgdoc.toml above the input file]
+    /// Config file to use [default: nearest svgdog.toml above the input file]
     #[arg(long, global = true, value_name = "PATH", conflicts_with = "no_config")]
     pub config: Option<PathBuf>,
     /// Ignore any config file
@@ -71,7 +71,7 @@ pub enum SchemaName {
 #[derive(Subcommand, Debug)]
 pub enum Command {
     /// Compile a spec to SVG and validate the result
-    #[command(after_help = "Example:\n  svgdoc render fig/orders.yaml -o fig/orders.svg")]
+    #[command(after_help = "Example:\n  svgdog render fig/orders.yaml -o fig/orders.svg")]
     Render {
         /// Diagram spec, YAML or JSON; - reads stdin
         #[arg(value_name = "SPEC")]
@@ -93,7 +93,7 @@ pub enum Command {
         text_as_paths: bool,
     },
     /// Run rules on one or more SVG files
-    #[command(after_help = "Example:\n  svgdoc validate 'docs/**/*.svg' --fail-on warning")]
+    #[command(after_help = "Example:\n  svgdog validate 'docs/**/*.svg' --fail-on warning")]
     Validate {
         /// SVG files or globs; - reads stdin
         #[arg(required = true, value_name = "FILE")]
@@ -112,7 +112,7 @@ pub enum Command {
         max_findings: usize,
     },
     /// Describe an SVG's elements as data
-    #[command(after_help = "Example:\n  svgdoc inspect fig/orders.svg --select '#node-api' --fields id,tag,bbox,text")]
+    #[command(after_help = "Example:\n  svgdog inspect fig/orders.svg --select '#node-api' --fields id,tag,bbox,text")]
     Inspect {
         /// SVG file; - reads stdin
         #[arg(value_name = "FILE")]
@@ -128,7 +128,7 @@ pub enum Command {
         fields: Vec<String>,
     },
     /// Rasterize to PNG
-    #[command(after_help = "Example:\n  svgdoc preview fig/orders.svg -o /tmp/orders.png --annotate")]
+    #[command(after_help = "Example:\n  svgdog preview fig/orders.svg -o /tmp/orders.png --annotate")]
     Preview {
         /// SVG file; - reads stdin
         #[arg(value_name = "FILE")]
@@ -153,7 +153,7 @@ pub enum Command {
         force: bool,
     },
     /// Apply targeted changes by id
-    #[command(after_help = "Example:\n  svgdoc edit fig/orders.svg --set '#node-api > rect.fill=#2563eb' --dry-run")]
+    #[command(after_help = "Example:\n  svgdog edit fig/orders.svg --set '#node-api > rect.fill=#2563eb' --dry-run")]
     Edit {
         /// SVG file; - reads stdin
         #[arg(value_name = "FILE")]
@@ -161,7 +161,7 @@ pub enum Command {
         /// Set one attribute on every element the selector matches; repeatable
         #[arg(long, value_name = "SELECTOR.attr=value")]
         set: Vec<String>,
-        /// JSON operations: set, remove, move, rename-id, add-node (see: svgdoc schema ops)
+        /// JSON operations: set, remove, move, rename-id, add-node (see: svgdog schema ops)
         #[arg(long, value_name = "ops.json|-")]
         ops: Option<String>,
         /// Report the diff and the resulting findings; write nothing
@@ -175,7 +175,7 @@ pub enum Command {
         in_place: bool,
     },
     /// Apply autofixes from findings
-    #[command(after_help = "Example:\n  svgdoc fix fig/orders.svg --unsafe --dry-run")]
+    #[command(after_help = "Example:\n  svgdog fix fig/orders.svg --unsafe --dry-run")]
     Fix {
         /// SVG file; - reads stdin
         #[arg(value_name = "FILE")]
@@ -197,20 +197,20 @@ pub enum Command {
         in_place: bool,
     },
     /// Serve the commands as Model Context Protocol tools over stdio
-    #[command(after_help = "Example:\n  svgdoc mcp --root ./docs")]
+    #[command(after_help = "Example:\n  svgdog mcp --root ./docs")]
     Mcp {
         /// Directory the server may read and write; paths outside it are refused
         #[arg(long, value_name = "DIR")]
         root: PathBuf,
     },
     /// Print a JSON Schema
-    #[command(after_help = "Example:\n  svgdoc schema findings")]
+    #[command(after_help = "Example:\n  svgdog schema findings")]
     Schema {
         #[arg(value_enum, value_name = "spec|config|findings|scene|ops")]
         name: SchemaName,
     },
     /// List or explain rules
-    #[command(after_help = "Example:\n  svgdoc rules --explain text-overflow")]
+    #[command(after_help = "Example:\n  svgdog rules --explain text-overflow")]
     Rules {
         /// Show rationale, thresholds and a failing and a passing example
         #[arg(long, value_name = "ID")]

@@ -1,4 +1,4 @@
-# svgdoc
+# SVGDog
 
 A single-binary command line tool that compiles a declarative diagram description
 to SVG and checks any SVG for correctness, legibility and portability. It is built
@@ -6,10 +6,18 @@ for diagrams in technical documentation, and for two kinds of caller: AI agents
 that use it as a tool, and people or CI pipelines that lint diagrams in a
 documentation repository.
 
+## Documentation
+
+Full documentation lives in [`docs/guide/`](docs/guide/index.html): a landing page, a
+[TL;DR deck](docs/guide/tldr.html) and three books, the
+[user guide](docs/guide/user/README.md), the
+[operator guide](docs/guide/operator/README.md) and the
+[tester guide](docs/guide/tester/README.md). `make docs` builds them with mdBook.
+
 ## Build
 
 ```sh
-cargo build --release      # the binary is target/release/svgdoc
+cargo build --release      # the binary is target/release/svgdog
 cargo test                 # unit, command line and MCP tests
 ```
 
@@ -19,10 +27,10 @@ JetBrains Mono, both under the SIL Open Font License, see `fonts/`) are compiled
 ## The loop
 
 ```sh
-svgdoc schema spec                       # learn the spec format, once
-svgdoc render orders.yaml -o orders.svg  # compile and check in one call
-svgdoc fix orders.svg --in-place         # apply the safe fixes findings carry
-svgdoc preview orders.svg -o orders.png --annotate   # look at it
+svgdog schema spec                       # learn the spec format, once
+svgdog render orders.yaml -o orders.svg  # compile and check in one call
+svgdog fix orders.svg --in-place         # apply the safe fixes findings carry
+svgdog preview orders.svg -o orders.png --annotate   # look at it
 ```
 
 Repeat render (or fix) until the exit code is 0.
@@ -32,7 +40,7 @@ Repeat render (or fix) until the exit code is 0.
 | Command | Purpose |
 | --- | --- |
 | `render <spec> -o <out.svg>` | Compile a YAML or JSON spec to SVG and validate the result |
-| `validate <file.svg>...` | Run the 38 rules on SVG files, including ones svgdoc did not make |
+| `validate <file.svg>...` | Run the 38 rules on SVG files, including ones SVGDog did not make |
 | `inspect <file.svg>` | List visible elements with their bounding boxes, as data |
 | `preview <file.svg> -o <out.png>` | Rasterize to PNG; `--annotate` outlines findings, `--crop` zooms in |
 | `edit <file> --set ... \| --ops ...` | Targeted changes to an SVG or a spec |
@@ -44,7 +52,8 @@ Repeat render (or fix) until the exit code is 0.
 Every command has `--help` with one example. With `--format json` (the default
 when stdout is not a terminal) each command prints exactly one JSON object.
 
-Exit codes: `0` success, `1` findings at or above `--fail-on`, `2` usage error,
+Exit codes: `0` success, `1` findings at or above the failure level (`validate` takes `--fail-on`; other
+commands fail on errors), `2` usage error,
 `3` input error, `4` output error, `5` internal error.
 
 ## A spec
@@ -71,12 +80,12 @@ notes:
   - {attach: db, text: Nightly backup}
 ```
 
-The author states structure; svgdoc chooses every coordinate. More examples are in
+The author states structure; SVGDog chooses every coordinate. More examples are in
 `tests/fixtures/`.
 
 ## Configuration
 
-One `svgdoc.toml`, found by walking up from the input file:
+One `svgdog.toml`, found by walking up from the input file:
 
 ```toml
 version = 1
@@ -100,17 +109,17 @@ A rule is silenced for one element with a comment directly before it; the reason
 is required:
 
 ```xml
-<!-- svgdoc-disable shape-overlap: badge sits on the corner by design -->
+<!-- svgdog-disable shape-overlap: badge sits on the corner by design -->
 ```
 
 ## MCP
 
 ```sh
-svgdoc mcp --root ./docs
+svgdog mcp --root ./docs
 ```
 
-The server exposes `svgdoc_render`, `svgdoc_validate`, `svgdoc_inspect`,
-`svgdoc_preview`, `svgdoc_edit`, `svgdoc_fix`, `svgdoc_schema` and `svgdoc_rules`.
+The server exposes `svgdog_render`, `svgdog_validate`, `svgdog_inspect`,
+`svgdog_preview`, `svgdog_edit`, `svgdog_fix`, `svgdog_schema` and `svgdog_rules`.
 Inputs mirror the flags and results are the same JSON envelope. Every path is
 relative to the root and paths outside it are refused. It serves both the
 `initialize` handshake and the per-request protocol style of MCP 2026-07-28.
@@ -118,7 +127,7 @@ relative to the root and paths outside it are refused. It serves both the
 ## Development notes
 
 - `tests/golden/` holds expected output, compared byte for byte. After an intended
-  change, regenerate with `SVGDOC_UPDATE_GOLDEN=1 cargo test r8_output_matches`.
+  change, regenerate with `SVGDOG_UPDATE_GOLDEN=1 cargo test r8_output_matches`.
 - `.github/workflows/ci.yml` runs the tests on Linux, macOS and Windows; passing on
   all three is the cross-platform determinism check.
 - `.github/workflows/release.yml` publishes a GitHub release when a version tag is
@@ -127,13 +136,13 @@ relative to the root and paths outside it are refused. It serves both the
   `Cargo.toml`, and attaches binaries for Linux (x86_64 and arm64, static), macOS
   (Apple silicon and Intel) and Windows, plus `SHA256SUMS`. Running it by hand from
   the Actions tab builds the binaries without publishing.
-- `svgdoc rules --explain ID` examples are executed by the tests: each failing
+- `svgdog rules --explain ID` examples are executed by the tests: each failing
   example must raise its rule, each passing one must not, and each fix must clear
   its finding.
 
 ## Known limits
 
-- Geometry findings on SVG files svgdoc did not render rest on heuristics; they are
+- Geometry findings on SVG files SVGDog did not render rest on heuristics; they are
   marked `approximate` and capped at warning.
 - Editing a YAML spec keeps comments and layout for field changes, renames and
   additions. Removing a node, group or edge rewrites the spec in canonical form;

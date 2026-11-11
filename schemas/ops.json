@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://svgdoc.example/schema/ops-1.json",
-  "title": "svgdoc edit operations",
+  "$id": "https://svgdog.example/schema/ops-1.json",
+  "title": "svgdog edit operations",
   "description": "Input of edit --ops: an array of operations, or an object with an ops array such as a finding's fix.",
   "oneOf": [
     {

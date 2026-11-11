@@ -67,21 +67,21 @@ jobs:
       - name: Package
         shell: bash
         run: |
-          name="svgdoc-${{ needs.version.outputs.version }}-${{ matrix.target }}"
+          name="svgdog-${{ needs.version.outputs.version }}-${{ matrix.target }}"
           mkdir -p "dist/$name"
           cp README.md "dist/$name/"
           cd dist
           if [[ "${{ runner.os }}" == "Windows" ]]; then
-            cp "../target/${{ matrix.target }}/release/svgdoc.exe" "$name/"
+            cp "../target/${{ matrix.target }}/release/svgdog.exe" "$name/"
             7z a "$name.zip" "$name" > /dev/null
           else
-            cp "../target/${{ matrix.target }}/release/svgdoc" "$name/"
+            cp "../target/${{ matrix.target }}/release/svgdog" "$name/"
             tar -czf "$name.tar.gz" "$name"
           fi
           rm -r "$name"
       - uses: actions/upload-artifact@v4
         with:
-          name: svgdoc-${{ matrix.target }}
+          name: svgdog-${{ matrix.target }}
           path: dist/*
           if-no-files-found: error
 
@@ -99,7 +99,7 @@ jobs:
           merge-multiple: true
       - name: Checksums
         working-directory: dist
-        run: sha256sum svgdoc-* > SHA256SUMS
+        run: sha256sum svgdog-* > SHA256SUMS
       - name: Create the release
         working-directory: dist
         env:
@@ -110,5 +110,5 @@ jobs:
           if [[ "$GITHUB_REF_NAME" == *-* ]]; then flags+=(--prerelease); fi
           gh release create "$GITHUB_REF_NAME" ./* \
             --repo "$GITHUB_REPOSITORY" \
-            --title "svgdoc ${{ needs.version.outputs.version }}" \
+            --title "svgdog ${{ needs.version.outputs.version }}" \
             --generate-notes --verify-tag "${flags[@]}"

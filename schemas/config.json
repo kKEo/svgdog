@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://svgdoc.example/schema/config-1.json",
-  "title": "svgdoc.toml",
+  "$id": "https://svgdog.example/schema/config-1.json",
+  "title": "svgdog.toml",
   "type": "object",
   "additionalProperties": false,
   "properties": {

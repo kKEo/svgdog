@@ -103,7 +103,7 @@ pub struct Scene<'a, 'i> {
     /// The viewBox, or the root's width and height when there is none.
     pub canvas: Option<Rect>,
     /// True for files this tool rendered; their geometry is exact, not heuristic.
-    pub svgdoc_output: bool,
+    pub svgdog_output: bool,
     pub css: Css<'a>,
     pub ids: BTreeMap<&'a str, Vec<Node<'a, 'i>>>,
     pub elems: Vec<Elem<'a, 'i>>,
@@ -511,8 +511,8 @@ impl<'a, 'i> Scene<'a, 'i> {
             let b = Builder { css: &css, ids: &ids, lenient_ns, canvas: canvas.map(|c| (c.width(), c.height())).unwrap_or((0.0, 0.0)), root };
             b.visit(root, &Style::default(), Affine::IDENTITY, 0, None, &mut elems, 0);
         }
-        let svgdoc_output = root.attribute("data-svgdoc").is_some();
-        if svgdoc_output {
+        let svgdog_output = root.attribute("data-svgdog").is_some();
+        if svgdog_output {
             for e in elems.iter_mut() {
                 if let Kind::Shape { closed: false, .. } = e.kind
                     && e.style.stroke_alpha() > 0.0
@@ -522,7 +522,7 @@ impl<'a, 'i> Scene<'a, 'i> {
                 }
             }
         }
-        Scene { doc, root, lenient_ns, viewbox, canvas, svgdoc_output, css, ids, elems }
+        Scene { doc, root, lenient_ns, viewbox, canvas, svgdog_output, css, ids, elems }
     }
 
     pub fn is_svg(&self, node: Node) -> bool {

@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SVGDog in 10 slides</title>
+<meta name="description" content="A ten-slide summary of svgdog: what it does, the render-fix-preview loop, the checks, the MCP server and where to read more.">
+<style>
+:root {
+  --paper: #f2f5f8;
+  --grid-minor: #e4eaf0;
+  --grid-major: #d3dce6;
+  --ink: #17212e;
+  --muted: #4d5b6c;
+  --accent: #2457d6;
+  --accent-ink: #ffffff;
+  --sheet: #ffffff;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --sans: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0e151d;
+    --grid-minor: #141e29;
+    --grid-major: #1d2a38;
+    --ink: #e8eef5;
+    --muted: #9eacbc;
+    --accent: #8fb0ff;
+    --accent-ink: #0e151d;
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  color: var(--ink);
+  font: clamp(16px, 1.6vw, 26px)/1.5 var(--sans);
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+    linear-gradient(var(--grid-minor) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-minor) 1px, transparent 1px);
+  background-size: 64px 64px, 64px 64px, 8px 8px, 8px 8px;
+  overflow: hidden;
+}
+a { color: inherit; text-underline-offset: 4px; text-decoration-thickness: 2px; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+.slide {
+  min-height: 100vh;
+  padding: 48px max(24px, 6vw) 96px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.js .slide { display: none; height: 100dvh; min-height: 0; overflow-y: auto; }
+.js .slide.on { display: flex; }
+.no-js body { overflow: auto; }
+.slide { display: flex; }
+
+h1, h2 { font-family: var(--serif); font-weight: 600; letter-spacing: -.02em; margin: 0; }
+h1 { font-size: clamp(3rem, 9vw, 6.5rem); line-height: 1; }
+h2 { font-size: clamp(1.9rem, 4.2vw, 3.3rem); line-height: 1.08; max-width: 18em; }
+p { margin: 0; }
+.sub { font-family: var(--serif); font-size: clamp(1.3rem, 2.6vw, 2.1rem); line-height: 1.25; max-width: 24em; }
+.muted { color: var(--muted); }
+.note { color: var(--muted); font-size: .85em; }
+ul.plain { margin: 0; padding: 0; list-style: none; display: grid; gap: 14px; max-width: 34em; }
+ul.plain li { padding-left: 1.2em; position: relative; }
+ul.plain li::before { content: ""; position: absolute; left: 0; top: .62em; width: .55em; height: 2px; background: var(--accent); }
+
+.cols { display: grid; gap: 40px; align-items: center; }
+.cols.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.cols.three { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; }
+.cols.four { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; gap: 20px; }
+
+.sheet { background: #fff; border: 2px solid var(--ink); border-radius: 8px; padding: 10px; box-shadow: 6px 6px 0 var(--ink); }
+.sheet img { display: block; width: 100%; height: auto; }
+.thumb { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); height: clamp(130px, 22vh, 230px); }
+.sheet.thumb img { width: 100%; height: 100%; object-fit: contain; }
+
+pre, code { font-family: var(--mono); }
+pre {
+  margin: 0;
+  padding: 18px 20px;
+  background: var(--sheet);
+  color: #17212e;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  font-size: clamp(.8rem, 1.25vw, 1.05rem);
+  line-height: 1.45;
+  overflow-x: auto;
+}
+.c { color: #5b6b7e; }
+:root { --sheet: #ffffff; }
+@media (prefers-color-scheme: dark) { :root { --sheet: #ffffff; } }
+ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: grid; gap: 14px; }
+ol.steps li { counter-increment: s; display: grid; grid-template-columns: 2em minmax(0, 1fr); gap: 8px; align-items: start; }
+ol.steps li::before { content: counter(s); font: 600 1.1em/1.4 var(--serif); color: var(--accent); }
+ol.steps pre { padding: 12px 16px; }
+
+.cell { border-top: 2px solid var(--ink); padding-top: 12px; }
+.cell h3 { font: 600 1.35em/1.2 var(--serif); margin: 0 0 6px; }
+.cell p { color: var(--muted); font-size: .92em; }
+.cell .ids { font-family: var(--mono); font-size: .8em; margin: 8px 0 0; display: grid; gap: 2px; color: var(--ink); }
+.count { font: 600 2.4em/1 var(--serif); margin-bottom: 4px; }
+
+.tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 24px; font-family: var(--mono); font-size: .8em; margin: 0; padding: 0; list-style: none; }
+
+.next a { display: block; padding: 18px 20px; border: 2px solid var(--ink); border-radius: 8px; text-decoration: none; background: var(--paper); }
+.next a:hover { background: var(--sheet); color: #17212e; }
+.next strong { display: block; font: 600 1.3em/1.2 var(--serif); }
+.next span { color: var(--muted); font-size: .9em; }
+.next a:hover span { color: #4d5b6c; }
+
+/* Controls */
+.zone { position: fixed; top: 0; bottom: 72px; width: 56px; border: 0; background: transparent; cursor: pointer; z-index: 5; }
+.zone.prev { left: 0; cursor: w-resize; }
+.zone.next-z { right: 0; cursor: e-resize; }
+.zone:hover { background: linear-gradient(90deg, var(--grid-major), transparent); }
+.zone.next-z:hover { background: linear-gradient(270deg, var(--grid-major), transparent); }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--paper); border-top: 2px solid var(--ink); }
+.bar .fill { height: 4px; background: var(--accent); width: 0; transition: width .2s; }
+.bar .row { display: flex; align-items: center; gap: 12px; padding: 8px 16px; font-size: 14px; }
+.bar .row .title { flex: 1; color: var(--muted); }
+.bar button { font: inherit; font-weight: 600; color: var(--ink); background: transparent; border: 2px solid var(--ink); border-radius: 8px; padding: 4px 14px; cursor: pointer; }
+.bar button:hover { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.bar .count-label { font-family: var(--mono); min-width: 5em; text-align: center; }
+.no-js .bar, .no-js .zone { display: none; }
+
+@media (max-width: 860px) {
+  .cols.two, .cols.three { grid-template-columns: 1fr; gap: 24px; }
+  .cols.four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .zone { display: none; }
+  .slide { padding: 28px 16px 96px; justify-content: flex-start; }
+  .tools { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .bar .fill { transition: none; } }
+
+@page { size: landscape; margin: 12mm; }
+@media print {
+  html, body { height: auto; overflow: visible; background: #fff; color: #000; }
+  .js .slide, .slide { display: flex !important; height: auto; min-height: 0; overflow: visible; page-break-after: always; break-after: page; padding: 0; justify-content: flex-start; max-width: none; }
+  .bar, .zone { display: none !important; }
+  .sheet, pre { box-shadow: none; }
+}
+</style>
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+
+<section class="slide" data-title="svgdog">
+  <div class="cols two">
+    <div style="display:grid;gap:24px">
+      <h1>SVGDog</h1>
+      <p class="sub">Diagrams as code, checked like code.</p>
+      <ul class="plain">
+        <li>One binary that draws an SVG from a short YAML spec</li>
+        <li>Checks any SVG against 38 rules, and fixes what it safely can</li>
+        <li>No network, and the same output on every run</li>
+      </ul>
+      <p class="note">Press the right arrow key, or swipe, to start.</p>
+    </div>
+    <div class="sheet"><img src="{{orders}}" alt="A flow diagram titled Order placement: a Storefront sends POST /orders to the Order API, which inserts into the Orders DB and publishes to a Fulfilment queue inside a Backend group."></div>
+  </div>
+</section>
+
+<section class="slide" data-title="The problem">
+  <h2>Diagrams rot, and nobody notices.</h2>
+  <ul class="plain">
+    <li>Hand-drawn SVGs overflow their boxes, clip at the edge and fail contrast checks.</li>
+    <li>A picture in your docs can't be diffed, reviewed or regenerated.</li>
+    <li>An AI agent can write SVG, but it can't see what it drew.</li>
+  </ul>
+  <p class="sub">Describe the diagram in YAML. SVGDog draws it, checks it and tells you exactly what is wrong.</p>
+</section>
+
+<section class="slide" data-title="The loop">
+  <h2>The whole loop fits in four commands.</h2>
+  <ol class="steps">
+    <li><pre>svgdog schema spec                       <span class="c"># learn the spec format, once</span></pre></li>
+    <li><pre>svgdog render orders.yaml -o orders.svg  <span class="c"># compile and check in one call</span></pre></li>
+    <li><pre>svgdog fix orders.svg --in-place         <span class="c"># apply the safe fixes findings carry</span></pre></li>
+    <li><pre>svgdog preview orders.svg -o orders.png --annotate</pre></li>
+  </ol>
+  <p class="muted">Repeat until the exit code is 0. <code>preview</code> writes a PNG file you can open; it doesn't start a server.</p>
+</section>
+
+<section class="slide" data-title="A spec">
+  <h2>A spec says what, not where.</h2>
+  <div class="cols two">
+<pre>version: 1
+diagram: flow
+title: Order placement
+direction: right
+
+nodes:
+  - id: api
+    label: Order API
+    kind: service
+    emphasis: true
+  <span class="c"># … web, db and queue</span>
+
+groups:
+  - id: backend
+    label: Backend
+    members: [api, db, queue]
+
+edges:
+  - from: api
+    to: queue
+    label: publish
+    style: async
+  <span class="c"># … two more edges</span></pre>
+    <div>
+      <div class="sheet"><img src="{{orders}}" alt="The rendered Order placement diagram."></div>
+      <p class="note" style="margin-top:16px">Excerpt of tests/fixtures/orders.yaml. SVGDog places nodes on an 8 px grid and routes the connectors around the boxes.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-title="Diagram types">
+  <h2>Four diagram types.</h2>
+  <div class="cols four">
+    <div class="cell"><div class="sheet thumb"><img src="{{checkout}}" alt="A flow diagram of a checkout."></div><h3>flow</h3><p>Nodes and connectors, left to right or top down.</p></div>
+    <div class="cell"><div class="sheet thumb"><img src="{{tiers}}" alt="A layers diagram with stacked bands."></div><h3>layers</h3><p>Top-level groups become stacked bands.</p></div>
+    <div class="cell"><div class="sheet thumb"><img src="{{login}}" alt="A sequence diagram of a login."></div><h3>sequence</h3><p>Lifelines, with messages from top to bottom.</p></div>
+    <div class="cell"><div class="sheet thumb"><img src="{{rack}}" alt="A free-layout diagram of a server rack."></div><h3>free</h3><p>You pin each node with <code>at: [x, y]</code>.</p></div>
+  </div>
+</section>
+
+<section class="slide" data-title="38 rules">
+  <h2>38 rules check any SVG, not only its own.</h2>
+  <div class="cols four">
+    <div class="cell"><div class="count">10</div><h3>Structure</h3><p>Is it valid SVG?</p><div class="ids"><span>duplicate-id</span><span>viewbox-missing</span><span>dangling-reference</span></div></div>
+    <div class="cell"><div class="count">12</div><h3>Geometry</h3><p>Does it fit and read?</p><div class="ids"><span>text-overflow</span><span>edge-through-node</span><span>font-too-small</span></div></div>
+    <div class="cell"><div class="count">10</div><h3>Portability</h3><p>Will it render everywhere?</p><div class="ids"><span>script-content</span><span>external-resource</span><span>fixed-size</span></div></div>
+    <div class="cell"><div class="count">6</div><h3>Accessibility</h3><p>Can everyone use it?</p><div class="ids"><span>title-missing</span><span>low-contrast</span><span>palette</span></div></div>
+  </div>
+  <p class="muted">Three profiles set how strict to be: <code>minimal</code>, <code>docs</code> and <code>strict</code>. Silence a single element with an svgdog-disable comment that gives a reason.</p>
+</section>
+
+<section class="slide" data-title="Edit and fix">
+  <h2>Change one thing, or fix what the checker found.</h2>
+  <div class="cols two">
+    <div style="display:grid;gap:14px">
+      <pre>svgdog edit orders.yaml \
+  --set '#api.label=Orders service' \
+  --in-place</pre>
+      <p class="muted">On a spec, <code>edit</code> patches the YAML text so your comments survive, then re-renders and reports findings. On an SVG, it changes only the elements you target.</p>
+    </div>
+    <div style="display:grid;gap:14px">
+      <pre>svgdog fix broken.svg --in-place
+svgdog fix broken.svg --dry-run</pre>
+      <p class="muted"><code>--dry-run</code> shows the diff first. Each finding says whether it carries a fix. <code>--unsafe</code> adds fixes that move or recolour content. Writes are atomic.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-title="MCP for agents">
+  <h2>Agents get the same tools over MCP.</h2>
+  <div class="cols two">
+    <div style="display:grid;gap:14px">
+      <pre>svgdog mcp --root ./docs</pre>
+      <p class="muted">A stdio server. Every path stays inside <code>--root</code>. Ask for a preview without an output file and the PNG comes back as image content, so the agent can look at what it drew.</p>
+    </div>
+    <ul class="tools">
+      <li>svgdog_render</li><li>svgdog_validate</li><li>svgdog_inspect</li><li>svgdog_preview</li>
+      <li>svgdog_edit</li><li>svgdog_fix</li><li>svgdog_schema</li><li>svgdog_rules</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide" data-title="Guarantees">
+  <h2>Built to be boring in CI.</h2>
+  <div class="cols three">
+    <div class="cell"><h3>Offline</h3><p>Fonts are compiled in. No network, browser or language runtime is needed.</p></div>
+    <div class="cell"><h3>Deterministic</h3><p>Golden files are compared byte for byte, so the same spec gives the same SVG.</p></div>
+    <div class="cell"><h3>Cross-platform</h3><p>The CI workflow is configured to run clippy and the full test suite on Linux, macOS and Windows.</p></div>
+  </div>
+  <p class="muted">Install today with <code>cargo build --release</code>. The release workflow for prebuilt binaries is in place, but no release is published yet.</p>
+</section>
+
+<section class="slide" data-title="Where next">
+  <h2>Where to read next.</h2>
+  <div class="cols three next">
+    <a href="user/"><strong>User guide</strong><span>Your first diagram in ten minutes.</span></a>
+    <a href="operator/"><strong>Operator guide</strong><span>Internals, reference and CI recipes.</span></a>
+    <a href="tester/"><strong>Tester guide</strong><span>Run, read and add tests.</span></a>
+  </div>
+  <p class="muted"><a href="./">Back to the documentation home</a>, or the <a href="https://github.com/kKEo/svg-diagram-generator">source on GitHub</a>.</p>
+</section>
+
+<button class="zone prev" aria-label="Previous slide"></button>
+<button class="zone next-z" aria-label="Next slide"></button>
+<nav class="bar" aria-label="Slides">
+  <div class="fill"></div>
+  <div class="row">
+    <button type="button" id="prev">Back</button>
+    <span class="title" id="ttl"></span>
+    <span class="count-label" id="cnt"></span>
+    <button type="button" id="next">Next</button>
+  </div>
+</nav>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  var n = slides.length, i = 0;
+  var fill = document.querySelector(".bar .fill"), cnt = document.getElementById("cnt"), ttl = document.getElementById("ttl");
+  function show(k, push) {
+    i = Math.max(0, Math.min(n - 1, k));
+    slides.forEach(function (s, j) { s.classList.toggle("on", j === i); });
+    slides[i].scrollTop = 0;
+    fill.style.width = ((i + 1) / n * 100) + "%";
+    cnt.textContent = (i + 1) + " / " + n;
+    ttl.textContent = slides[i].getAttribute("data-title") || "";
+    if (push !== false) { try { history.replaceState(null, "", "#" + (i + 1)); } catch (e) { location.hash = i + 1; } }
+  }
+  function next() { show(i + 1); } function prev() { show(i - 1); }
+  document.addEventListener("keydown", function (e) {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    var t = e.target && e.target.tagName;
+    if ((e.key === " " || e.key === "Enter") && (t === "A" || t === "BUTTON")) return;
+    switch (e.key) {
+      case "ArrowRight": case "ArrowDown": case "PageDown": case " ": case "Enter": e.preventDefault(); next(); break;
+      case "ArrowLeft": case "ArrowUp": case "PageUp": case "Backspace": e.preventDefault(); prev(); break;
+      case "Home": e.preventDefault(); show(0); break;
+      case "End": e.preventDefault(); show(n - 1); break;
+    }
+  });
+  document.getElementById("next").addEventListener("click", next);
+  document.getElementById("prev").addEventListener("click", prev);
+  document.querySelector(".zone.next-z").addEventListener("click", next);
+  document.querySelector(".zone.prev").addEventListener("click", prev);
+  var x0 = null, y0 = null;
+  document.addEventListener("touchstart", function (e) { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+  document.addEventListener("touchend", function (e) {
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) { dx < 0 ? next() : prev(); }
+    x0 = null;
+  }, { passive: true });
+  function fromHash() { var k = parseInt(location.hash.slice(1), 10); show(isNaN(k) ? 0 : k - 1, false); }
+  window.addEventListener("hashchange", fromHash);
+  fromHash();
+})();
+</script>
+</body>
+</html>

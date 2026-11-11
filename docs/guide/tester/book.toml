@@ -1,0 +1,13 @@
+[book]
+title = "SVGDog Tester guide"
+description = "How every SVGDog change is checked: running, reading and adding tests."
+language = "en"
+src = "."
+
+[build]
+build-dir = "../../../site/tester"
+create-missing = false
+
+[output.html]
+site-url = "/svg-diagram-generator/tester/"
+git-repository-url = "https://github.com/kKEo/svg-diagram-generator"

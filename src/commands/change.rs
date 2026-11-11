@@ -50,7 +50,7 @@ pub fn write(path: &Path, text: &str) -> Result<(), AppError> {
 pub fn write_bytes(path: &Path, text: &[u8]) -> Result<(), AppError> {
     let fail = |e: std::io::Error| AppError::new(EXIT_OUTPUT, "write-failed", format!("Cannot write {}: {e}.", path.display())).path(path.display().to_string());
     // Write beside the target and rename, so a failure never leaves half a file.
-    let tmp = path.with_extension(format!("{}.svgdoc-tmp", path.extension().and_then(|e| e.to_str()).unwrap_or("out")));
+    let tmp = path.with_extension(format!("{}.svgdog-tmp", path.extension().and_then(|e| e.to_str()).unwrap_or("out")));
     std::fs::write(&tmp, text).map_err(fail)?;
     std::fs::rename(&tmp, path).map_err(|e| {
         let _ = std::fs::remove_file(&tmp);

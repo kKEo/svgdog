@@ -1,4 +1,4 @@
-//! svgdoc.toml: discovery, strict parsing, profiles and precedence.
+//! svgdog.toml: discovery, strict parsing, profiles and precedence.
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
@@ -10,7 +10,7 @@ use crate::catalogue::{self, Group, RULES};
 use crate::envelope::{AppError, Severity};
 use crate::util::{Rgba, did_you_mean};
 
-pub const CONFIG_NAME: &str = "svgdoc.toml";
+pub const CONFIG_NAME: &str = "svgdog.toml";
 pub const PROFILES: &[&str] = &["minimal", "docs", "strict"];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

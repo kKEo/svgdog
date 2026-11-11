@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 872 256" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>Order placement</title>
+  <desc>How an order moves from the storefront to fulfilment.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
+  </defs>
+  <rect x="0" y="0" width="872" height="256" fill="#ffffff"/>
+  <g id="group-backend">
+    <rect x="256" y="24" width="592" height="208" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="268" y="48.37" font-size="12" fill="#6b7280">Backend</text>
+  </g>
+  <g id="node-web">
+    <rect x="24" y="112" width="112" height="64" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <line x1="24" y1="128" x2="136" y2="128" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="80" y="157.09" text-anchor="middle" font-size="14" fill="#1f2937">Storefront</text>
+  </g>
+  <g id="node-api">
+    <rect x="280" y="120" width="112" height="48" rx="8" fill="#2563eb" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="336" y="149.09" text-anchor="middle" font-size="14" fill="#ffffff">Order API</text>
+  </g>
+  <g id="node-db">
+    <path d="M600 72 A56 8 0 0 1 712 72 L712 120 A56 8 0 0 1 600 120 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M600 72 A56 8 0 0 0 712 72" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="656" y="107.09" text-anchor="middle" font-size="14" fill="#1f2937">Orders DB</text>
+  </g>
+  <g id="node-queue">
+    <path d="M480 168 L640 168 A8 24 0 0 1 640 216 L480 216 A8 24 0 0 1 480 168 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M640 168 A8 24 0 0 0 640 216" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="560" y="197.09" text-anchor="middle" font-size="14" fill="#1f2937">Fulfilment queue</text>
+  </g>
+  <g id="edge-web--api">
+    <path d="M136 144 L280 144" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="208" y="136.11" text-anchor="middle" font-size="12" fill="#1f2937">POST /orders</text>
+  </g>
+  <g id="edge-api--db">
+    <path d="M392 136 L496 136 L496 112 L600 112" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="444" y="128.11" text-anchor="middle" font-size="12" fill="#1f2937">insert</text>
+  </g>
+  <g id="edge-api--queue">
+    <path d="M392 152 L432 152 L432 184 L472.52 184" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <text x="442.13" y="200.63" text-anchor="middle" font-size="12" fill="#1f2937">publish</text>
+  </g>
+  <g id="note-1">
+    <line x1="672" y1="192" x2="648" y2="192" stroke="#6b7280" stroke-width="1" stroke-dasharray="2 3"/>
+    <rect x="672" y="176" width="160" height="32" rx="4" fill="#ffffff" stroke="#6b7280" stroke-width="1"/>
+    <text x="752" y="196.37" text-anchor="middle" font-size="12" fill="#1f2937">At-least-once delivery</text>
+  </g>
+</svg>

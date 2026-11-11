@@ -576,7 +576,7 @@ pub fn render(spec: &Spec, opt: &Options) -> Result<String, AppError> {
     let family = if opt.fonts.is_empty() { "Inter, sans-serif".to_string() } else { opt.fonts.join(", ") };
     let mut wr = Writer { out: String::new(), as_paths: opt.text_as_paths };
     let font_attr = if opt.text_as_paths { String::new() } else { format!(" font-family=\"{}\"", esc_attr(&family)) };
-    wr.out.push_str(&format!("<svg xmlns=\"{SVG_NS}\" viewBox=\"0 0 {} {}\" data-svgdoc=\"1\"{font_attr}>\n", fmt(w), fmt(h)));
+    wr.out.push_str(&format!("<svg xmlns=\"{SVG_NS}\" viewBox=\"0 0 {} {}\" data-svgdog=\"1\"{font_attr}>\n", fmt(w), fmt(h)));
     wr.out.push_str(&format!("  <title>{}</title>\n", esc(&spec.title)));
     if let Some(desc) = &spec.description {
         wr.out.push_str(&format!("  <desc>{}</desc>\n", esc(desc)));

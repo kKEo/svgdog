@@ -45,13 +45,13 @@ pub fn run(explain: Option<&str>) -> Result<Output, AppError> {
             text.push_str(&format!("{}  ({}, {} by default)\n\n", r.id, r.group.as_str(), r.severity.as_str()));
             text.push_str(&format!("Fails when: {}.\nAutofix:    {}.\n\n{}\n", r.fails_when, r.autofix_note, r.rationale));
             if !r.options.is_empty() {
-                text.push_str(&format!("\nThresholds, set in svgdoc.toml as [rules] {} = {{ key = value }}:\n", r.id));
+                text.push_str(&format!("\nThresholds, set in svgdog.toml as [rules] {} = {{ key = value }}:\n", r.id));
                 for o in r.options {
                     text.push_str(&format!("  {} = {}  {}\n", o.key, fmt(o.default), o.about));
                 }
             }
             if !r.example_config.is_empty() {
-                text.push_str(&format!("\nThe examples assume this svgdoc.toml:\n{}", indent(r.example_config)));
+                text.push_str(&format!("\nThe examples assume this svgdog.toml:\n{}", indent(r.example_config)));
             }
             text.push_str(&format!("\nFails:\n{}\nPasses:\n{}", indent(r.fail), indent(r.pass)));
         }
