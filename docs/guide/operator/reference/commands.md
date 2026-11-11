@@ -181,10 +181,10 @@ It repeats up to 30 rounds until a round changes nothing, because a fix can expo
 Serves the commands as Model Context Protocol tools over stdio.
 
 ```bash
-svgdog mcp --root ./docs
+svgdog mcp --root-path ./docs
 ```
 
-`--root DIR` is required: the directory the server may read and write. See [MCP tools](mcp-tools.md).
+`--root-path DIR` is required: the directory the server may read and write. See [MCP tools](mcp-tools.md).
 
 ## schema
 

@@ -92,7 +92,7 @@ The comments should survive, and the JSON envelope should report `"formatting": 
 
 ```bash
 mkdir -p /tmp/svgdog-explore/root && cp tests/fixtures/orders.yaml /tmp/svgdog-explore/root/
-printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | svgdog mcp --root /tmp/svgdog-explore/root
+printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | svgdog mcp --root-path /tmp/svgdog-explore/root
 ```
 
 You should get one JSON line listing eight tools. Then try a call whose path escapes the root (`../x.svg`): it must be refused.

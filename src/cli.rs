@@ -223,11 +223,11 @@ pub enum Command {
         in_place: bool,
     },
     /// Serve the commands as Model Context Protocol tools over stdio
-    #[command(after_help = "Example:\n  svgdog mcp --root ./docs")]
+    #[command(after_help = "Example:\n  svgdog mcp --root-path ./docs")]
     Mcp {
         /// Directory the server may read and write; paths outside it are refused
         #[arg(long, value_name = "DIR")]
-        root: PathBuf,
+        root_path: PathBuf,
     },
     /// Print a JSON Schema
     #[command(after_help = "Example:\n  svgdog schema findings")]

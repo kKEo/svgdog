@@ -45,7 +45,7 @@
     <text x="232" y="126.37" text-anchor="middle" font-size="12" fill="#94a3b8">POST /orders</text>
   </g>
   <g id="edge-api--check" data-step="2">
-    <path d="M416 144 L480 144 L480 168 L572 168" fill="none" stroke="#e5e7eb" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <path d="M416 144 L480 144 L480 184 L536 184" fill="none" stroke="#e5e7eb" stroke-width="1.5" marker-end="url(#arrow)"/>
     <circle cx="448" cy="158" r="9" fill="#60a5fa" data-badge="2"/>
     <text x="448" y="162.37" text-anchor="middle" font-size="12" fill="#0d1117">2</text>
   </g>
@@ -56,8 +56,8 @@
     <text x="748" y="174.37" text-anchor="middle" font-size="12" fill="#e5e7eb">insert</text>
   </g>
   <g id="edge-api--queue" data-step="3">
-    <path d="M416 128 L472 128 L472 96 L520.52 96" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow-dim)"/>
-    <text x="490.07" y="86.37" text-anchor="middle" font-size="12" fill="#94a3b8">publish</text>
+    <path d="M416 128 L472 128 L472 88 L520 88" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow-dim)"/>
+    <text x="443.84" y="102.37" text-anchor="middle" font-size="12" fill="#94a3b8">publish</text>
   </g>
   <g id="legend">
     <line x1="24" y1="274" x2="52" y2="274" stroke="#e5e7eb" stroke-width="1.5"/>

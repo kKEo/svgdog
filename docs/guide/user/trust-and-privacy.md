@@ -21,7 +21,7 @@ SVGDog output is plain, static SVG: no scripts, no links to other files and no e
 
 ## It stays within one folder when an assistant drives it
 
-When you connect an AI assistant with `svgdog mcp --root DIR`, every file path the assistant uses must be inside `DIR`. Paths that climb out of it with `..`, or that leave it through a symbolic link, are refused. See [Using SVGDog with an AI agent](using-with-an-ai-agent.md).
+When you connect an AI assistant with `svgdog mcp --root-path DIR`, every file path the assistant uses must be inside `DIR`. Paths that climb out of it with `..`, or that leave it through a symbolic link, are refused. See [Using SVGDog with an AI agent](using-with-an-ai-agent.md).
 
 ## What SVGDog does not promise
 

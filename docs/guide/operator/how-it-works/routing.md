@@ -12,7 +12,7 @@ For each edge (other than a self-loop) `sides` (`src/render/mod.rs:132-150`) pic
 
 ## Step 2: share each side among its edges
 
-Several edges may leave or enter the same side of a box. Each side's length is shared among them (ports are spaced 16 px apart when they fit, 8 px if they must, and all at the middle if not). A port aims straight at the other end, so two boxes that line up get a straight edge; ports that want the same spot are spread along the side and ordered to avoid crossings. This is done in two passes: the second aims at the ports the first one chose. Ports are snapped to the grid.
+Several edges may leave or enter the same side of a box. Each side's length is shared among them (ports are spaced 16 px apart when they fit, 8 px if they must, and all at the middle if not). A side that carries a single edge is the exception: the arrow lands on the middle of the shape, on the line of the label for shapes that draw it off the middle (a data store's lid takes the top, so its arrows meet the body). It moves off the middle only when the box at the other end is within 16 px of straight ahead, so that nearly aligned boxes still get a straight edge instead of a small jog. On a side with several edges, each port aims straight at the other end and ports that want the same spot are spread along the side and ordered to avoid crossings. This is done in two passes: the second aims at the ports the first one chose. Ports are snapped to the grid.
 
 A connector that starts and ends on the same box is a self-loop. It is drawn round the top right corner, and the box keeps that corner free for it.
 

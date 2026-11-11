@@ -28,17 +28,17 @@
     <text x="176" y="331.09" text-anchor="middle" font-size="14" fill="#1f2937">NAS</text>
   </g>
   <g id="edge-sw--a">
-    <path d="M136 72 L136 128 L120 128 L120 152" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <path d="M136 72 L136 128 L88 128 L88 152" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
   </g>
   <g id="edge-sw--b">
-    <path d="M200 72 L200 128 L232 128 L232 152" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <path d="M200 72 L200 128 L264 128 L264 152" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
   </g>
   <g id="edge-a--nas">
-    <path d="M120 200 L120 248 L144 248 L144 290.1" fill="none" stroke="#1f2937" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow)"/>
-    <text x="162.87" y="273.42" text-anchor="middle" font-size="12" fill="#1f2937">NFS</text>
+    <path d="M88 200 L88 248 L144 248 L144 290.1" fill="none" stroke="#1f2937" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow)"/>
+    <text x="116" y="240.11" text-anchor="middle" font-size="12" fill="#1f2937">NFS</text>
   </g>
   <g id="edge-b--nas">
-    <path d="M232 200 L232 248 L208 248 L208 290.1" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="2 4"/>
+    <path d="M264 200 L264 248 L208 248 L208 290.1" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="2 4"/>
   </g>
   <g id="note-1">
     <line x1="240" y1="48" x2="216" y2="48" stroke="#6b7280" stroke-width="1" stroke-dasharray="2 3"/>

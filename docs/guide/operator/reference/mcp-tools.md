@@ -1,17 +1,17 @@
 # MCP tools
 
-`svgdog mcp --root DIR` serves the commands as Model Context Protocol tools over stdio, so an AI agent can render, check, fix and look at diagrams without a shell. The server adds no behaviour of its own: a tool call is turned into the command line it mirrors, run in process, and answered with the same JSON envelope the CLI prints. This page lists the transport, the protocol versions, root confinement and every tool with its parameters.
+`svgdog mcp --root-path DIR` serves the commands as Model Context Protocol tools over stdio, so an AI agent can render, check, fix and look at diagrams without a shell. The server adds no behaviour of its own: a tool call is turned into the command line it mirrors, run in process, and answered with the same JSON envelope the CLI prints. This page lists the transport, the protocol versions, root confinement and every tool with its parameters.
 
 ## Starting the server
 
 ```bash
-svgdog mcp --root ./docs
+svgdog mcp --root-path ./docs
 ```
 
 Register it in an MCP client as a stdio server, for example:
 
 ```json
-{ "mcpServers": { "svgdog": { "command": "svgdog", "args": ["mcp", "--root", "/path/to/docs"] } } }
+{ "mcpServers": { "svgdog": { "command": "svgdog", "args": ["mcp", "--root-path", "/path/to/docs"] } } }
 ```
 
 - **Transport:** stdio, one JSON-RPC message per line, in both directions. The server runs until stdin closes.

@@ -65,8 +65,8 @@ Other codes: `unknown-rule` (with a did-you-mean), `unknown-profile`, `invalid-c
 
 | Code | Cause |
 | --- | --- |
-| `outside-root` | A path climbs out of `--root` with `..`, is elsewhere, or goes through a symlink out. Use a path inside the root |
-| `root-not-found` | `--root` does not exist or is not a directory. Exit 3 at start-up |
+| `outside-root` | A path climbs out of `--root-path` with `..`, is elsewhere, or goes through a symlink out. Use a path inside the root |
+| `root-not-found` | `--root-path` does not exist or is not a directory. Exit 3 at start-up |
 | `unknown-field` | A tool argument name is wrong; see [MCP tools](../reference/mcp-tools.md) |
 
 ### Internal error (exit 5)
@@ -83,7 +83,7 @@ Other codes: `unknown-rule` (with a did-you-mean), `unknown-profile`, `invalid-c
 | A finding has a fix but `fix` does not apply it | The fix is marked `unsafe` (it moves or recolours content). Pass `--unsafe` after reading what it does with `--dry-run` |
 | A geometry finding on a hand-drawn SVG is only a warning | Geometry findings on files SVGDog did not render are heuristic: they carry `"approximate": true` and are capped at warning. See [The rule engine](../how-it-works/rules-engine.md#findings-that-cannot-be-exact) |
 | Two machines report different findings | Different config. Compare the `svgdog: config ...` stderr line, or run both with `--no-config`. Then compare `svgdog --version` |
-| A rule you switched off still fires | The config was not found (it is searched from the input file's folder upward, and under MCP only up to `--root`), or a later `[[overrides]]` block turned it back on, or `--rules` re-enabled it |
+| A rule you switched off still fires | The config was not found (it is searched from the input file's folder upward, and under MCP only up to `--root-path`), or a later `[[overrides]]` block turned it back on, or `--rules` re-enabled it |
 | `invalid-suppression` | A `svgdog-disable` comment has no reason, names an unknown rule, or is not directly before an element. The format is `<!-- svgdog-disable rule-id: reason -->` |
 | Only 50 findings listed | The default cap. `summary.truncated` is `true`. Raise it with `--max-findings` |
 | `preview` exits 0 although findings exist | By design: for `preview` findings are information. Use `validate` to gate |

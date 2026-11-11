@@ -84,7 +84,7 @@ Repeat render (or fix) until the exit code is 0.
 | `examples [NAME]` | List the bundled example specs, or print one to start from |
 | `docs <path>... [--check]` | Render the `svgdog` blocks inside Markdown pages |
 | `describe <spec or svg>` | Say in words what a diagram shows |
-| `mcp --root DIR` | Serve the commands as Model Context Protocol tools over stdio |
+| `mcp --root-path DIR` | Serve the commands as Model Context Protocol tools over stdio |
 
 Every command has `--help` with one example. With `--format json` (the default
 when stdout is not a terminal) each command prints exactly one JSON object.
@@ -152,7 +152,7 @@ is required:
 ## MCP
 
 ```sh
-svgdog mcp --root ./docs
+svgdog mcp --root-path ./docs
 ```
 
 The server exposes `svgdog_render`, `svgdog_validate`, `svgdog_inspect`,

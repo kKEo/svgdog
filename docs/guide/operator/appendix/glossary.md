@@ -40,7 +40,7 @@ This glossary defines the words the operator guide uses, in alphabetical order. 
 
 **Profile.** A named set of starting rule severities: `minimal`, `docs` (the default) or `strict`.
 
-**Root (MCP).** The directory given to `svgdog mcp --root`. Every path a tool receives must resolve inside it.
+**Root (MCP).** The directory given to `svgdog mcp --root-path`. Every path a tool receives must resolve inside it.
 
 **Rule.** One named check, such as `low-contrast`. Each belongs to a group (structure, geometry, portability or accessibility).
 

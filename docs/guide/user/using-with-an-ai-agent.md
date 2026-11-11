@@ -9,10 +9,10 @@ SVGDog was designed so that an AI assistant can make and check diagrams on its o
 **2. Connect it as a tool.** SVGDog can talk the Model Context Protocol (MCP), the standard way for assistants to call tools. You start it with:
 
 ```bash
-svgdog mcp --root ./docs
+svgdog mcp --root-path ./docs
 ```
 
-`--root` is the one folder the assistant may read and write. Every path it uses is relative to that folder, and anything outside is refused. Most assistants that support MCP ask for a command and arguments to start the server; give them `svgdog` and `mcp --root ./docs`. Check your assistant's own documentation for where to enter this.
+`--root-path` is the one folder the assistant may read and write. Every path it uses is relative to that folder, and anything outside is refused. Most assistants that support MCP ask for a command and arguments to start the server; give them `svgdog` and `mcp --root-path ./docs`. Check your assistant's own documentation for where to enter this.
 
 The server offers eight tools, named after the commands you already know:
 

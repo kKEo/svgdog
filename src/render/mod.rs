@@ -36,6 +36,8 @@ pub struct Options<'a> {
 }
 
 const STUB: f64 = 16.0;
+/// How far from the middle of a side a lone edge may start, to run straight to the box at the other end.
+const STRAIGHT_WITHIN: f64 = 16.0;
 
 pub(crate) enum Part {
     Rect { r: Rect, rx: f64, dashed: bool },
@@ -310,7 +312,10 @@ fn connect(spec: &Spec, m: &Measured, mut geo: Geometry, shapes_of: &dyn Fn(usiz
     }
     // Each port aims straight at the other end, so aligned boxes get a straight edge;
     // ports that want the same spot are spread along the side. The second pass aims at
-    // the ports the first one chose.
+    // the ports the first one chose. A side with a single edge is the exception: the arrow lands
+    // on the middle of the shape (on the line of the label, for the shapes that draw it off the
+    // middle), and slides towards the other end only when that makes the edge straight within a
+    // few pixels. A small jog looks like a mistake; a large one reads as intended.
     // A box with a loop keeps its top right corner for it.
     let looped: Vec<Ref> = ends.iter().filter(|(a, b)| a == b).map(|(a, _)| *a).collect();
     for r in &looped {
@@ -330,6 +335,22 @@ fn connect(spec: &Spec, m: &Measured, mut geo: Geometry, shapes_of: &dyn Fn(usiz
             let inset: f64 = if spacing == 16.0 { 16.0 } else { 8.0 };
             let has_loop = looped.contains(r);
             let (first, last) = (if has_loop && side == Dir::E { inset.max(40.0) } else { inset }, if has_loop && side == Dir::N { (len - 48.0).max(inset) } else { len - inset });
+            if let [(edge, is_from)] = list[..] {
+                let other = if is_from { ends[edge].1 } else { ends[edge].0 };
+                let aim = match before.get(&(edge, !is_from)) {
+                    Some(p) if pass > 0 => *p,
+                    _ => box_of(&geo, other).center(),
+                };
+                let dy = match r {
+                    Ref::Node(i) if upright => m.nodes[*i].text_dy,
+                    _ => 0.0,
+                };
+                let middle = layout::snap(len / 2.0 + dy);
+                let off_centre = (if upright { aim.y } else { aim.x }) - lo - middle;
+                let off = middle + if off_centre.abs() <= STRAIGHT_WITHIN { layout::snap(off_centre) } else { 0.0 };
+                port.insert((edge, is_from), side_point(rect, side, off.clamp(first.min(len / 2.0), last.max(len / 2.0))));
+                continue;
+            }
             let mut wants: Vec<(f64, usize, bool)> = list
                 .iter()
                 .map(|(edge, is_from)| {

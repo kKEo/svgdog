@@ -163,9 +163,9 @@ fn run(args: &[String]) -> i32 {
     };
     let format = cli.global.format.unwrap_or_else(default_format);
     let name = cli.command.name();
-    if let Command::Mcp { root } = &cli.command {
+    if let Command::Mcp { root_path } = &cli.command {
         // The server owns stdout from here on; a start-up failure is reported as JSON.
-        return match mcp::serve(root) {
+        return match mcp::serve(root_path) {
             Ok(()) => EXIT_OK,
             Err(e) => fail(Format::Json, name, &e),
         };

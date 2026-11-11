@@ -53,19 +53,19 @@
     <path d="M216 96 L264 96" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
   </g>
   <g id="edge-spa--api">
-    <path d="M280 128 L280 184 L208 184 L208 240" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
-    <text x="244" y="176.11" text-anchor="middle" font-size="12" fill="#1f2937">JSON</text>
+    <path d="M344 128 L344 184 L168 184 L168 240" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="256" y="176.11" text-anchor="middle" font-size="12" fill="#1f2937">JSON</text>
   </g>
   <g id="edge-api--pg">
-    <path d="M152 288 L152 344 L128 344 L128 400.61" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <path d="M128 288 L128 344 L104 344 L104 400" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
   </g>
   <g id="edge-api--redis">
-    <path d="M208 288 L208 344 L232 344 L232 402.1" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
-    <text x="256.72" y="377.42" text-anchor="middle" font-size="12" fill="#1f2937">cache</text>
+    <path d="M208 288 L208 344 L264 344 L264 400" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="236" y="336.11" text-anchor="middle" font-size="12" fill="#1f2937">cache</text>
   </g>
   <g id="edge-jobs--s3">
-    <path d="M376 288 L376 344 L416 344 L416 400.33" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
-    <text x="442.92" y="376.53" text-anchor="middle" font-size="12" fill="#1f2937">upload</text>
+    <path d="M376 288 L376 344 L432 344 L432 400" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="404" y="336.11" text-anchor="middle" font-size="12" fill="#1f2937">upload</text>
   </g>
   <g id="edge-api--jobs">
     <path d="M224 264 L320 264" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>

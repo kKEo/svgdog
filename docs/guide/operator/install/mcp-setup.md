@@ -13,10 +13,10 @@ The server is the same binary in a different mode. It adds no behaviour: each to
 ## Start it
 
 ```bash
-svgdog mcp --root ./docs
+svgdog mcp --root-path ./docs
 ```
 
-`--root` is required. The server changes its working directory to the root, so every path a tool receives is relative to it.
+`--root-path` is required. The server changes its working directory to the root, so every path a tool receives is relative to it.
 
 ## File confinement
 
@@ -28,14 +28,14 @@ Verified: a render of `../orders.yaml` returns
 {"ok":false,"error":{"code":"outside-root","message":"'../orders.yaml' (spec) is outside the root; the server only reads and writes inside its root directory.","path":"../orders.yaml"}}
 ```
 
-> **Warning.** The root is the only access control. Everything inside it can be read, and `render`, `edit`, `fix` and `preview` can write inside it. Point `--root` at the documentation folder, not at a home directory or a repository root that holds secrets. A failed start (root missing or not a directory) exits with code 3 and error `root-not-found`.
+> **Warning.** The root is the only access control. Everything inside it can be read, and `render`, `edit`, `fix` and `preview` can write inside it. Point `--root-path` at the documentation folder, not at a home directory or a repository root that holds secrets. A failed start (root missing or not a directory) exits with code 3 and error `root-not-found`.
 
 ## Register it with a client
 
 Clients differ in where they keep the configuration, but all stdio clients need the same three facts: a command, its arguments and a name. For example, with Claude Code:
 
 ```bash
-claude mcp add svgdog -- svgdog mcp --root ./docs
+claude mcp add svgdog -- svgdog mcp --root-path ./docs
 ```
 
 Clients that use a JSON configuration usually take an entry of this shape (check your client's documentation for the file name and exact keys):
@@ -45,13 +45,13 @@ Clients that use a JSON configuration usually take an entry of this shape (check
   "mcpServers": {
     "svgdog": {
       "command": "svgdog",
-      "args": ["mcp", "--root", "/absolute/path/to/docs"]
+      "args": ["mcp", "--root-path", "/absolute/path/to/docs"]
     }
   }
 }
 ```
 
-Use an absolute path to the binary if the client does not inherit your `PATH`, and an absolute `--root`, since the client's working directory may not be your repository.
+Use an absolute path to the binary if the client does not inherit your `PATH`, and an absolute `--root-path`, since the client's working directory may not be your repository.
 
 > **Note.** Neither registration form has been tested against a real client; the server has been tested by the repository's own protocol tests (`tests/mcp.rs`) and by the manual exchange below. The README records that a real MCP client has not been run yet.
 
@@ -64,7 +64,7 @@ printf '%s\n' \
   '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"0"}}}' \
   '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
   '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"svgdog_render","arguments":{"spec":"orders.yaml","output":"out.svg"}}}' \
-  | svgdog mcp --root ./docs
+  | svgdog mcp --root-path ./docs
 ```
 
 You get two lines back (none for the notification). The first echoes `"protocolVersion":"2025-06-18"` with the server's `instructions`. The second is the tool result: the envelope appears both as text content and as `structuredContent`, with `"ok":true` and `"outputs":[{"path":"out.svg","bytes":3052}]`, and `out.svg` now exists in the root. For the modern style, `{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{}}` returns `"supportedVersions":["2026-07-28"]`.

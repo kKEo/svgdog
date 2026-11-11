@@ -265,8 +265,8 @@ svgdog fix broken.svg --dry-run</pre>
   <h2>Agents get the same tools over MCP.</h2>
   <div class="cols two">
     <div style="display:grid;gap:14px">
-      <pre>svgdog mcp --root ./docs</pre>
-      <p class="muted">A stdio server. Every path stays inside <code>--root</code>. Ask for a preview without an output file and the PNG comes back as image content, so the agent can look at what it drew.</p>
+      <pre>svgdog mcp --root-path ./docs</pre>
+      <p class="muted">A stdio server. Every path stays inside <code>--root-path</code>. Ask for a preview without an output file and the PNG comes back as image content, so the agent can look at what it drew.</p>
     </div>
     <ul class="tools">
       <li>svgdog_render</li><li>svgdog_validate</li><li>svgdog_inspect</li><li>svgdog_preview</li>

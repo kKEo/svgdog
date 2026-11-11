@@ -18,7 +18,7 @@ struct Server {
 
 impl Server {
     fn start(root: &Path) -> Server {
-        let mut child = Command::new(BIN).args(["mcp", "--root", root.to_str().unwrap()]).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap();
+        let mut child = Command::new(BIN).args(["mcp", "--root-path", root.to_str().unwrap()]).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap();
         let stdin = child.stdin.take();
         let stdout = BufReader::new(child.stdout.take().unwrap());
         Server { child, stdin, stdout, next: 0 }
@@ -286,7 +286,7 @@ fn per_request_protocol_version_is_served_without_a_handshake() {
 
 #[test]
 fn a_missing_root_is_an_input_error() {
-    let out = Command::new(BIN).args(["mcp", "--root", "/no/such/dir/anywhere"]).stdin(Stdio::null()).output().unwrap();
+    let out = Command::new(BIN).args(["mcp", "--root-path", "/no/such/dir/anywhere"]).stdin(Stdio::null()).output().unwrap();
     assert_eq!(out.status.code(), Some(3));
     let v: Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(v["error"]["code"], "root-not-found");

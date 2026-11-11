@@ -84,30 +84,30 @@
     <text x="312.88" y="520.37" text-anchor="middle" font-size="12" fill="#1f2937">place order</text>
   </g>
   <g id="edge-orders--pay">
-    <path d="M200 576 L200 624 L184 624 L184 664" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
-    <text x="172.74" y="604.37" text-anchor="middle" font-size="12" fill="#1f2937">charge</text>
+    <path d="M200 576 L200 624 L120 624 L120 664" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="160" y="616.11" text-anchor="middle" font-size="12" fill="#1f2937">charge</text>
   </g>
   <g id="edge-pay--stripe">
-    <path d="M120 712 L120 792 L112 792 L112 992 L168 992 L168 1016" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="2 4" marker-end="url(#arrow)"/>
-    <text x="90.57" y="756.37" text-anchor="middle" font-size="12" fill="#1f2937">capture</text>
+    <path d="M168 712 L168 792 L112 792 L112 992 L168 992 L168 1016" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="2 4" marker-end="url(#arrow)"/>
+    <text x="140" y="984.11" text-anchor="middle" font-size="12" fill="#1f2937">capture</text>
   </g>
   <g id="edge-pay--ok">
-    <path d="M136 712 L136 760 L184 760 L184 800" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <path d="M136 712 L136 776 L184 776 L184 800" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
   </g>
   <g id="edge-paid-yes">
     <path d="M216 816 L216 600 L232 600 L232 576" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
     <text x="248.71" y="592.37" text-anchor="middle" font-size="12" fill="#1f2937">yes</text>
   </g>
   <g id="edge-orders--odb">
-    <path d="M272 576 L272 616 L296 616 L296 664.41" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
-    <text x="248.74" y="615.37" text-anchor="middle" font-size="12" fill="#1f2937">insert</text>
+    <path d="M296 576 L296 664.41" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="319.26" y="602.47" text-anchor="middle" font-size="12" fill="#1f2937">insert</text>
   </g>
   <g id="edge-orders--bus">
-    <path d="M312 576 L312 648 L416 648 L416 672" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
-    <text x="364" y="640.11" text-anchor="middle" font-size="12" fill="#1f2937">publish</text>
+    <path d="M312 576 L312 648 L464 648 L464 672" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <text x="388" y="640.11" text-anchor="middle" font-size="12" fill="#1f2937">publish</text>
   </g>
   <g id="edge-bus--mail">
-    <path d="M416 720 L416 904 L296 904 L296 984 L352 984 L352 1008" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <path d="M464 720 L464 904 L472 904 L472 984 L336 984 L336 1008" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
   </g>
   <g id="edge-mail--doc">
     <path d="M336 1088 L336 1136" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>

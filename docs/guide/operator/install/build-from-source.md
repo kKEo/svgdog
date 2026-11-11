@@ -31,7 +31,7 @@ Either copy the binary to a directory on your `PATH`, or let cargo do it:
 
 ```bash
 cargo install --path . --locked           # installs to ~/.cargo/bin
-cargo install --path . --locked --root /opt/tools   # or choose a prefix: /opt/tools/bin/svgdog
+cargo install --path . --locked --root-path /opt/tools   # or choose a prefix: /opt/tools/bin/svgdog
 ```
 
 Both were run for this guide; the second form installs to `<root>/bin/svgdog`.
