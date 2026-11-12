@@ -1,0 +1,13 @@
+[book]
+title = "SVGDog Show room"
+description = "Five workflows, from the simplest to the most advanced, showing how SVGDog is meant to be used."
+language = "en"
+src = "."
+
+[build]
+build-dir = "../../../site/showroom"
+create-missing = false
+
+[output.html]
+site-url = "/svgdog/showroom/"
+git-repository-url = "https://github.com/kKEo/svgdog"

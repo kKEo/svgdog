@@ -6,3 +6,5 @@ spaces:
     path: docs/guide/operator
   tester-guide:
     path: docs/guide/tester
+  showroom:
+    path: docs/guide/showroom

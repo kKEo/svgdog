@@ -1,6 +1,6 @@
 # SVGDog documentation
 
-The documentation is one landing page and three books, one per reader. Each book is a
+The documentation is one landing page, three books (one per reader) and a show room. Each book is a
 GitBook space (synced from this repository, see `gitbook-docs.yaml`) and an mdBook twin that
 the Pages workflow builds.
 
@@ -11,6 +11,7 @@ the Pages workflow builds.
 | [User guide](guide/user/README.md) | people who write diagrams | Quick start, spec writing, checking, preview, FAQ |
 | [Operator guide](guide/operator/README.md) | people who install and run it | How it works, install, full reference, CI recipes |
 | [Tester guide](guide/tester/README.md) | people who change it | Running tests, CI gates, golden files, adding tests |
+| [Show room](guide/showroom/README.md) | anyone who wants to see it used | Five workflows from the simplest to the most advanced, with real output |
 
 ## Working on the docs
 

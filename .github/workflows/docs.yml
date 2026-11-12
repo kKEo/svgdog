@@ -37,7 +37,7 @@ jobs:
       - name: Build books
         run: |
           mkdir -p site
-          for b in user operator tester; do mdbook build docs/guide/$b; done
+          for b in user operator tester showroom; do mdbook build docs/guide/$b; done
           cp docs/guide/index.html docs/guide/tldr.html site/
           if [ -d docs/guide/assets ]; then cp -r docs/guide/assets site/assets; fi
       - uses: actions/upload-pages-artifact@v3

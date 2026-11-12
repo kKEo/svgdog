@@ -140,14 +140,20 @@ pub fn run(ctx: &mut Ctx) {
                 if t.approximate { ctx.push_approx("text-overflow", elems[ti].node, Some(tb), msg, m) } else { ctx.push("text-overflow", elems[ti].node, Some(tb), msg, m) }
                 let mid = tb.center().x;
                 let want = Rect::new(cb.x0.min(mid - need / 2.0 - padding), cb.y0, cb.x1.max(mid + need / 2.0 + padding), cb.y1);
-                let ops = rect_ops(ctx, &elems[ci], want);
+                let mut ops = rect_ops(ctx, &elems[ci], want);
+                if !ops.is_empty() {
+                    ops.extend(follow_ops(ctx, scene, &connectors, cb, want));
+                }
                 ctx.fix(true, ops);
             } else if tb.height() > cb.height() + 0.01 {
                 let msg = format!("Label is {} px tall; its container is {} px tall.", fmt(tb.height()), fmt(cb.height()));
                 let m = measured(vec![("text_height", num(tb.height())), ("available", num(cb.height()))]);
                 if t.approximate { ctx.push_approx("text-overflow", elems[ti].node, Some(tb), msg, m) } else { ctx.push("text-overflow", elems[ti].node, Some(tb), msg, m) }
                 let want = Rect::new(cb.x0, cb.y0.min(tb.y0), cb.x1, cb.y1.max(tb.y1));
-                let ops = rect_ops(ctx, &elems[ci], want);
+                let mut ops = rect_ops(ctx, &elems[ci], want);
+                if !ops.is_empty() {
+                    ops.extend(follow_ops(ctx, scene, &connectors, cb, want));
+                }
                 ctx.fix(true, ops);
             }
         }
@@ -530,6 +536,35 @@ fn rect_ops(ctx: &Ctx, e: &Elem, want: Rect) -> Vec<Value> {
         .collect()
 }
 
+/// Operations that keep connector ends on the edges of a box that grows from `old` to `new`.
+/// Without them a widened box swallows the ends that touched its old edge.
+fn follow_ops(ctx: &Ctx, scene: &Scene, connectors: &[usize], old: Rect, new: Rect) -> Vec<Value> {
+    let max_gap = ctx.set.opt("edge-detached", "max_gap");
+    let mut ops = Vec::new();
+    for &ci in connectors {
+        let e = &scene.elems[ci];
+        let Some((a, b)) = e.ends() else { continue };
+        for (p, marker, start) in [(a, e.style.marker_start.as_ref(), true), (b, e.style.marker_end.as_ref(), false)] {
+            let tol = max_gap + marker_reach(scene, e, marker) + 0.01;
+            let (in_x, in_y) = (p.x >= old.x0 - tol && p.x <= old.x1 + tol, p.y >= old.y0 - tol && p.y <= old.y1 + tol);
+            let q = if in_y && (p.x - old.x1).abs() <= tol && new.x1 > old.x1 {
+                Point::new(p.x + new.x1 - old.x1, p.y)
+            } else if in_y && (p.x - old.x0).abs() <= tol && new.x0 < old.x0 {
+                Point::new(p.x + new.x0 - old.x0, p.y)
+            } else if in_x && (p.y - old.y1).abs() <= tol && new.y1 > old.y1 {
+                Point::new(p.x, p.y + new.y1 - old.y1)
+            } else if in_x && (p.y - old.y0).abs() <= tol && new.y0 < old.y0 {
+                Point::new(p.x, p.y + new.y0 - old.y0)
+            } else {
+                continue;
+            };
+            ops.extend(snap_ops(ctx, e, start, q));
+            break; // one end per connector: each snap rewrites the whole path
+        }
+    }
+    ops
+}
+
 /// Operations that move one end of a connector to `q`, given in viewBox units.
 fn snap_ops(ctx: &Ctx, e: &Elem, start: bool, q: Point) -> Vec<Value> {
     if e.tf.determinant().abs() < 1e-12 {
@@ -606,7 +641,18 @@ fn reroute_ops(ctx: &Ctx, e: &Elem, walls: &[Rect]) -> Vec<Value> {
             let k = pts.len() - 2;
             pts[k] = if matches!(arrive, Dir::E | Dir::W) { Point::new(pts[k].x, end.y) } else { Point::new(end.x, pts[k].y) };
         }
-        pts.push(end);
+        // The nearest grid point may lie past the end. Stepping back to the end would turn
+        // the last segment, and the arrowhead on it, the wrong way round; stop at the end.
+        let ahead = |from: Point| match arrive {
+            Dir::E => end.x - from.x,
+            Dir::W => from.x - end.x,
+            Dir::S => end.y - from.y,
+            Dir::N => from.y - end.y,
+        };
+        match pts.len() {
+            n if n >= 2 && ahead(pts[n - 1]) < 0.0 && ahead(pts[n - 2]) > 0.0 => pts[n - 1] = end,
+            _ => pts.push(end),
+        }
     }
     let inv = e.tf.inverse();
     let local: Vec<Point> = simplify(pts).into_iter().map(|p| inv * p).collect();

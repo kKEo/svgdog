@@ -554,6 +554,40 @@ fn r5_applying_a_findings_ops_clears_it() {
     }
 }
 
+/// A box widened to fit its label takes the connectors on its edge with it; otherwise the
+/// line would start inside the box.
+#[test]
+fn fix_keeps_connectors_on_the_edge_of_a_widened_box() {
+    let (dir, _) = copy_fixture(BROKEN);
+    run_in(dir.path(), &["fix", "d.svg", "--no-config", "--in-place"], None);
+    let text = fs::read_to_string(dir.path().join("d.svg")).unwrap();
+    // The box now spans x = -21..151 and the connector starts on its right edge, not at 110.
+    assert!(text.contains(r##"<rect width="172" height="50" fill="#ffffff" stroke="#333" x="-41"/>"##), "{text}");
+    assert!(text.contains(r#"d="M151,85 L250,85""#), "{text}");
+}
+
+/// A rerouted connector ends on its end point going forwards, so the arrowhead on the last
+/// segment points at the target and not back out of it.
+#[test]
+fn fix_reroute_does_not_overshoot_the_end() {
+    let dir = tempfile::tempdir().unwrap();
+    let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 200"><title>t</title><desc>d</desc>
+  <defs><marker id="arrow" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto"><path d="M0 0L6 3L0 6z"/></marker></defs>
+  <rect x="20" y="60" width="90" height="50" fill="#ffffff" stroke="#333"/>
+  <rect x="250" y="60" width="190" height="50" fill="#ffffff" stroke="#333"/>
+  <rect x="150" y="70" width="40" height="30" fill="#eeeeee" stroke="#333"/>
+  <path d="M110 85 L250 85" fill="none" stroke="#333" marker-end="url(#arrow)"/>
+</svg>"##;
+    fs::write(dir.path().join("d.svg"), svg).unwrap();
+    run_in(dir.path(), &["fix", "d.svg", "--no-config", "--unsafe", "--in-place", "--rules", "edge-through-node"], None);
+    let text = fs::read_to_string(dir.path().join("d.svg")).unwrap();
+    let d = text.split("<path d=\"").nth(2).and_then(|t| t.split('"').next()).unwrap();
+    let xs: Vec<f64> = d.split(['M', 'L']).filter(|t| !t.trim().is_empty()).map(|t| t.split_whitespace().next().unwrap().parse().unwrap()).collect();
+    assert!(d != "M110 85 L250 85", "the connector was not rerouted: {d}");
+    assert_eq!(xs.last(), Some(&250.0), "{d}");
+    assert!(xs.iter().all(|x| *x <= 250.0), "the route runs past its end and turns back: {d}");
+}
+
 #[test]
 fn fix_applies_safe_fixes_and_unsafe_only_on_request() {
     let (dir, _) = copy_fixture(BROKEN);

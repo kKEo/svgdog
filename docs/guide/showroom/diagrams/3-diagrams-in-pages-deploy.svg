@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 728 64" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>Release path</title>
+  <desc>A change goes from a pull request through tests to production.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
+  </defs>
+  <rect x="0" y="0" width="728" height="64" fill="#ffffff"/>
+  <g id="node-pr">
+    <rect x="24" y="8" width="144" height="48" rx="24" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="96" y="37.09" text-anchor="middle" font-size="14" fill="#1f2937">Pull request</text>
+  </g>
+  <g id="node-tests">
+    <rect x="240" y="8" width="96" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="288" y="37.09" text-anchor="middle" font-size="14" fill="#1f2937">Tests</text>
+  </g>
+  <g id="node-staging">
+    <rect x="400" y="8" width="96" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="448" y="37.09" text-anchor="middle" font-size="14" fill="#1f2937">Staging</text>
+  </g>
+  <g id="node-production">
+    <rect x="592" y="8" width="112" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="648" y="37.09" text-anchor="middle" font-size="14" fill="#1f2937">Production</text>
+  </g>
+  <g id="edge-pr--tests">
+    <path d="M168 32 L240 32" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="204" y="24.11" text-anchor="middle" font-size="12" fill="#1f2937">opens</text>
+  </g>
+  <g id="edge-tests--staging">
+    <path d="M336 32 L400 32" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="368" y="24.11" text-anchor="middle" font-size="12" fill="#1f2937">pass</text>
+  </g>
+  <g id="edge-staging--production">
+    <path d="M496 32 L592 32" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="544" y="24.11" text-anchor="middle" font-size="12" fill="#1f2937">approved</text>
+  </g>
+</svg>

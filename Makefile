@@ -1,7 +1,7 @@
-BOOKS := user operator tester
+BOOKS := user operator tester showroom
 BOOK ?= user
 
-.PHONY: help docs docs-check docs-serve docs-assets
+.PHONY: help docs docs-check docs-serve docs-landing docs-assets
 help: ## List the available targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  %-12s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
@@ -16,7 +16,14 @@ docs: docs-check ## Build the three guide books into site/
 	cp docs/guide/index.html docs/guide/tldr.html site/
 	@if [ -d docs/guide/assets ]; then cp -r docs/guide/assets site/assets; fi
 
-docs-serve: ## Serve one book locally with live reload (BOOK=user|operator|tester)
+PORT ?= 8000
+
+docs-landing: docs ## Build the docs and serve the landing page locally (PORT=8000)
+	@echo "Landing page: http://localhost:$(PORT)/  (Ctrl-C to stop)"
+	@(sleep 1; open http://localhost:$(PORT)/ 2>/dev/null || xdg-open http://localhost:$(PORT)/ 2>/dev/null || true) &
+	python3 -m http.server $(PORT) --directory site
+
+docs-serve: ## Serve one book locally with live reload (BOOK=user|operator|tester|showroom)
 	mdbook serve docs/guide/$(BOOK) --open
 
 # Bump the version (BUMP=patch: 1.0.1 -> 1.0.2, minor: 1.1.0, major: 2.0.0), commit it
