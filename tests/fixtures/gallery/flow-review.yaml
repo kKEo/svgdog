@@ -1,0 +1,23 @@
+version: 1
+diagram: flow
+direction: down
+title: Reviewing a pull request
+description: A pull request is checked by CI and a reviewer, and goes back to the author until both pass.
+caption: Nothing is merged until CI and the reviewer agree.
+nodes:
+  - { id: author, label: Author, kind: actor }
+  - { id: pr, label: Pull request, kind: document }
+  - { id: ci, label: CI checks, kind: service }
+  - { id: green, label: Checks pass?, kind: decision }
+  - { id: review, label: Reviewer, kind: actor }
+  - { id: ok, label: Approved?, kind: decision }
+  - { id: main, label: Main branch, kind: datastore, emphasis: true }
+edges:
+  - "author -> pr: opens"
+  - "pr -> ci: runs"
+  - "ci -> green"
+  - "green -> author: no, fix"
+  - "green -> review: yes"
+  - "review -> ok"
+  - "ok -> author: changes requested"
+  - "ok -> main: merge"

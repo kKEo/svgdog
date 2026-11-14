@@ -1,0 +1,22 @@
+version: 1
+diagram: compare
+title: Adding a cache
+description: Before, every read went to the database; after, a cache answers most reads.
+legend: true
+nodes:
+  - { id: b-app, label: App, kind: client }
+  - { id: b-api, label: API, kind: service }
+  - { id: b-db, label: Database, kind: datastore }
+  - { id: a-app, label: App, kind: client }
+  - { id: a-api, label: API, kind: service }
+  - { id: a-cache, label: Redis cache, kind: datastore }
+  - { id: a-db, label: Database, kind: datastore }
+groups:
+  - { id: before, label: Before, members: [b-app, b-api, b-db] }
+  - { id: after, label: After, members: [a-app, a-api, a-cache, a-db] }
+edges:
+  - "b-app -> b-api"
+  - "b-api -> b-db: every read"
+  - "a-app -> a-api"
+  - "a-api -> a-cache: most reads"
+  - "a-api --> a-db: on a miss"

@@ -1,0 +1,23 @@
+version: 1
+diagram: free
+title: Two regions
+description: The primary region replicates to a standby region, and both send backups to cold storage.
+caption: The standby can take over within fifteen minutes.
+nodes:
+  - { id: lb, label: Global DNS, kind: external, at: [232, 152] }
+  - { id: eu-app, label: App EU, kind: service, emphasis: true, at: [40, 152] }
+  - { id: eu-db, label: Primary DB, kind: datastore, at: [40, 288] }
+  - { id: us-app, label: App US, kind: service, at: [424, 152] }
+  - { id: us-db, label: Standby DB, kind: datastore, at: [424, 288] }
+  - { id: cold, label: Cold storage, kind: document, at: [232, 440] }
+groups:
+  - { id: eu, label: Europe (active), members: [eu-app, eu-db] }
+  - { id: us, label: US (standby), members: [us-app, us-db] }
+edges:
+  - "lb -> eu-app"
+  - { from: lb, to: us-app, style: dependency, label: failover }
+  - "eu-app -> eu-db"
+  - "us-app -> us-db"
+  - "eu-db --> us-db: replicate"
+  - "eu-db ..> cold: nightly"
+  - "us-db ..> cold: nightly"

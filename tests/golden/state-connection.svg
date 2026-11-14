@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 952 168" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>A network connection</title>
+  <desc>A connection is opened, may drop and reconnect, and is finally closed.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
+  </defs>
+  <rect x="0" y="0" width="952" height="168" fill="#ffffff"/>
+  <g id="node-begin">
+    <circle cx="36" cy="92" r="12" fill="#1f2937"/>
+  </g>
+  <g id="node-idle">
+    <rect x="96" y="64" width="96" height="48" rx="12" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="144" y="93.09" text-anchor="middle" font-size="14" fill="#1f2937">Idle</text>
+  </g>
+  <g id="node-connecting">
+    <rect x="280" y="64" width="128" height="48" rx="12" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="344" y="93.09" text-anchor="middle" font-size="14" fill="#1f2937">Connecting</text>
+  </g>
+  <g id="node-open">
+    <rect x="488" y="64" width="96" height="48" rx="12" fill="#2563eb" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="536" y="93.09" text-anchor="middle" font-size="14" fill="#ffffff">Open</text>
+  </g>
+  <g id="node-retry">
+    <rect x="760" y="24" width="96" height="48" rx="12" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="808" y="53.09" text-anchor="middle" font-size="14" fill="#1f2937">Retrying</text>
+  </g>
+  <g id="node-closed">
+    <rect x="760" y="104" width="96" height="48" rx="12" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="808" y="133.09" text-anchor="middle" font-size="14" fill="#1f2937">Closed</text>
+  </g>
+  <g id="node-finish">
+    <circle cx="916" cy="132" r="11.25" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <circle cx="916" cy="132" r="7" fill="#1f2937"/>
+  </g>
+  <g id="edge-begin--idle">
+    <path d="M47.28 96 L72 96 L72 88 L96 88" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-idle--connecting">
+    <path d="M192 80 L280 80" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="236" y="72.11" text-anchor="middle" font-size="12" fill="#1f2937">connect</text>
+  </g>
+  <g id="edge-connecting--open">
+    <path d="M408 96 L488 96" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="448" y="88.11" text-anchor="middle" font-size="12" fill="#1f2937">ok</text>
+  </g>
+  <g id="edge-connecting--idle">
+    <path d="M280 96 L192 96" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="236" y="112.63" text-anchor="middle" font-size="12" fill="#1f2937">refused</text>
+  </g>
+  <g id="edge-open--retry">
+    <path d="M584 88 L672 88 L672 56 L760 56" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="628" y="80.11" text-anchor="middle" font-size="12" fill="#1f2937">dropped</text>
+  </g>
+  <g id="edge-retry--connecting">
+    <path d="M760 40 L432 40 L432 80 L408 80" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="596" y="32.11" text-anchor="middle" font-size="12" fill="#1f2937">backoff</text>
+  </g>
+  <g id="edge-open--open">
+    <path d="M560 64 L560 48 L600 48 L600 80 L584 80" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="635.54" y="60.37" text-anchor="middle" font-size="12" fill="#1f2937">heartbeat</text>
+  </g>
+  <g id="edge-open--closed">
+    <path d="M584 96 L672 96 L672 128 L760 128" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="628" y="112.63" text-anchor="middle" font-size="12" fill="#1f2937">close</text>
+  </g>
+  <g id="edge-closed--finish">
+    <path d="M856 128 L880 128 L880 136 L904.72 136" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+</svg>

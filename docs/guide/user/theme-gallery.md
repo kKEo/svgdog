@@ -6,11 +6,13 @@ This page shows one diagram drawn in every built-in theme, in the light and the 
 
 Every picture below comes from the same spec. It uses most of what a theme styles: the common node kinds, a frame, a highlighted box, the three arrow styles, a note, numbered steps, a legend and a caption.
 
+<!-- spec: showcase -->
 ```yaml
 version: 1
 diagram: flow
 direction: down
 title: Placing an order
+description: How an order goes from the shopper to the warehouse, with payment and stock checked on the way.
 caption: Payment and stock are checked before the order is saved.
 legend: true
 nodes:

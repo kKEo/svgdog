@@ -1,0 +1,12 @@
+version: 1
+diagram: timeline
+direction: down
+title: How our architecture grew
+description: From a single server to regions in three continents, one decision at a time.
+caption: Each move was made when the previous setup hit a limit.
+nodes:
+  - { id: one, label: One server running everything, when: "2019" }
+  - { id: split, label: Database moved to its own machine, when: "2020" }
+  - { id: cloud, label: Moved to the cloud, when: "2021" }
+  - { id: k8s, label: Services on Kubernetes, when: "2023", emphasis: true }
+  - { id: regions, label: Second and third region, when: "2025" }

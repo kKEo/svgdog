@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 456 720" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>Handling a webhook</title>
+  <desc>A payment provider calls a webhook, which is queued and processed by a worker that updates orders and emails the customer.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
+  </defs>
+  <rect x="0" y="0" width="456" height="720" fill="#ffffff"/>
+  <g id="group-ours">
+    <rect x="24" y="120" width="400" height="416" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="36" y="144.37" font-size="12" fill="#6b7280">Our system</text>
+  </g>
+  <g id="node-provider">
+    <rect x="56" y="24" width="160" height="48" rx="4" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="136" y="53.09" text-anchor="middle" font-size="14" fill="#1f2937">Payment provider</text>
+  </g>
+  <g id="node-hook">
+    <rect x="48" y="160" width="176" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="136" y="189.09" text-anchor="middle" font-size="14" fill="#1f2937">Webhook endpoint</text>
+  </g>
+  <g id="node-queue">
+    <path d="M64 256 L208 256 A8 24 0 0 1 208 304 L64 304 A8 24 0 0 1 64 256 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M208 256 A8 24 0 0 0 208 304" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="136" y="285.09" text-anchor="middle" font-size="14" fill="#1f2937">Events queue</text>
+  </g>
+  <g id="node-worker">
+    <rect x="88" y="352" width="96" height="48" rx="8" fill="#2563eb" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="136" y="381.09" text-anchor="middle" font-size="14" fill="#ffffff">Worker</text>
+  </g>
+  <g id="node-orders">
+    <path d="M88 456 A48 8 0 0 1 184 456 L184 504 A48 8 0 0 1 88 504 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M88 456 A48 8 0 0 0 184 456" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="136" y="491.09" text-anchor="middle" font-size="14" fill="#1f2937">Orders</text>
+  </g>
+  <g id="node-mail">
+    <rect x="72" y="584" width="128" height="48" rx="4" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="136" y="613.09" text-anchor="middle" font-size="14" fill="#1f2937">Mail service</text>
+  </g>
+  <g id="edge-provider--hook">
+    <path d="M136 72 L136 160" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="204.41" y="98.37" text-anchor="middle" font-size="12" fill="#1f2937">payment.succeeded</text>
+  </g>
+  <g id="edge-hook--queue">
+    <path d="M136 208 L136 256" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <text x="168.79" y="236.37" text-anchor="middle" font-size="12" fill="#1f2937">enqueue</text>
+  </g>
+  <g id="edge-queue--worker">
+    <path d="M136 304 L136 352" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <text x="162.62" y="332.37" text-anchor="middle" font-size="12" fill="#1f2937">deliver</text>
+  </g>
+  <g id="edge-worker--orders">
+    <path d="M136 400 L136 448" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="99.56" y="428.37" text-anchor="middle" font-size="12" fill="#1f2937">mark paid</text>
+  </g>
+  <g id="edge-worker--mail">
+    <path d="M152 400 L152 440 L192 440 L192 560 L152 560 L152 584" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="2 4" marker-end="url(#arrow)"/>
+    <text x="236.06" y="504.37" text-anchor="middle" font-size="12" fill="#1f2937">send receipt</text>
+  </g>
+  <g id="note-1">
+    <line x1="248" y1="184" x2="224" y2="184" stroke="#6b7280" stroke-width="1" stroke-dasharray="2 3"/>
+    <rect x="248" y="168" width="160" height="32" rx="4" fill="#ffffff" stroke="#6b7280" stroke-width="1"/>
+    <text x="328" y="188.37" text-anchor="middle" font-size="12" fill="#1f2937">Answers 200 at once</text>
+  </g>
+  <g id="legend">
+    <line x1="24" y1="674" x2="52" y2="674" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="60" y="678.37" font-size="12" fill="#1f2937">call</text>
+    <line x1="112" y1="674" x2="140" y2="674" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="148" y="678.37" font-size="12" fill="#1f2937">asynchronous message</text>
+    <line x1="320" y1="674" x2="348" y2="674" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="2 4"/>
+    <text x="356" y="678.37" font-size="12" fill="#1f2937">dependency</text>
+    <rect x="26" y="688" width="24" height="12" rx="2" fill="#2563eb" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="60" y="698.37" font-size="12" fill="#1f2937">highlighted</text>
+  </g>
+</svg>

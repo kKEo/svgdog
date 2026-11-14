@@ -1,12 +1,15 @@
 BOOKS := user operator tester showroom
 BOOK ?= user
 
-.PHONY: help docs docs-check docs-serve docs-landing docs-assets
+.PHONY: help docs docs-check docs-serve docs-landing docs-assets docs-gallery
 help: ## List the available targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  %-12s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 docs-assets: ## Copy diagram assets from the golden test outputs into the books
 	./docs/sync-assets.sh
+
+docs-gallery: ## Redraw the gallery pictures and copy their specs into the gallery pages
+	./docs/regen-gallery.sh
 
 docs-check: ## Check that guide links resolve and CLI/MCP references are current
 	./docs/check.sh

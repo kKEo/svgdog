@@ -1,0 +1,21 @@
+version: 1
+diagram: free
+title: Office network
+description: Where the network equipment sits on the office floor and how it is cabled.
+nodes:
+  - { id: isp, label: Internet line, kind: external, at: [24, 24] }
+  - { id: router, label: Router, at: [24, 160] }
+  - { id: switch, label: Core switch, kind: service, emphasis: true, at: [264, 160] }
+  - { id: ap1, label: Wi-Fi east, at: [504, 64] }
+  - { id: ap2, label: Wi-Fi west, at: [504, 256] }
+  - { id: nas, label: File server, kind: datastore, at: [264, 320] }
+groups:
+  - { id: closet, label: Server closet, members: [switch, nas] }
+edges:
+  - "isp -> router: fibre"
+  - { from: router, to: switch, arrow: both }
+  - { from: switch, to: ap1, arrow: both, label: PoE }
+  - { from: switch, to: ap2, arrow: both, label: PoE }
+  - { from: switch, to: nas, arrow: both }
+notes:
+  - { attach: isp, text: 1 Gbit/s, side: right }

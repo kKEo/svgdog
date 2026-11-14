@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 608 464" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>Reading a profile through a cache</title>
+  <desc>A request for a profile is answered from the cache when it can be, and from the database when it cannot.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
+  </defs>
+  <rect x="0" y="0" width="608" height="464" fill="#ffffff"/>
+  <g id="node-browser">
+    <line x1="72" y1="88" x2="72" y2="400" stroke="#6b7280" stroke-width="1" stroke-dasharray="4 4"/>
+    <rect x="24" y="24" width="96" height="64" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <line x1="24" y1="40" x2="120" y2="40" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="72" y="69.09" text-anchor="middle" font-size="14" fill="#1f2937">Browser</text>
+  </g>
+  <g id="node-api">
+    <line x1="224" y1="88" x2="224" y2="400" stroke="#6b7280" stroke-width="1" stroke-dasharray="4 4"/>
+    <rect x="168" y="40" width="112" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="224" y="69.09" text-anchor="middle" font-size="14" fill="#1f2937">Profile API</text>
+  </g>
+  <g id="node-cache">
+    <line x1="376" y1="88" x2="376" y2="400" stroke="#6b7280" stroke-width="1" stroke-dasharray="4 4"/>
+    <path d="M328 32 A48 8 0 0 1 424 32 L424 80 A48 8 0 0 1 328 80 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M328 32 A48 8 0 0 0 424 32" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="376" y="67.09" text-anchor="middle" font-size="14" fill="#1f2937">Cache</text>
+  </g>
+  <g id="node-db">
+    <line x1="528" y1="88" x2="528" y2="400" stroke="#6b7280" stroke-width="1" stroke-dasharray="4 4"/>
+    <path d="M472 32 A56 8 0 0 1 584 32 L584 80 A56 8 0 0 1 472 80 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M472 32 A56 8 0 0 0 584 32" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="528" y="67.09" text-anchor="middle" font-size="14" fill="#1f2937">Database</text>
+  </g>
+  <g id="edge-get">
+    <path d="M72 128 L224 128" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="148" y="120.11" text-anchor="middle" font-size="12" fill="#1f2937">GET /profile/42</text>
+  </g>
+  <g id="edge-lookup">
+    <path d="M224 168 L376 168" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="300" y="160.11" text-anchor="middle" font-size="12" fill="#1f2937">lookup</text>
+  </g>
+  <g id="edge-miss">
+    <path d="M376 208 L224 208" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <text x="300" y="200.11" text-anchor="middle" font-size="12" fill="#1f2937">miss</text>
+  </g>
+  <g id="edge-query">
+    <path d="M224 248 L528 248" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="300" y="240.11" text-anchor="middle" font-size="12" fill="#1f2937">select profile</text>
+  </g>
+  <g id="edge-row">
+    <path d="M528 288 L224 288" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <text x="452" y="280.11" text-anchor="middle" font-size="12" fill="#1f2937">row</text>
+  </g>
+  <g id="edge-store">
+    <path d="M224 328 L376 328" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <text x="300" y="320.11" text-anchor="middle" font-size="12" fill="#1f2937">store for 5 min</text>
+  </g>
+  <g id="edge-ok">
+    <path d="M224 368 L72 368" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <text x="148" y="360.11" text-anchor="middle" font-size="12" fill="#1f2937">200 OK</text>
+  </g>
+  <g id="caption">
+    <text x="24" y="444.37" font-size="12" fill="#6b7280">Only a cache miss reaches the database.</text>
+  </g>
+</svg>

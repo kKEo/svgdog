@@ -1,0 +1,18 @@
+version: 1
+diagram: sequence
+title: Reading a profile through a cache
+description: A request for a profile is answered from the cache when it can be, and from the database when it cannot.
+caption: Only a cache miss reaches the database.
+nodes:
+  - { id: browser, label: Browser, kind: client }
+  - { id: api, label: Profile API, kind: service }
+  - { id: cache, label: Cache, kind: datastore }
+  - { id: db, label: Database, kind: datastore }
+edges:
+  - { id: get, from: browser, to: api, label: "GET /profile/42" }
+  - { id: lookup, from: api, to: cache, label: lookup }
+  - { id: miss, from: cache, to: api, label: miss, style: async }
+  - { id: query, from: api, to: db, label: select profile }
+  - { id: row, from: db, to: api, label: row, style: async }
+  - { id: store, from: api, to: cache, label: store for 5 min, style: async }
+  - { id: ok, from: api, to: browser, label: 200 OK, style: async }

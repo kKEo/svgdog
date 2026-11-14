@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 392 776" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>Reviewing a pull request</title>
+  <desc>A pull request is checked by CI and a reviewer, and goes back to the author until both pass.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
+  </defs>
+  <rect x="0" y="0" width="392" height="776" fill="#ffffff"/>
+  <g id="node-author">
+    <rect x="72" y="24" width="112" height="48" rx="24" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="128" y="53.09" text-anchor="middle" font-size="14" fill="#1f2937">Author</text>
+  </g>
+  <g id="node-pr">
+    <path d="M64 120 L192 120 L192 176 Q160 164 128 176 Q96 188 64 176 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="128" y="153.09" text-anchor="middle" font-size="14" fill="#1f2937">Pull request</text>
+  </g>
+  <g id="node-ci">
+    <rect x="72" y="232" width="112" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="128" y="261.09" text-anchor="middle" font-size="14" fill="#1f2937">CI checks</text>
+  </g>
+  <g id="node-green">
+    <polygon points="128,328 232,360 128,392 24,360" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="128" y="365.09" text-anchor="middle" font-size="14" fill="#1f2937">Checks pass?</text>
+  </g>
+  <g id="node-review">
+    <rect x="64" y="440" width="128" height="48" rx="24" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="128" y="469.09" text-anchor="middle" font-size="14" fill="#1f2937">Reviewer</text>
+  </g>
+  <g id="node-ok">
+    <polygon points="128,536 216,568 128,600 40,568" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="128" y="573.09" text-anchor="middle" font-size="14" fill="#1f2937">Approved?</text>
+  </g>
+  <g id="node-main">
+    <path d="M64 656 A64 8 0 0 1 192 656 L192 704 A64 8 0 0 1 64 704 Z" fill="#2563eb" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M64 656 A64 8 0 0 0 192 656" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="128" y="691.09" text-anchor="middle" font-size="14" fill="#ffffff">Main branch</text>
+  </g>
+  <g id="edge-author--pr">
+    <path d="M128 72 L128 120" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="103.12" y="100.37" text-anchor="middle" font-size="12" fill="#1f2937">opens</text>
+  </g>
+  <g id="edge-pr--ci">
+    <path d="M128 176 L128 232" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="147.52" y="208.37" text-anchor="middle" font-size="12" fill="#1f2937">runs</text>
+  </g>
+  <g id="edge-ci--green">
+    <path d="M128 280 L128 328" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-green--author">
+    <path d="M144 332.92 L144 288 L200 288 L200 96 L144 96 L144 72" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="172" y="304.63" text-anchor="middle" font-size="12" fill="#1f2937">no, fix</text>
+  </g>
+  <g id="edge-green--review">
+    <path d="M128 392 L128 440" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="144.71" y="420.37" text-anchor="middle" font-size="12" fill="#1f2937">yes</text>
+  </g>
+  <g id="edge-review--ok">
+    <path d="M128 488 L128 536" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-ok--author">
+    <path d="M160 547.64 L160 496 L240 496 L240 104 L160 104 L160 72" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="304.91" y="304.37" text-anchor="middle" font-size="12" fill="#1f2937">changes requested</text>
+  </g>
+  <g id="edge-ok--main">
+    <path d="M128 600 L128 648" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="153.54" y="628.37" text-anchor="middle" font-size="12" fill="#1f2937">merge</text>
+  </g>
+  <g id="caption">
+    <text x="24" y="756.37" font-size="12" fill="#6b7280">Nothing is merged until CI and the reviewer agree.</text>
+  </g>
+</svg>

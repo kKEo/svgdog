@@ -1,0 +1,26 @@
+version: 1
+diagram: sequence
+title: Card payment
+description: A shop asks its payment service to charge a card, which checks with the card network and the fraud screen.
+legend: true
+nodes:
+  - { id: shopper, label: Shopper, kind: actor }
+  - { id: shop, label: Web shop, kind: client }
+  - { id: pay, label: Payment service, kind: service, emphasis: true }
+  - { id: fraud, label: Fraud screen, kind: service }
+  - { id: network, label: Card network, kind: external }
+groups:
+  - { id: platform, label: Our platform, members: [shop, pay, fraud] }
+edges:
+  - { id: submit, from: shopper, to: shop, label: pay now }
+  - { id: charge, from: shop, to: pay, label: charge 49.00 EUR }
+  - { id: score, from: pay, to: fraud, label: score }
+  - { id: low, from: fraud, to: pay, label: low risk, style: async }
+  - { id: auth, from: pay, to: network, label: authorise }
+  - { id: approved, from: network, to: pay, label: approved, style: async }
+  - { id: record, from: pay, to: pay, label: record payment }
+  - { id: paid, from: pay, to: shop, label: paid, style: async }
+  - { id: thanks, from: shop, to: shopper, label: receipt, style: async }
+notes:
+  - { attach: record, text: Idempotent on the order number }
+  - { attach: network, text: Answers within two seconds }

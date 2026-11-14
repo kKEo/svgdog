@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 632 568" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>A support ticket</title>
+  <desc>A ticket is triaged, worked on, may wait for the customer, and is closed or reopened.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
+  </defs>
+  <rect x="0" y="0" width="632" height="568" fill="#ffffff"/>
+  <g id="node-begin">
+    <circle cx="324" cy="36" r="12" fill="#1f2937"/>
+  </g>
+  <g id="node-new">
+    <rect x="272" y="96" width="96" height="48" rx="12" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="320" y="125.09" text-anchor="middle" font-size="14" fill="#1f2937">New</text>
+  </g>
+  <g id="node-triaged">
+    <rect x="272" y="192" width="96" height="48" rx="12" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="320" y="221.09" text-anchor="middle" font-size="14" fill="#1f2937">Triaged</text>
+  </g>
+  <g id="node-progress">
+    <rect x="256" y="288" width="128" height="48" rx="12" fill="#2563eb" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="320" y="317.09" text-anchor="middle" font-size="14" fill="#ffffff">In progress</text>
+  </g>
+  <g id="node-waiting">
+    <rect x="24" y="384" width="192" height="48" rx="12" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="120" y="413.09" text-anchor="middle" font-size="14" fill="#1f2937">Waiting for customer</text>
+  </g>
+  <g id="node-solved">
+    <rect x="472" y="384" width="96" height="48" rx="12" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="520" y="413.09" text-anchor="middle" font-size="14" fill="#1f2937">Solved</text>
+  </g>
+  <g id="node-finish">
+    <circle cx="524" cy="492" r="11.25" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <circle cx="524" cy="492" r="7" fill="#1f2937"/>
+  </g>
+  <g id="edge-begin--new">
+    <path d="M328 47.28 L328 72 L320 72 L320 96" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-new--triaged">
+    <path d="M320 144 L320 192" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="345.85" y="172.37" text-anchor="middle" font-size="12" fill="#1f2937">assign</text>
+  </g>
+  <g id="edge-triaged--progress">
+    <path d="M320 240 L320 288" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="339.87" y="268.37" text-anchor="middle" font-size="12" fill="#1f2937">start</text>
+  </g>
+  <g id="edge-progress--waiting">
+    <path d="M272 336 L272 360 L184 360 L184 384" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="228" y="352.11" text-anchor="middle" font-size="12" fill="#1f2937">ask</text>
+  </g>
+  <g id="edge-waiting--progress">
+    <path d="M200 384 L200 368 L288 368 L288 336" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="244" y="384.63" text-anchor="middle" font-size="12" fill="#1f2937">reply</text>
+  </g>
+  <g id="edge-progress--solved">
+    <path d="M352 336 L352 360 L488 360 L488 384" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="420" y="352.11" text-anchor="middle" font-size="12" fill="#1f2937">fix</text>
+  </g>
+  <g id="edge-solved--progress">
+    <path d="M504 384 L504 368 L368 368 L368 336" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="436" y="384.63" text-anchor="middle" font-size="12" fill="#1f2937">reopen</text>
+  </g>
+  <g id="edge-solved--finish">
+    <path d="M520 432 L520 456 L528 456 L528 480.72" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="569.98" y="472.73" text-anchor="middle" font-size="12" fill="#1f2937">after 7 days</text>
+  </g>
+  <g id="note-1">
+    <line x1="240" y1="408" x2="216" y2="408" stroke="#6b7280" stroke-width="1" stroke-dasharray="2 3"/>
+    <rect x="240" y="392" width="192" height="32" rx="4" fill="#ffffff" stroke="#6b7280" stroke-width="1"/>
+    <text x="336" y="412.37" text-anchor="middle" font-size="12" fill="#1f2937">Closes itself after 14 days</text>
+  </g>
+  <g id="caption">
+    <text x="24" y="548.37" font-size="12" fill="#6b7280">A closed ticket can be reopened for seven days.</text>
+  </g>
+</svg>

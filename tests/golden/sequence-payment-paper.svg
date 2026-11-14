@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 912 696" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>Card payment</title>
+  <desc>A shop asks its payment service to charge a card, which checks with the card network and the fraud screen.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#5a4e41"/></marker>
+  </defs>
+  <rect x="0" y="0" width="912" height="696" fill="#fbf7ef"/>
+  <g id="group-platform">
+    <rect x="152" y="24" width="480" height="136" rx="12" fill="none" stroke="#6f6457" stroke-width="1"/>
+    <text x="164" y="48.37" font-size="12" fill="#6f6457">Our platform</text>
+  </g>
+  <g id="node-shopper">
+    <line x1="80" y1="144" x2="80" y2="552" stroke="#6f6457" stroke-width="1" stroke-dasharray="4 4"/>
+    <rect x="24" y="96" width="112" height="48" rx="24" fill="#f1e6d3" stroke="#6b5d4d" stroke-width="1.5"/>
+    <text x="80" y="125.09" text-anchor="middle" font-size="14" fill="#3b342c">Shopper</text>
+  </g>
+  <g id="node-shop">
+    <line x1="224" y1="144" x2="224" y2="552" stroke="#6f6457" stroke-width="1" stroke-dasharray="4 4"/>
+    <rect x="168" y="80" width="112" height="64" rx="12" fill="#f1e6d3" stroke="#6b5d4d" stroke-width="1.5"/>
+    <line x1="168" y1="96" x2="280" y2="96" stroke="#6b5d4d" stroke-width="1.5"/>
+    <text x="224" y="125.09" text-anchor="middle" font-size="14" fill="#3b342c">Web shop</text>
+  </g>
+  <g id="node-pay">
+    <line x1="360" y1="144" x2="360" y2="552" stroke="#6f6457" stroke-width="1" stroke-dasharray="4 4"/>
+    <rect x="312" y="64" width="96" height="80" rx="12" fill="#a84a24" stroke="#6b5d4d" stroke-width="1.5"/>
+    <text text-anchor="middle" font-size="14" fill="#ffffff"><tspan x="360" y="99.09">Payment</tspan><tspan x="360" y="119.09">service</tspan></text>
+  </g>
+  <g id="node-fraud">
+    <line x1="568" y1="144" x2="568" y2="552" stroke="#6f6457" stroke-width="1" stroke-dasharray="4 4"/>
+    <rect x="520" y="64" width="96" height="80" rx="12" fill="#f1e6d3" stroke="#6b5d4d" stroke-width="1.5"/>
+    <text text-anchor="middle" font-size="14" fill="#3b342c"><tspan x="568" y="99.09">Fraud</tspan><tspan x="568" y="119.09">screen</tspan></text>
+  </g>
+  <g id="node-network">
+    <line x1="696" y1="144" x2="696" y2="552" stroke="#6f6457" stroke-width="1" stroke-dasharray="4 4"/>
+    <rect x="648" y="64" width="96" height="80" rx="6" fill="#f1e6d3" stroke="#6b5d4d" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text text-anchor="middle" font-size="14" fill="#3b342c"><tspan x="696" y="99.09">Card</tspan><tspan x="696" y="119.09">network</tspan></text>
+  </g>
+  <g id="edge-submit">
+    <path d="M80 184 L224 184" fill="none" stroke="#5a4e41" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="152" y="176.11" text-anchor="middle" font-size="12" fill="#3b342c">pay now</text>
+  </g>
+  <g id="edge-charge">
+    <path d="M224 224 L360 224" fill="none" stroke="#5a4e41" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="292" y="216.11" text-anchor="middle" font-size="12" fill="#3b342c">charge 49.00 EUR</text>
+  </g>
+  <g id="edge-score">
+    <path d="M360 264 L568 264" fill="none" stroke="#5a4e41" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="464" y="256.11" text-anchor="middle" font-size="12" fill="#3b342c">score</text>
+  </g>
+  <g id="edge-low">
+    <path d="M568 304 L360 304" fill="none" stroke="#5a4e41" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <text x="464" y="296.11" text-anchor="middle" font-size="12" fill="#3b342c">low risk</text>
+  </g>
+  <g id="edge-auth">
+    <path d="M360 344 L696 344" fill="none" stroke="#5a4e41" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="464" y="336.11" text-anchor="middle" font-size="12" fill="#3b342c">authorise</text>
+  </g>
+  <g id="edge-approved">
+    <path d="M696 384 L360 384" fill="none" stroke="#5a4e41" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <text x="632" y="376.11" text-anchor="middle" font-size="12" fill="#3b342c">approved</text>
+  </g>
+  <g id="edge-record">
+    <path d="M360 424 L392 424 L392 440 L360 440" fill="none" stroke="#5a4e41" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="448.44" y="436.37" text-anchor="middle" font-size="12" fill="#3b342c">record payment</text>
+  </g>
+  <g id="edge-paid">
+    <path d="M360 480 L224 480" fill="none" stroke="#5a4e41" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <text x="292" y="472.11" text-anchor="middle" font-size="12" fill="#3b342c">paid</text>
+  </g>
+  <g id="edge-thanks">
+    <path d="M224 520 L80 520" fill="none" stroke="#5a4e41" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <text x="152" y="512.11" text-anchor="middle" font-size="12" fill="#3b342c">receipt</text>
+  </g>
+  <g id="note-1">
+    <line x1="776" y1="432" x2="500.88" y2="432" stroke="#6f6457" stroke-width="1" stroke-dasharray="2 3"/>
+    <rect x="776" y="400" width="112" height="64" rx="6" fill="#fffdf8" stroke="#6f6457" stroke-width="1"/>
+    <text text-anchor="middle" font-size="12" fill="#3b342c"><tspan x="832" y="420.37">Idempotent on</tspan><tspan x="832" y="436.37">the order</tspan><tspan x="832" y="452.37">number</tspan></text>
+  </g>
+  <g id="note-2">
+    <line x1="696" y1="576" x2="696" y2="552" stroke="#6f6457" stroke-width="1" stroke-dasharray="2 3"/>
+    <rect x="632" y="576" width="128" height="48" rx="6" fill="#fffdf8" stroke="#6f6457" stroke-width="1"/>
+    <text text-anchor="middle" font-size="12" fill="#3b342c"><tspan x="696" y="596.37">Answers within</tspan><tspan x="696" y="612.37">two seconds</tspan></text>
+  </g>
+  <g id="legend">
+    <line x1="24" y1="666" x2="52" y2="666" stroke="#5a4e41" stroke-width="1.5"/>
+    <text x="60" y="670.37" font-size="12" fill="#3b342c">call</text>
+    <line x1="112" y1="666" x2="140" y2="666" stroke="#5a4e41" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="148" y="670.37" font-size="12" fill="#3b342c">asynchronous message</text>
+    <rect x="322" y="660" width="24" height="12" rx="2" fill="#a84a24" stroke="#6b5d4d" stroke-width="1.5"/>
+    <text x="356" y="670.37" font-size="12" fill="#3b342c">highlighted</text>
+  </g>
+</svg>

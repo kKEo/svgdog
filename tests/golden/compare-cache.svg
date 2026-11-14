@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 416 536" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>Adding a cache</title>
+  <desc>Before, every read went to the database; after, a cache answers most reads.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
+  </defs>
+  <rect x="0" y="0" width="416" height="536" fill="#ffffff"/>
+  <g id="group-before">
+    <rect x="24" y="24" width="144" height="440" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="36" y="48.37" font-size="12" fill="#6b7280">Before</text>
+  </g>
+  <g id="group-after">
+    <rect x="232" y="24" width="160" height="440" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="244" y="48.37" font-size="12" fill="#6b7280">After</text>
+  </g>
+  <g id="node-b-app">
+    <rect x="48" y="64" width="96" height="64" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <line x1="48" y1="80" x2="144" y2="80" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="96" y="109.09" text-anchor="middle" font-size="14" fill="#1f2937">App</text>
+  </g>
+  <g id="node-b-api">
+    <rect x="48" y="176" width="96" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="96" y="205.09" text-anchor="middle" font-size="14" fill="#1f2937">API</text>
+  </g>
+  <g id="node-b-db">
+    <path d="M40 392 A56 8 0 0 1 152 392 L152 440 A56 8 0 0 1 40 440 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M40 392 A56 8 0 0 0 152 392" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="96" y="427.09" text-anchor="middle" font-size="14" fill="#1f2937">Database</text>
+  </g>
+  <g id="node-a-app">
+    <rect x="264" y="64" width="96" height="64" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <line x1="264" y1="80" x2="360" y2="80" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="312" y="109.09" text-anchor="middle" font-size="14" fill="#1f2937">App</text>
+  </g>
+  <g id="node-a-api">
+    <rect x="264" y="176" width="96" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="312" y="205.09" text-anchor="middle" font-size="14" fill="#1f2937">API</text>
+  </g>
+  <g id="node-a-cache">
+    <path d="M248 280 A64 8 0 0 1 376 280 L376 328 A64 8 0 0 1 248 328 Z" fill="#2563eb" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M248 280 A64 8 0 0 0 376 280" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="312" y="315.09" text-anchor="middle" font-size="14" fill="#ffffff">Redis cache</text>
+  </g>
+  <g id="node-a-db">
+    <path d="M256 392 A56 8 0 0 1 368 392 L368 440 A56 8 0 0 1 256 440 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M256 392 A56 8 0 0 0 368 392" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="312" y="427.09" text-anchor="middle" font-size="14" fill="#1f2937">Database</text>
+  </g>
+  <g id="edge-b-app--b-api">
+    <path d="M96 128 L96 176" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-b-api--b-db">
+    <path d="M96 224 L96 384" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="134.73" y="308.37" text-anchor="middle" font-size="12" fill="#1f2937">every read</text>
+  </g>
+  <g id="edge-a-app--a-api">
+    <path d="M312 128 L312 176" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-a-api--a-cache">
+    <path d="M312 224 L312 272" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="271.88" y="252.37" text-anchor="middle" font-size="12" fill="#1f2937">most reads</text>
+  </g>
+  <g id="edge-a-api--a-db">
+    <path d="M328 224 L328 264 L384 264 L384 360 L328 360 L328 384.41" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <text x="292.92" y="376.57" text-anchor="middle" font-size="12" fill="#1f2937">on a miss</text>
+  </g>
+  <g id="legend">
+    <line x1="24" y1="506" x2="52" y2="506" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="60" y="510.37" font-size="12" fill="#1f2937">call</text>
+    <line x1="112" y1="506" x2="140" y2="506" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="148" y="510.37" font-size="12" fill="#1f2937">asynchronous message</text>
+  </g>
+</svg>

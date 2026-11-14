@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 784 648" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>Releasing a service</title>
+  <desc>A merged change is built, tested and rolled out to the cluster.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
+  </defs>
+  <rect x="0" y="0" width="784" height="648" fill="#ffffff"/>
+  <g id="node-dev" data-step="1">
+    <line x1="88" y1="88" x2="88" y2="472" stroke="#6b7280" stroke-width="1" stroke-dasharray="4 4"/>
+    <rect x="24" y="40" width="128" height="48" rx="24" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="88" y="69.09" text-anchor="middle" font-size="14" fill="#1f2937">Developer</text>
+    <circle cx="31.2" cy="47.2" r="9" fill="#2563eb" data-badge="1"/>
+    <text x="31.2" y="51.57" text-anchor="middle" font-size="12" fill="#ffffff">1</text>
+  </g>
+  <g id="node-ci" data-step="1">
+    <line x1="248" y1="88" x2="248" y2="472" stroke="#6b7280" stroke-width="1" stroke-dasharray="4 4"/>
+    <rect x="200" y="40" width="96" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="248" y="69.09" text-anchor="middle" font-size="14" fill="#1f2937">CI</text>
+    <circle cx="200" cy="40" r="9" fill="#2563eb" data-badge="1"/>
+    <text x="200" y="44.37" text-anchor="middle" font-size="12" fill="#ffffff">1</text>
+  </g>
+  <g id="node-registry" data-step="2">
+    <line x1="464" y1="88" x2="464" y2="472" stroke="#6b7280" stroke-width="1" stroke-dasharray="4 4"/>
+    <path d="M416 32 A48 8 0 0 1 512 32 L512 80 A48 8 0 0 1 416 80 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M416 32 A48 8 0 0 0 512 32" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="464" y="67.09" text-anchor="middle" font-size="14" fill="#1f2937">Registry</text>
+    <circle cx="416" cy="24" r="9" fill="#2563eb" data-badge="2"/>
+    <text x="416" y="28.37" text-anchor="middle" font-size="12" fill="#ffffff">2</text>
+  </g>
+  <g id="node-cluster" data-step="3">
+    <line x1="616" y1="88" x2="616" y2="472" stroke="#6b7280" stroke-width="1" stroke-dasharray="4 4"/>
+    <rect x="568" y="40" width="96" height="48" rx="4" fill="#2563eb" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="616" y="69.09" text-anchor="middle" font-size="14" fill="#ffffff">Cluster</text>
+    <circle cx="568" cy="40" r="9" fill="#2563eb" data-badge="3"/>
+    <text x="568" y="44.37" text-anchor="middle" font-size="12" fill="#ffffff">3</text>
+  </g>
+  <g id="edge-merge" data-step="1">
+    <path d="M88 128 L248 128" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <circle cx="121.16" cy="114" r="9" fill="#2563eb" data-badge="1"/>
+    <text x="121.16" y="118.37" text-anchor="middle" font-size="12" fill="#ffffff">1</text>
+    <text x="180" y="118.37" text-anchor="middle" font-size="12" fill="#1f2937">merge to main</text>
+  </g>
+  <g id="edge-build" data-step="2">
+    <path d="M248 168 L280 168 L280 184 L248 184" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <circle cx="297" cy="176" r="9" fill="#2563eb" data-badge="2"/>
+    <text x="297" y="180.37" text-anchor="middle" font-size="12" fill="#ffffff">2</text>
+    <text x="353.36" y="180.37" text-anchor="middle" font-size="12" fill="#1f2937">build and test</text>
+  </g>
+  <g id="edge-push" data-step="2">
+    <path d="M248 224 L464 224" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <circle cx="317.49" cy="210" r="9" fill="#2563eb" data-badge="2"/>
+    <text x="317.49" y="214.37" text-anchor="middle" font-size="12" fill="#ffffff">2</text>
+    <text x="368" y="214.37" text-anchor="middle" font-size="12" fill="#1f2937">push image</text>
+  </g>
+  <g id="edge-roll" data-step="3">
+    <path d="M248 264 L616 264" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <circle cx="318.11" cy="250" r="9" fill="#2563eb" data-badge="3"/>
+    <text x="318.11" y="254.37" text-anchor="middle" font-size="12" fill="#ffffff">3</text>
+    <text x="368" y="254.37" text-anchor="middle" font-size="12" fill="#1f2937">start rollout</text>
+  </g>
+  <g id="edge-pull" data-step="3">
+    <path d="M616 304 L464 304" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <circle cx="505.6" cy="290" r="9" fill="#2563eb" data-badge="3"/>
+    <text x="505.6" y="294.37" text-anchor="middle" font-size="12" fill="#ffffff">3</text>
+    <text x="552" y="294.37" text-anchor="middle" font-size="12" fill="#1f2937">pull image</text>
+  </g>
+  <g id="edge-health" data-step="3">
+    <path d="M616 344 L648 344 L648 360 L616 360" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <circle cx="665" cy="352" r="9" fill="#2563eb" data-badge="3"/>
+    <text x="665" y="356.37" text-anchor="middle" font-size="12" fill="#ffffff">3</text>
+    <text x="719.32" y="356.37" text-anchor="middle" font-size="12" fill="#1f2937">health check</text>
+  </g>
+  <g id="edge-done" data-step="4">
+    <path d="M616 400 L248 400" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <circle cx="487.57" cy="386" r="9" fill="#2563eb" data-badge="4"/>
+    <text x="487.57" y="390.37" text-anchor="middle" font-size="12" fill="#ffffff">4</text>
+    <text x="552" y="390.37" text-anchor="middle" font-size="12" fill="#1f2937">rollout complete</text>
+  </g>
+  <g id="edge-notify" data-step="4">
+    <path d="M248 440 L88 440" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <circle cx="138.68" cy="426" r="9" fill="#2563eb" data-badge="4"/>
+    <text x="138.68" y="430.37" text-anchor="middle" font-size="12" fill="#ffffff">4</text>
+    <text x="180" y="430.37" text-anchor="middle" font-size="12" fill="#1f2937">released</text>
+  </g>
+  <g id="steps">
+    <g id="step-1">
+      <circle cx="33" cy="513" r="9" fill="#2563eb" data-badge="1"/>
+      <text x="33" y="517.37" text-anchor="middle" font-size="12" fill="#ffffff">1</text>
+      <text x="52" y="517.37" font-size="12" fill="#1f2937">A merge starts the pipeline.</text>
+    </g>
+    <g id="step-2">
+      <circle cx="33" cy="539" r="9" fill="#2563eb" data-badge="2"/>
+      <text x="33" y="543.37" text-anchor="middle" font-size="12" fill="#ffffff">2</text>
+      <text x="52" y="543.37" font-size="12" fill="#1f2937">CI builds the change and stores the image.</text>
+    </g>
+    <g id="step-3">
+      <circle cx="33" cy="565" r="9" fill="#2563eb" data-badge="3"/>
+      <text x="33" y="569.37" text-anchor="middle" font-size="12" fill="#ffffff">3</text>
+      <text x="52" y="569.37" font-size="12" fill="#1f2937">The cluster pulls the image and checks its health.</text>
+    </g>
+    <g id="step-4">
+      <circle cx="33" cy="591" r="9" fill="#2563eb" data-badge="4"/>
+      <text x="33" y="595.37" text-anchor="middle" font-size="12" fill="#ffffff">4</text>
+      <text x="52" y="595.37" font-size="12" fill="#1f2937">The developer hears that the release is out.</text>
+    </g>
+  </g>
+  <g id="caption">
+    <text x="24" y="624.37" font-size="12" fill="#6b7280">The rollout waits for the health check before it moves on.</text>
+  </g>
+</svg>

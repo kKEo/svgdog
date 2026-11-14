@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 672 400" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>Version 2.0 release plan</title>
+  <desc>The release goes through design, build and launch phases over six months.</desc>
+  <rect x="0" y="0" width="672" height="400" fill="#ffffff"/>
+  <g id="group-design">
+    <rect x="24" y="24" width="320" height="156" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="36" y="48.37" font-size="12" fill="#6b7280">Design</text>
+  </g>
+  <g id="group-build">
+    <rect x="376" y="24" width="272" height="156" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="388" y="48.37" font-size="12" fill="#6b7280">Build</text>
+  </g>
+  <g id="group-launch">
+    <rect x="24" y="220" width="416" height="156" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="36" y="244.37" font-size="12" fill="#6b7280">Launch</text>
+  </g>
+  <g id="axis">
+    <line x1="64" y1="92" x2="600" y2="92" stroke="#1f2937" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="104" y1="288" x2="360" y2="288" stroke="#1f2937" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+  <g id="node-kickoff">
+    <line x1="88" y1="92" x2="88" y2="116" stroke="#6b7280" stroke-width="1"/>
+    <circle cx="88" cy="92" r="5" fill="#ffffff" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="88" y="76.37" text-anchor="middle" font-size="12" fill="#1f2937">6 Jan</text>
+    <rect x="40" y="116" width="96" height="48" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="88" y="145.09" text-anchor="middle" font-size="14" fill="#1f2937">Kick-off</text>
+  </g>
+  <g id="node-rfc">
+    <line x1="248" y1="92" x2="248" y2="116" stroke="#6b7280" stroke-width="1"/>
+    <circle cx="248" cy="92" r="5" fill="#ffffff" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="248" y="76.37" text-anchor="middle" font-size="12" fill="#1f2937">3 Feb</text>
+    <rect x="168" y="116" width="160" height="48" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="248" y="145.09" text-anchor="middle" font-size="14" fill="#1f2937">Design approved</text>
+  </g>
+  <g id="node-alpha">
+    <line x1="440" y1="92" x2="440" y2="116" stroke="#6b7280" stroke-width="1"/>
+    <circle cx="440" cy="92" r="5" fill="#ffffff" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="440" y="76.37" text-anchor="middle" font-size="12" fill="#1f2937">10 Mar</text>
+    <rect x="392" y="116" width="96" height="48" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="440" y="145.09" text-anchor="middle" font-size="14" fill="#1f2937">Alpha</text>
+  </g>
+  <g id="node-beta">
+    <line x1="576" y1="92" x2="576" y2="116" stroke="#6b7280" stroke-width="1"/>
+    <circle cx="576" cy="92" r="5" fill="#ffffff" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="576" y="76.37" text-anchor="middle" font-size="12" fill="#1f2937">21 Apr</text>
+    <rect x="520" y="116" width="112" height="48" fill="#2563eb" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="576" y="145.09" text-anchor="middle" font-size="14" fill="#ffffff">Public beta</text>
+  </g>
+  <g id="node-rc">
+    <line x1="128" y1="288" x2="128" y2="312" stroke="#6b7280" stroke-width="1"/>
+    <circle cx="128" cy="288" r="5" fill="#ffffff" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="128" y="272.37" text-anchor="middle" font-size="12" fill="#1f2937">26 May</text>
+    <rect x="40" y="312" width="176" height="48" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="128" y="341.09" text-anchor="middle" font-size="14" fill="#1f2937">Release candidate</text>
+  </g>
+  <g id="node-ga">
+    <line x1="336" y1="288" x2="336" y2="312" stroke="#6b7280" stroke-width="1"/>
+    <circle cx="336" cy="288" r="5" fill="#ffffff" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="336" y="272.37" text-anchor="middle" font-size="12" fill="#1f2937">16 Jun</text>
+    <rect x="248" y="312" width="176" height="48" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="336" y="341.09" text-anchor="middle" font-size="14" fill="#1f2937">General availability</text>
+  </g>
+</svg>

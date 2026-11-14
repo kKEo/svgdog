@@ -1,0 +1,23 @@
+version: 1
+diagram: flow
+direction: down
+title: Handling a webhook
+description: A payment provider calls a webhook, which is queued and processed by a worker that updates orders and emails the customer.
+legend: true
+nodes:
+  - { id: provider, label: Payment provider, kind: external }
+  - { id: hook, label: Webhook endpoint, kind: service }
+  - { id: queue, label: Events queue, kind: queue }
+  - { id: worker, label: Worker, kind: service, emphasis: true }
+  - { id: orders, label: Orders, kind: datastore }
+  - { id: mail, label: Mail service, kind: external }
+groups:
+  - { id: ours, label: Our system, members: [hook, queue, worker, orders] }
+edges:
+  - "provider -> hook: payment.succeeded"
+  - "hook --> queue: enqueue"
+  - "queue --> worker: deliver"
+  - "worker -> orders: mark paid"
+  - "worker ..> mail: send receipt"
+notes:
+  - { attach: hook, text: Answers 200 at once }

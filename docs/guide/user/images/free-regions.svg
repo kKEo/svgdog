@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 592 480" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>Two regions</title>
+  <desc>The primary region replicates to a standby region, and both send backups to cold storage.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
+  </defs>
+  <rect x="0" y="0" width="592" height="480" fill="#ffffff"/>
+  <g id="group-eu">
+    <rect x="24" y="24" width="160" height="256" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="36" y="48.37" font-size="12" fill="#6b7280">Europe (active)</text>
+  </g>
+  <g id="group-us">
+    <rect x="408" y="24" width="160" height="256" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="420" y="48.37" font-size="12" fill="#6b7280">US (standby)</text>
+  </g>
+  <g id="node-lb">
+    <rect x="232" y="64" width="128" height="48" rx="4" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="296" y="93.09" text-anchor="middle" font-size="14" fill="#1f2937">Global DNS</text>
+  </g>
+  <g id="node-eu-app">
+    <rect x="40" y="64" width="96" height="48" rx="8" fill="#2563eb" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="88" y="93.09" text-anchor="middle" font-size="14" fill="#ffffff">App EU</text>
+  </g>
+  <g id="node-eu-db">
+    <path d="M40 208 A64 8 0 0 1 168 208 L168 256 A64 8 0 0 1 40 256 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M40 208 A64 8 0 0 0 168 208" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="104" y="243.09" text-anchor="middle" font-size="14" fill="#1f2937">Primary DB</text>
+  </g>
+  <g id="node-us-app">
+    <rect x="424" y="64" width="96" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="472" y="93.09" text-anchor="middle" font-size="14" fill="#1f2937">App US</text>
+  </g>
+  <g id="node-us-db">
+    <path d="M424 208 A64 8 0 0 1 552 208 L552 256 A64 8 0 0 1 424 256 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M424 208 A64 8 0 0 0 552 208" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="488" y="243.09" text-anchor="middle" font-size="14" fill="#1f2937">Standby DB</text>
+  </g>
+  <g id="node-cold">
+    <path d="M232 352 L360 352 L360 408 Q328 396 296 408 Q264 420 232 408 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="296" y="385.09" text-anchor="middle" font-size="14" fill="#1f2937">Cold storage</text>
+  </g>
+  <g id="edge-lb--eu-app">
+    <path d="M232 88 L136 88" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-lb--us-app">
+    <path d="M360 88 L424 88" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="2 4" marker-end="url(#arrow)"/>
+    <text x="392" y="80.11" text-anchor="middle" font-size="12" fill="#1f2937">failover</text>
+  </g>
+  <g id="edge-eu-app--eu-db">
+    <path d="M88 112 L88 160 L104 160 L104 200" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-us-app--us-db">
+    <path d="M472 112 L472 160 L488 160 L488 200" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-eu-db--us-db">
+    <path d="M168 232 L424 232" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <text x="296" y="224.11" text-anchor="middle" font-size="12" fill="#1f2937">replicate</text>
+  </g>
+  <g id="edge-eu-db--cold">
+    <path d="M104 264 L104 312 L248 312 L248 352" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="2 4" marker-end="url(#arrow)"/>
+    <text x="176" y="304.11" text-anchor="middle" font-size="12" fill="#1f2937">nightly</text>
+  </g>
+  <g id="edge-us-db--cold">
+    <path d="M488 264 L488 312 L344 312 L344 352" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="2 4" marker-end="url(#arrow)"/>
+    <text x="416" y="304.11" text-anchor="middle" font-size="12" fill="#1f2937">nightly</text>
+  </g>
+  <g id="caption">
+    <text x="24" y="460.37" font-size="12" fill="#6b7280">The standby can take over within fifteen minutes.</text>
+  </g>
+</svg>

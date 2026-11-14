@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 376 552" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>How our architecture grew</title>
+  <desc>From a single server to regions in three continents, one decision at a time.</desc>
+  <rect x="0" y="0" width="376" height="552" fill="#ffffff"/>
+  <g id="axis">
+    <line x1="104" y1="40" x2="104" y2="472" stroke="#1f2937" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+  <g id="node-one">
+    <line x1="104" y1="64" x2="128" y2="64" stroke="#6b7280" stroke-width="1"/>
+    <circle cx="104" cy="64" r="5" fill="#ffffff" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="92" y="68.37" text-anchor="end" font-size="12" fill="#1f2937">2019</text>
+    <rect x="128" y="24" width="176" height="80" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text text-anchor="middle" font-size="14" fill="#1f2937"><tspan x="216" y="59.09">One server running</tspan><tspan x="216" y="79.09">everything</tspan></text>
+  </g>
+  <g id="node-split">
+    <line x1="104" y1="168" x2="128" y2="168" stroke="#6b7280" stroke-width="1"/>
+    <circle cx="104" cy="168" r="5" fill="#ffffff" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="92" y="172.37" text-anchor="end" font-size="12" fill="#1f2937">2020</text>
+    <rect x="128" y="128" width="192" height="80" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text text-anchor="middle" font-size="14" fill="#1f2937"><tspan x="224" y="163.09">Database moved to its</tspan><tspan x="224" y="183.09">own machine</tspan></text>
+  </g>
+  <g id="node-cloud">
+    <line x1="104" y1="256" x2="128" y2="256" stroke="#6b7280" stroke-width="1"/>
+    <circle cx="104" cy="256" r="5" fill="#ffffff" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="92" y="260.37" text-anchor="end" font-size="12" fill="#1f2937">2021</text>
+    <rect x="128" y="232" width="176" height="48" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="216" y="261.09" text-anchor="middle" font-size="14" fill="#1f2937">Moved to the cloud</text>
+  </g>
+  <g id="node-k8s">
+    <line x1="104" y1="344" x2="128" y2="344" stroke="#6b7280" stroke-width="1"/>
+    <circle cx="104" cy="344" r="5" fill="#ffffff" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="92" y="348.37" text-anchor="end" font-size="12" fill="#1f2937">2023</text>
+    <rect x="128" y="304" width="128" height="80" fill="#2563eb" stroke="#1f2937" stroke-width="1.5"/>
+    <text text-anchor="middle" font-size="14" fill="#ffffff"><tspan x="192" y="339.09">Services on</tspan><tspan x="192" y="359.09">Kubernetes</tspan></text>
+  </g>
+  <g id="node-regions">
+    <line x1="104" y1="448" x2="128" y2="448" stroke="#6b7280" stroke-width="1"/>
+    <circle cx="104" cy="448" r="5" fill="#ffffff" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="92" y="452.37" text-anchor="end" font-size="12" fill="#1f2937">2025</text>
+    <rect x="128" y="408" width="160" height="80" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text text-anchor="middle" font-size="14" fill="#1f2937"><tspan x="208" y="443.09">Second and third</tspan><tspan x="208" y="463.09">region</tspan></text>
+  </g>
+  <g id="caption">
+    <text x="24" y="532.37" font-size="12" fill="#6b7280">Each move was made when the previous setup hit a limit.</text>
+  </g>
+</svg>

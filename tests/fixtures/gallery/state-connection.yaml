@@ -1,0 +1,22 @@
+version: 1
+diagram: state
+title: A network connection
+description: A connection is opened, may drop and reconnect, and is finally closed.
+nodes:
+  - { id: begin, kind: start }
+  - { id: idle, label: Idle }
+  - { id: connecting, label: Connecting }
+  - { id: open, label: Open, emphasis: true }
+  - { id: retry, label: Retrying }
+  - { id: closed, label: Closed }
+  - { id: finish, kind: end }
+edges:
+  - "begin -> idle"
+  - "idle -> connecting: connect"
+  - "connecting -> open: ok"
+  - "connecting -> idle: refused"
+  - "open -> retry: dropped"
+  - "retry -> connecting: backoff"
+  - "open -> open: heartbeat"
+  - "open -> closed: close"
+  - "closed -> finish"

@@ -38,5 +38,6 @@ if [ -x "$bin" ]; then
     grep -rq -- "$id" "$ref/reference/rules.md" || { echo "rules.md lacks rule: $id"; fail=1; }
   done < <("$bin" rules --format json | python3 -I -c 'import json,sys; d=json.load(sys.stdin); r=d.get("rules") or d.get("data",{}).get("rules",[]); [print(x["id"]) for x in r]')
 fi
+"$root/docs/regen-gallery.sh" --check || fail=1
 [ "$fail" = 0 ] && echo "docs check passed"
 exit "$fail"

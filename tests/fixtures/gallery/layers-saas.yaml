@@ -1,0 +1,28 @@
+version: 1
+diagram: layers
+title: A SaaS product in four tiers
+description: Browsers and the mobile app go through the edge to the services, which keep their data in three stores.
+nodes:
+  - { id: browser, label: Browser, kind: client }
+  - { id: mobile, label: Mobile app, kind: client }
+  - { id: cdn, label: CDN, kind: external }
+  - { id: lb, label: Load balancer, kind: service }
+  - { id: api, label: API, kind: service, emphasis: true }
+  - { id: jobs, label: Background jobs, kind: service }
+  - { id: pg, label: PostgreSQL, kind: datastore }
+  - { id: redis, label: Redis, kind: datastore }
+  - { id: files, label: Object storage, kind: datastore }
+groups:
+  - { id: edge, label: Edge, members: [cdn, lb] }
+  - { id: app, label: Application, members: [api, jobs] }
+  - { id: data, label: Data, members: [pg, redis, files] }
+edges:
+  - "browser -> cdn"
+  - "browser -> lb"
+  - "mobile -> lb"
+  - "lb -> api"
+  - "api -> pg"
+  - "api -> redis"
+  - "jobs -> pg"
+  - "jobs -> files"
+  - "api --> jobs: schedule"

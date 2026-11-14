@@ -1,0 +1,23 @@
+version: 1
+diagram: layers
+title: Network zones
+description: Traffic passes from the internet through the DMZ to the private and restricted zones.
+caption: Each zone only talks to the one directly below it.
+nodes:
+  - { id: users, label: Users, kind: actor }
+  - { id: waf, label: Firewall, kind: service }
+  - { id: proxy, label: Reverse proxy, kind: service }
+  - { id: app, label: App servers, kind: service }
+  - { id: vault, label: Secrets vault, kind: datastore, emphasis: true }
+  - { id: db, label: Customer data, kind: datastore }
+groups:
+  - { id: internet, label: Internet, members: [users] }
+  - { id: dmz, label: DMZ, members: [waf, proxy] }
+  - { id: private, label: Private, members: [app] }
+  - { id: restricted, label: Restricted, members: [db, vault] }
+edges:
+  - "users -> waf: HTTPS"
+  - "waf -> proxy"
+  - "proxy -> app"
+  - "app -> vault"
+  - "app -> db"

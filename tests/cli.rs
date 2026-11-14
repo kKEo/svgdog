@@ -1177,6 +1177,31 @@ fn r8_output_matches_the_golden_files() {
             produced.push((out.clone(), fs::read(dir.path().join(&out)).unwrap()));
         }
     }
+    // the galleries of the user guide: every spec in tests/fixtures/gallery in the default theme,
+    // and the extra theme variants listed in its themes.txt (docs/regen-gallery.sh keeps the pages in step)
+    let gallery = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/gallery");
+    let mut jobs: Vec<(String, String, String)> = Vec::new();
+    let mut specs: Vec<_> = fs::read_dir(&gallery).unwrap().map(|e| e.unwrap().path()).filter(|p| p.extension().is_some_and(|x| x == "yaml")).collect();
+    specs.sort();
+    for p in specs {
+        let stem = p.file_stem().unwrap().to_str().unwrap().to_string();
+        jobs.push((stem.clone(), "docs".into(), format!("{stem}.svg")));
+    }
+    for line in fs::read_to_string(gallery.join("themes.txt")).unwrap().lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let (stem, theme) = line.split_once(char::is_whitespace).expect("themes.txt: <spec> <theme>");
+        let theme = theme.trim();
+        jobs.push((stem.into(), theme.into(), format!("{stem}-{theme}.svg")));
+    }
+    for (stem, theme, out) in jobs {
+        let spec = gallery.join(format!("{stem}.yaml"));
+        let r = run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", &out, "--theme", &theme, "--profile", "strict", "--no-config"], None);
+        assert_eq!(r.code, 0, "{out}: {}", r.stdout);
+        produced.push((out.clone(), fs::read(dir.path().join(&out)).unwrap()));
+    }
     // findings and scene data are output too
     let broken = Path::new(env!("CARGO_MANIFEST_DIR")).join(BROKEN);
     let v = run_in(dir.path(), &["validate", broken.to_str().unwrap(), "--no-config", "--max-findings", "500"], None);

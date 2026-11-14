@@ -31,6 +31,8 @@ error[too-wide]: The drawing is 2240 px wide even at the tightest spacing; max_w
 
 The exit code is 3. Follow the advice: switch to `direction: down`, shorten labels, or raise `max_width`.
 
+More examples to copy: [Flow gallery](flow-gallery.md).
+
 ## Layers
 
 Use `layers` for tiers. Each top-level group becomes a band that runs across the full width, stacked in order. Nodes that are in no group share an unframed first band.
@@ -62,6 +64,8 @@ edges:
 
 ![A layered diagram titled Deployment tiers with three horizontal bands stacked top to bottom: Presentation holding a CDN and a single-page app, Application holding a REST API and a job runner, and Storage holding PostgreSQL, Redis and object storage. Arrows run down between the bands, for example JSON from the app to the API and a dashed enqueue arrow from the API to the job runner.](images/tiers.svg)
 
+More examples to copy: [Layers gallery](layers-gallery.md).
+
 ## Sequence
 
 Use `sequence` to show a conversation. Each node becomes a vertical line (a lifeline) in the order you list them, and each edge becomes a message. Messages are drawn from top to bottom in the order of the `edges` list, so write them in the order they happen. In a sequence diagram every edge must join two nodes.
@@ -90,6 +94,8 @@ This is a shortened version. The full example in the repository has five partici
 
 Dashed messages (`style: async`) are replies or fire-and-forget calls.
 
+More examples to copy: [Sequence gallery](sequence-gallery.md).
+
 ## Free
 
 Use `free` when position carries meaning, such as which slot of a rack a machine sits in. You give each node an `at: [x, y]` position in pixels; SVGDog snaps it to the grid and still routes the arrows. `at` is allowed only in a `free` diagram, and SVGDog rejects it elsewhere.
@@ -116,6 +122,8 @@ notes:
 
 ![A free-form diagram titled Rack layout. A Switch box sits at the top with the note 10 GbE uplink. Below it, Node A and Node B sit side by side inside a frame labelled Rack 12. A NAS box is lower down. The switch connects to both nodes, Node A connects to the NAS with a double-headed arrow labelled NFS, and Node B connects to the NAS with a dotted line without arrowheads.](images/rack.svg)
 
+More examples to copy: [Free gallery](free-gallery.md).
+
 ## State
 
 A state diagram shows the states of one thing, such as an order or a connection, and the events that move it from one state to the next. Every node is a state, drawn with round corners. Two special kinds mark where it begins and ends: `kind: start` is a solid dot and `kind: end` is a ringed dot. They need no label.
@@ -140,6 +148,8 @@ An arrow may lead back to an earlier state, or from a state to itself. Use `dire
 
 ![A state diagram titled Order states. From a start dot the order becomes Draft, then Placed on submit, with an edit arrow back to Draft. From Placed it becomes Paid on payment ok, or Cancelled on payment failed. Paid has a retry loop on itself and leads to Shipped on dispatch. Shipped and Cancelled both lead to the end marker.](images/states.svg)
 
+More examples to copy: [State gallery](state-gallery.md).
+
 ## Timeline
 
 A timeline puts its nodes along a line in the order you list them. Give each node a `when`, the date or moment printed on the line. Groups become phases, framed around their members. A timeline has no edges: the order is the connection.
@@ -159,6 +169,8 @@ groups:
 A long timeline continues on a new row when it reaches `max_width`; a phase is never split across rows. With `direction: down` the line runs from top to bottom, with the dates on its left, which suits many entries or long labels.
 
 ![A timeline titled Migration plan. A Preparation phase holds Schema audit in January 2026 and Dual writes on in March 2026. A Migration phase holds Backfill complete in April, which is highlighted, and Read cutover in June, marked as step 1. On a second row, Old cluster retired follows in August 2026.](images/migration.svg)
+
+More examples to copy: [Timeline gallery](timeline-gallery.md).
 
 ## Compare
 
@@ -182,6 +194,8 @@ groups:
 When a node was renamed, tell SVGDog what it corresponds to with `match`: above, `Orders service` takes the row of `Monolith`. Ids must still be unique across both sides, so a prefix such as `b-` and `a-` helps. Arrows work as in a flow.
 
 ![A comparison titled Checkout before and after. On the left, in a frame labelled Before, a Web app calls a Monolith, which uses a Database. On the right, in a frame labelled After, the Web app calls an Orders service on the same row as the Monolith; a highlighted Payments service is new, and the Database is on the same row as before.](images/split.svg)
+
+More examples to copy: [Compare gallery](compare-gallery.md).
 
 ## Which one should I pick?
 

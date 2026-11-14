@@ -1,0 +1,25 @@
+version: 1
+diagram: state
+direction: down
+title: A support ticket
+description: A ticket is triaged, worked on, may wait for the customer, and is closed or reopened.
+caption: A closed ticket can be reopened for seven days.
+nodes:
+  - { id: begin, kind: start }
+  - { id: new, label: New }
+  - { id: triaged, label: Triaged }
+  - { id: progress, label: In progress, emphasis: true }
+  - { id: waiting, label: Waiting for customer }
+  - { id: solved, label: Solved }
+  - { id: finish, kind: end }
+edges:
+  - "begin -> new"
+  - "new -> triaged: assign"
+  - "triaged -> progress: start"
+  - "progress -> waiting: ask"
+  - "waiting -> progress: reply"
+  - "progress -> solved: fix"
+  - "solved -> progress: reopen"
+  - "solved -> finish: after 7 days"
+notes:
+  - { attach: waiting, text: Closes itself after 14 days }

@@ -1,0 +1,20 @@
+version: 1
+diagram: compare
+title: Two ways to send notifications
+description: Option A calls the mail service directly; option B puts a queue and a worker in between.
+caption: Option B survives a mail outage at the cost of one more moving part.
+nodes:
+  - { id: a-app, label: Orders service, kind: service }
+  - { id: a-mail, label: Mail service, kind: external }
+  - { id: b-app, label: Orders service, kind: service }
+  - { id: b-queue, label: Notification queue, kind: queue }
+  - { id: b-worker, label: Notifier, kind: service }
+  - { id: b-mail, label: Mail service, kind: external }
+groups:
+  - { id: option-a, label: "Option A: direct", members: [a-app, a-mail] }
+  - { id: option-b, label: "Option B: queued", members: [b-app, b-queue, b-worker, b-mail] }
+edges:
+  - "a-app -> a-mail: send"
+  - "b-app --> b-queue: publish"
+  - "b-queue --> b-worker"
+  - "b-worker -> b-mail: send"

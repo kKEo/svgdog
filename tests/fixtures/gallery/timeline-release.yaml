@@ -1,0 +1,15 @@
+version: 1
+diagram: timeline
+title: Version 2.0 release plan
+description: The release goes through design, build and launch phases over six months.
+nodes:
+  - { id: kickoff, label: Kick-off, when: 6 Jan }
+  - { id: rfc, label: Design approved, when: 3 Feb }
+  - { id: alpha, label: Alpha, when: 10 Mar }
+  - { id: beta, label: Public beta, when: 21 Apr, emphasis: true }
+  - { id: rc, label: Release candidate, when: 26 May }
+  - { id: ga, label: General availability, when: 16 Jun }
+groups:
+  - { id: design, label: Design, members: [kickoff, rfc] }
+  - { id: build, label: Build, members: [alpha, beta] }
+  - { id: launch, label: Launch, members: [rc, ga] }

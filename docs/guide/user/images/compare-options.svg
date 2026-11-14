@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 480" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>Two ways to send notifications</title>
+  <desc>Option A calls the mail service directly; option B puts a queue and a worker in between.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
+  </defs>
+  <rect x="0" y="0" width="512" height="480" fill="#ffffff"/>
+  <g id="group-option-a">
+    <rect x="24" y="24" width="176" height="392" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="36" y="48.37" font-size="12" fill="#6b7280">Option A: direct</text>
+  </g>
+  <g id="group-option-b">
+    <rect x="264" y="24" width="224" height="392" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="276" y="48.37" font-size="12" fill="#6b7280">Option B: queued</text>
+  </g>
+  <g id="node-a-app">
+    <rect x="40" y="64" width="144" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="112" y="93.09" text-anchor="middle" font-size="14" fill="#1f2937">Orders service</text>
+  </g>
+  <g id="node-a-mail">
+    <rect x="48" y="352" width="128" height="48" rx="4" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="112" y="381.09" text-anchor="middle" font-size="14" fill="#1f2937">Mail service</text>
+  </g>
+  <g id="node-b-app">
+    <rect x="304" y="64" width="144" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="376" y="93.09" text-anchor="middle" font-size="14" fill="#1f2937">Orders service</text>
+  </g>
+  <g id="node-b-queue">
+    <path d="M288 160 L464 160 A8 24 0 0 1 464 208 L288 208 A8 24 0 0 1 288 160 Z" fill="#2563eb" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M464 160 A8 24 0 0 0 464 208" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="376" y="189.09" text-anchor="middle" font-size="14" fill="#ffffff">Notification queue</text>
+  </g>
+  <g id="node-b-worker">
+    <rect x="328" y="256" width="96" height="48" rx="8" fill="#2563eb" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="376" y="285.09" text-anchor="middle" font-size="14" fill="#ffffff">Notifier</text>
+  </g>
+  <g id="node-b-mail">
+    <rect x="312" y="352" width="128" height="48" rx="4" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="376" y="381.09" text-anchor="middle" font-size="14" fill="#1f2937">Mail service</text>
+  </g>
+  <g id="edge-a-app--a-mail">
+    <path d="M112 112 L112 352" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="132.99" y="236.37" text-anchor="middle" font-size="12" fill="#1f2937">send</text>
+  </g>
+  <g id="edge-b-app--b-queue">
+    <path d="M376 112 L376 160" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <text x="404.16" y="140.37" text-anchor="middle" font-size="12" fill="#1f2937">publish</text>
+  </g>
+  <g id="edge-b-queue--b-worker">
+    <path d="M376 208 L376 256" fill="none" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-b-worker--b-mail">
+    <path d="M376 304 L376 352" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="396.99" y="332.37" text-anchor="middle" font-size="12" fill="#1f2937">send</text>
+  </g>
+  <g id="caption">
+    <text x="24" y="460.37" font-size="12" fill="#6b7280">Option B survives a mail outage at the cost of one more moving part.</text>
+  </g>
+</svg>

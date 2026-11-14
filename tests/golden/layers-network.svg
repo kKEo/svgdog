@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 696" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>Network zones</title>
+  <desc>Traffic passes from the internet through the DMZ to the private and restricted zones.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#1f2937"/></marker>
+  </defs>
+  <rect x="0" y="0" width="400" height="696" fill="#ffffff"/>
+  <g id="group-internet">
+    <rect x="24" y="24" width="352" height="112" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="36" y="48.37" font-size="12" fill="#6b7280">Internet</text>
+  </g>
+  <g id="group-dmz">
+    <rect x="24" y="184" width="352" height="112" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="36" y="208.37" font-size="12" fill="#6b7280">DMZ</text>
+  </g>
+  <g id="group-private">
+    <rect x="24" y="344" width="352" height="112" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="36" y="368.37" font-size="12" fill="#6b7280">Private</text>
+  </g>
+  <g id="group-restricted">
+    <rect x="24" y="504" width="352" height="128" rx="8" fill="none" stroke="#6b7280" stroke-width="1"/>
+    <text x="36" y="528.37" font-size="12" fill="#6b7280">Restricted</text>
+  </g>
+  <g id="node-users">
+    <rect x="152" y="64" width="96" height="48" rx="24" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="200" y="93.09" text-anchor="middle" font-size="14" fill="#1f2937">Users</text>
+  </g>
+  <g id="node-waf">
+    <rect x="56" y="224" width="96" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="104" y="253.09" text-anchor="middle" font-size="14" fill="#1f2937">Firewall</text>
+  </g>
+  <g id="node-proxy">
+    <rect x="200" y="224" width="144" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="272" y="253.09" text-anchor="middle" font-size="14" fill="#1f2937">Reverse proxy</text>
+  </g>
+  <g id="node-app">
+    <rect x="136" y="384" width="128" height="48" rx="8" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="200" y="413.09" text-anchor="middle" font-size="14" fill="#1f2937">App servers</text>
+  </g>
+  <g id="node-vault">
+    <path d="M232 552 A64 8 0 0 1 360 552 L360 600 A64 8 0 0 1 232 600 Z" fill="#2563eb" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M232 552 A64 8 0 0 0 360 552" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="296" y="587.09" text-anchor="middle" font-size="14" fill="#ffffff">Secrets vault</text>
+  </g>
+  <g id="node-db">
+    <path d="M40 552 A72 8 0 0 1 184 552 L184 600 A72 8 0 0 1 40 600 Z" fill="#dbeafe" stroke="#1f2937" stroke-width="1.5"/>
+    <path d="M40 552 A72 8 0 0 0 184 552" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+    <text x="112" y="587.09" text-anchor="middle" font-size="14" fill="#1f2937">Customer data</text>
+  </g>
+  <g id="edge-users--waf">
+    <path d="M200 112 L200 168 L104 168 L104 224" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="152" y="160.11" text-anchor="middle" font-size="12" fill="#1f2937">HTTPS</text>
+  </g>
+  <g id="edge-waf--proxy">
+    <path d="M152 248 L200 248" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-proxy--app">
+    <path d="M272 272 L272 328 L200 328 L200 384" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-app--vault">
+    <path d="M248 432 L248 488 L296 488 L296 544" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="edge-app--db">
+    <path d="M152 432 L152 488 L112 488 L112 544" fill="none" stroke="#1f2937" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+  <g id="caption">
+    <text x="24" y="676.37" font-size="12" fill="#6b7280">Each zone only talks to the one directly below it.</text>
+  </g>
+</svg>

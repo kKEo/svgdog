@@ -1,0 +1,4 @@
+# Extra pictures for the galleries: one "<spec> <theme>" per line.
+# Each becomes tests/golden/<spec>-<theme>.svg; every spec here is also drawn in the default theme.
+sequence-payment paper
+sequence-payment blueprint-dark

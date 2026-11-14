@@ -1,0 +1,24 @@
+version: 1
+diagram: sequence
+title: Releasing a service
+description: A merged change is built, tested and rolled out to the cluster.
+caption: The rollout waits for the health check before it moves on.
+nodes:
+  - { id: dev, label: Developer, kind: actor }
+  - { id: ci, label: CI, kind: service }
+  - { id: registry, label: Registry, kind: datastore }
+  - { id: cluster, label: Cluster, kind: external, emphasis: true }
+edges:
+  - { id: merge, from: dev, to: ci, label: merge to main }
+  - { id: build, from: ci, to: ci, label: build and test }
+  - { id: push, from: ci, to: registry, label: push image }
+  - { id: roll, from: ci, to: cluster, label: start rollout }
+  - { id: pull, from: cluster, to: registry, label: pull image }
+  - { id: health, from: cluster, to: cluster, label: health check }
+  - { id: done, from: cluster, to: ci, label: rollout complete, style: async }
+  - { id: notify, from: ci, to: dev, label: released, style: async }
+steps:
+  - { text: A merge starts the pipeline., show: [dev, ci, merge] }
+  - { text: CI builds the change and stores the image., show: [build, push, registry] }
+  - { text: The cluster pulls the image and checks its health., show: [roll, pull, health, cluster] }
+  - { text: The developer hears that the release is out., show: [done, notify] }
