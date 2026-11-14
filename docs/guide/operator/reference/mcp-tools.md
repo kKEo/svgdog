@@ -35,11 +35,11 @@ Every path argument is checked before anything runs. A path is refused (`outside
 - it lies outside the root, including through symlinks, or
 - it climbs out with `..`.
 
-`-` (stdin or stdout) is refused in every path argument, because stdin and stdout carry the protocol (`invalid-argument`). Globs given to `svgdog_validate` are expanded first, and every file they reach is checked. Config discovery also stops at the root.
+`-` (stdin or stdout) is refused in every path argument, because stdin and stdout carry the protocol (`invalid-argument`). Globs given to `svgdog_validate` are expanded first, and every file they reach is checked. Config discovery also stops at the root. A theme folder is checked the same way, whether the `theme` argument, a spec or `svgdog.toml` names it.
 
 ## Tools
 
-All eleven tools return the CLI envelope as `structuredContent` and as JSON text in `content`. A failure sets `isError: true` and carries the error envelope. Unknown arguments are rejected (`unknown-field`, with a hint).
+All fourteen tools return the CLI envelope as `structuredContent` and as JSON text in `content`. A failure sets `isError: true` and carries the error envelope. Unknown arguments are rejected (`unknown-field`, with a hint).
 
 Tools marked † also accept the three config arguments:
 
@@ -59,7 +59,7 @@ Compile a spec (YAML or JSON) to SVG and validate it. Mirrors [`render`](command
 | `file` | path | one of the two | Diagram spec file |
 | `output` | path | no | Where to write the SVG; without it nothing is written and the SVG comes back in the envelope's `svg` field |
 | `preview` | boolean | no | Also return a PNG of the result as image content, 1200 px wide on a white page; the envelope gains `image` |
-| `theme` | string | no | `docs-light`, `docs-dark` or `docs-auto` |
+| `theme` | string | no | A built-in theme (`docs`, `blueprint`, `paper`, `bold`; add `-dark` or `-auto`) or a theme folder inside the root (add `#dark` or `#auto`) |
 | `frames` | boolean | no | One picture per step of the spec's `steps`; needs `output` |
 | `interactive` | string | no | `css` or `html`; see [Interactive versions](commands.md#interactive-versions) |
 | `embed_spec` | boolean | no | Store the spec inside the SVG |
@@ -162,7 +162,7 @@ Render the diagrams inside Markdown pages. Mirrors [`docs`](commands.md#docs). N
 | `paths` | list of paths | yes | Markdown files, or folders to search |
 | `check` | boolean | no | Write nothing; report what is out of date |
 | `assets` | string | no | Folder for the pictures, next to each page; default `diagrams`. A value with `..` is refused, so pictures stay below their page |
-| `theme` | string | no | Theme for every diagram |
+| `theme` | string | no | Theme for every diagram: a built-in name or a theme folder inside the root |
 | `force` | boolean | no | Lay a diagram out afresh when its boxes cannot stay where the picture on disk has them |
 | `interactive` | string | no | `css` or `html` |
 
@@ -175,6 +175,28 @@ Say in words what a diagram shows, and return its spec. Read-only. Mirrors [`des
 | `file` | path | yes | Spec, or an SVG rendered with `embed_spec` |
 | `short` | boolean | no | One or two sentences |
 
+### svgdog_theme_list
+
+List the built-in themes with their colours, fonts, sizes and line styles. Read-only. Takes no arguments. Mirrors [`theme list`](commands.md#theme).
+
+### svgdog_theme_init
+
+Write a `theme.toml`, copied from a built-in theme, into a folder. Mirrors [`theme init`](commands.md#theme).
+
+| Argument | Type | Required | Meaning |
+|---|---|---|---|
+| `dir` | path | yes | Folder for the theme; created when missing |
+| `from` | string | no | Built-in theme to copy; default `docs` |
+| `force` | boolean | no | Replace a `theme.toml` that is already there |
+
+### svgdog_theme_check
+
+Check a theme folder: the file, the contrast of its colours, and the bundled examples drawn with it. Read-only. Mirrors [`theme check`](commands.md#theme). Also takes the config arguments.
+
+| Argument | Type | Required | Meaning |
+|---|---|---|---|
+| `dir` | path | yes | Folder that holds the `theme.toml` |
+
 ### svgdog_examples
 
 List the bundled example specs, or return one in full. Read-only. Mirrors [`examples`](commands.md#examples).
@@ -183,7 +205,7 @@ List the bundled example specs, or return one in full. Read-only. Mirrors [`exam
 |---|---|---|---|
 | `name` | string | no | Example to return; omit to list them |
 
-Each tool's input schema sets `additionalProperties: false`, and its annotations say `readOnlyHint` (true for validate, inspect, schema, rules, describe and examples) and `openWorldHint: false`.
+Each tool's input schema sets `additionalProperties: false`, and its annotations say `readOnlyHint` (true for validate, inspect, schema, rules, describe, examples, theme_list and theme_check) and `openWorldHint: false`.
 
 ## Example call
 

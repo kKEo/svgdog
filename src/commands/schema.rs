@@ -8,6 +8,7 @@ pub fn run(name: SchemaName) -> Result<Output, AppError> {
         SchemaName::Findings => include_str!("../../schemas/findings.json"),
         SchemaName::Scene => include_str!("../../schemas/scene.json"),
         SchemaName::Ops => include_str!("../../schemas/ops.json"),
+        SchemaName::Theme => include_str!("../../schemas/theme.json"),
     };
     let json = serde_json::from_str(text).expect("bundled schema is valid JSON");
     Ok(Output { json, text: text.to_string(), exit: EXIT_OK, raw: None })

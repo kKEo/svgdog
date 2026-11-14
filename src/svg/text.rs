@@ -131,10 +131,10 @@ impl rustybuzz::ttf_parser::OutlineBuilder for Outline {
     }
 }
 
-/// Path data for a line of text set in the bundled sans face, starting at `x` on `baseline`.
-pub fn outline(text: &str, size: f64, x: f64, baseline: f64) -> String {
+/// Path data for a line of text set in a bundled face, starting at `x` on `baseline`.
+pub fn outline(text: &str, class: Class, size: f64, x: f64, baseline: f64) -> String {
     FONTS.with(|f| {
-        let face = f.face(Class::Sans, false);
+        let face = f.face(class, false);
         let mut buf = rustybuzz::UnicodeBuffer::new();
         buf.push_str(text);
         let shaped = rustybuzz::shape(face, &[], buf);

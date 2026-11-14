@@ -9,6 +9,7 @@ pub mod preview;
 pub mod render;
 pub mod rules;
 pub mod schema;
+pub mod theme;
 pub mod validate;
 
 use std::io::Read;

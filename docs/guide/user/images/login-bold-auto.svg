@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 800" data-svgdog="1" font-family="Inter, sans-serif">
+  <title>Login with a one-time code</title>
+  <desc>The messages exchanged when a user signs in with a code sent by email.</desc>
+  <style>@media (prefers-color-scheme: dark){.f-af{fill:#fb7185}.f-at{fill:#0a0a0a}.f-bg{fill:#0a0a0a}.f-ed{fill:#fafafa}.f-mu{fill:#a3a3a3}.f-nf{fill:#1e1b4b}.f-no{fill:#171717}.f-tx{fill:#fafafa}.s-ed{stroke:#fafafa}.s-mu{stroke:#a3a3a3}.s-ns{stroke:#fafafa}}</style>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#0a0a0a" class="f-ed"/></marker>
+  </defs>
+  <rect x="0" y="0" width="920" height="800" fill="#ffffff" class="f-bg"/>
+  <g id="group-backend">
+    <rect x="280" y="96" width="328" height="136" rx="10" fill="none" stroke="#525252" stroke-width="1.5" class="s-mu"/>
+    <text x="292" y="120.73" font-size="13" fill="#525252" class="f-mu">Backend</text>
+  </g>
+  <g id="node-user">
+    <line x1="72" y1="216" x2="72" y2="704" stroke="#525252" stroke-width="1.5" stroke-dasharray="4 4" class="s-mu"/>
+    <rect x="24" y="152" width="96" height="64" rx="32" fill="#e0e7ff" stroke="#0a0a0a" stroke-width="2.5" class="f-nf s-ns"/>
+    <text x="72" y="189.82" text-anchor="middle" font-size="16" fill="#0a0a0a" class="f-tx">User</text>
+  </g>
+  <g id="node-app">
+    <line x1="208" y1="216" x2="208" y2="704" stroke="#525252" stroke-width="1.5" stroke-dasharray="4 4" class="s-mu"/>
+    <rect x="152" y="136" width="112" height="80" rx="10" fill="#e0e7ff" stroke="#0a0a0a" stroke-width="2.5" class="f-nf s-ns"/>
+    <line x1="152" y1="152" x2="264" y2="152" stroke="#0a0a0a" stroke-width="2.5" class="s-ns"/>
+    <text x="208" y="189.82" text-anchor="middle" font-size="16" fill="#0a0a0a" class="f-tx">Web app</text>
+  </g>
+  <g id="node-auth">
+    <line x1="344" y1="216" x2="344" y2="704" stroke="#525252" stroke-width="1.5" stroke-dasharray="4 4" class="s-mu"/>
+    <rect x="296" y="136" width="96" height="80" rx="10" fill="#be123c" stroke="#0a0a0a" stroke-width="2.5" class="f-af s-ns"/>
+    <text text-anchor="middle" font-size="16" fill="#ffffff" class="f-at"><tspan x="344" y="170.82">Auth</tspan><tspan x="344" y="192.82">service</tspan></text>
+  </g>
+  <g id="node-db">
+    <line x1="536" y1="216" x2="536" y2="704" stroke="#525252" stroke-width="1.5" stroke-dasharray="4 4" class="s-mu"/>
+    <path d="M480 144 A56 8 0 0 1 592 144 L592 208 A56 8 0 0 1 480 208 Z" fill="#e0e7ff" stroke="#0a0a0a" stroke-width="2.5" class="f-nf s-ns"/>
+    <path d="M480 144 A56 8 0 0 0 592 144" fill="none" stroke="#0a0a0a" stroke-width="2.5" class="s-ns"/>
+    <text x="536" y="187.82" text-anchor="middle" font-size="16" fill="#0a0a0a" class="f-tx">Users DB</text>
+  </g>
+  <g id="node-mail">
+    <line x1="680" y1="216" x2="680" y2="704" stroke="#525252" stroke-width="1.5" stroke-dasharray="4 4" class="s-mu"/>
+    <rect x="624" y="136" width="112" height="80" rx="5" fill="#e0e7ff" stroke="#0a0a0a" stroke-width="2.5" stroke-dasharray="6 4" class="f-nf s-ns"/>
+    <text text-anchor="middle" font-size="16" fill="#0a0a0a" class="f-tx"><tspan x="680" y="170.82">Mail</tspan><tspan x="680" y="192.82">provider</tspan></text>
+  </g>
+  <g id="edge-user--app">
+    <path d="M72 256 L208 256" fill="none" stroke="#0a0a0a" stroke-width="2.5" marker-end="url(#arrow)" class="s-ed"/>
+    <text x="140" y="247.86" text-anchor="middle" font-size="13" fill="#0a0a0a" class="f-tx">enter email</text>
+  </g>
+  <g id="edge-app--auth">
+    <path d="M208 296 L344 296" fill="none" stroke="#0a0a0a" stroke-width="2.5" marker-end="url(#arrow)" class="s-ed"/>
+    <text x="276" y="287.86" text-anchor="middle" font-size="13" fill="#0a0a0a" class="f-tx">POST /login</text>
+  </g>
+  <g id="edge-auth--db">
+    <path d="M344 336 L536 336" fill="none" stroke="#0a0a0a" stroke-width="2.5" marker-end="url(#arrow)" class="s-ed"/>
+    <text x="440" y="327.86" text-anchor="middle" font-size="13" fill="#0a0a0a" class="f-tx">find user</text>
+  </g>
+  <g id="edge-found">
+    <path d="M536 376 L344 376" fill="none" stroke="#0a0a0a" stroke-width="2.5" stroke-dasharray="6 4" marker-end="url(#arrow)" class="s-ed"/>
+    <text x="440" y="367.86" text-anchor="middle" font-size="13" fill="#0a0a0a" class="f-tx">user row</text>
+  </g>
+  <g id="edge-make-code">
+    <path d="M344 416 L376 416 L376 432 L344 432" fill="none" stroke="#0a0a0a" stroke-width="2.5" marker-end="url(#arrow)" class="s-ed"/>
+    <text x="423.55" y="428.73" text-anchor="middle" font-size="13" fill="#0a0a0a" class="f-tx">create code</text>
+  </g>
+  <g id="edge-auth--mail">
+    <path d="M344 472 L680 472" fill="none" stroke="#0a0a0a" stroke-width="2.5" stroke-dasharray="6 4" marker-end="url(#arrow)" class="s-ed"/>
+    <text x="440" y="463.86" text-anchor="middle" font-size="13" fill="#0a0a0a" class="f-tx">send code</text>
+  </g>
+  <g id="edge-accepted">
+    <path d="M344 512 L208 512" fill="none" stroke="#0a0a0a" stroke-width="2.5" stroke-dasharray="6 4" marker-end="url(#arrow)" class="s-ed"/>
+    <text x="276" y="503.86" text-anchor="middle" font-size="13" fill="#0a0a0a" class="f-tx">202 Accepted</text>
+  </g>
+  <g id="edge-prompt">
+    <path d="M208 552 L72 552" fill="none" stroke="#0a0a0a" stroke-width="2.5" stroke-dasharray="6 4" marker-end="url(#arrow)" class="s-ed"/>
+    <text x="140" y="543.86" text-anchor="middle" font-size="13" fill="#0a0a0a" class="f-tx">ask for the code</text>
+  </g>
+  <g id="edge-code-in">
+    <path d="M72 592 L208 592" fill="none" stroke="#0a0a0a" stroke-width="2.5" marker-end="url(#arrow)" class="s-ed"/>
+    <text x="140" y="583.86" text-anchor="middle" font-size="13" fill="#0a0a0a" class="f-tx">enter code</text>
+  </g>
+  <g id="edge-verify">
+    <path d="M208 632 L344 632" fill="none" stroke="#0a0a0a" stroke-width="2.5" marker-end="url(#arrow)" class="s-ed"/>
+    <text x="276" y="623.86" text-anchor="middle" font-size="13" fill="#0a0a0a" class="f-tx">POST /verify</text>
+  </g>
+  <g id="edge-session">
+    <path d="M344 672 L208 672" fill="none" stroke="#0a0a0a" stroke-width="2.5" stroke-dasharray="6 4" marker-end="url(#arrow)" class="s-ed"/>
+    <text x="276" y="663.86" text-anchor="middle" font-size="13" fill="#0a0a0a" class="f-tx">session cookie</text>
+  </g>
+  <g id="note-1">
+    <line x1="768" y1="424" x2="467.09" y2="424" stroke="#525252" stroke-width="1.5" stroke-dasharray="2 3" class="s-mu"/>
+    <rect x="768" y="400" width="128" height="48" rx="5" fill="#fef9c3" stroke="#525252" stroke-width="1.5" class="f-no s-mu"/>
+    <text text-anchor="middle" font-size="13" fill="#0a0a0a" class="f-tx"><tspan x="832" y="420.23">Six digits, valid</tspan><tspan x="832" y="437.23">for ten minutes</tspan></text>
+  </g>
+  <g id="note-2">
+    <line x1="680" y1="728" x2="680" y2="704" stroke="#525252" stroke-width="1.5" stroke-dasharray="2 3" class="s-mu"/>
+    <rect x="632" y="728" width="96" height="48" rx="5" fill="#fef9c3" stroke="#525252" stroke-width="1.5" class="f-no s-mu"/>
+    <text text-anchor="middle" font-size="13" fill="#0a0a0a" class="f-tx"><tspan x="680" y="748.23">Third-party</tspan><tspan x="680" y="765.23">service</tspan></text>
+  </g>
+  <g id="note-3">
+    <line x1="448" y1="72" x2="448" y2="96" stroke="#525252" stroke-width="1.5" stroke-dasharray="2 3" class="s-mu"/>
+    <rect x="384" y="24" width="128" height="48" rx="5" fill="#fef9c3" stroke="#525252" stroke-width="1.5" class="f-no s-mu"/>
+    <text text-anchor="middle" font-size="13" fill="#0a0a0a" class="f-tx"><tspan x="448" y="44.23">Runs in the</tspan><tspan x="448" y="61.23">private network</tspan></text>
+  </g>
+</svg>

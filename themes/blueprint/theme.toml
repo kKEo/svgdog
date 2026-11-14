@@ -1,0 +1,37 @@
+# An engineering drawing: fine lines, square corners and a monospace face.
+version = 1
+name = "blueprint"
+description = "Engineering drawing: fine blue lines, square corners, monospace"
+
+[font]
+family = ["JetBrains Mono", "monospace"]
+size = 13
+small = 12
+
+[line]
+width = 1
+thin = 1
+corner = 0
+box_corner = 0
+
+[light]            # blue ink on white paper
+background = "#ffffff"
+text = "#12356b"
+muted = "#54698c"
+node_fill = "#eef4fc"
+node_stroke = "#12356b"
+accent_fill = "#12356b"
+accent_text = "#ffffff"
+note_fill = "#ffffff"
+edge = "#12356b"
+
+[dark]             # pale lines on blue paper
+background = "#0f2f5c"
+text = "#e8f1ff"
+muted = "#a9c0e4"
+node_fill = "#153d75"
+node_stroke = "#cfe0fa"
+accent_fill = "#e8f1ff"
+accent_text = "#0f2f5c"
+note_fill = "#0f2f5c"
+edge = "#cfe0fa"

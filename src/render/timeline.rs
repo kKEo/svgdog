@@ -4,7 +4,7 @@
 use kurbo::{Point, Rect, Vec2};
 
 use super::layout::{self, GAP, Geometry, Measured, PAD, PAD_LABEL, up};
-use super::theme::SMALL;
+use super::theme::Theme;
 use super::{Drawn, Mark};
 use crate::spec::{Direction, Spec};
 
@@ -29,11 +29,11 @@ fn units(spec: &Spec) -> Vec<Unit> {
 }
 
 const DOT_TO_BOX: f64 = 24.0;
-const LINE: f64 = 16.0;
 
-pub fn arrange(spec: &Spec, m: &Measured) -> Drawn {
+pub fn arrange(spec: &Spec, m: &Measured, theme: &Theme) -> Drawn {
+    let line = theme.small_lead();
     let units = units(spec);
-    let when_w: Vec<f64> = spec.nodes.iter().map(|n| n.when.as_deref().map(|w| layout::text_width(w, SMALL) * 1.08).unwrap_or(0.0)).collect();
+    let when_w: Vec<f64> = spec.nodes.iter().map(|n| n.when.as_deref().map(|w| layout::text_width(w, theme.small, theme.class) * 1.08).unwrap_or(0.0)).collect();
     let pad = if spec.groups.is_empty() { 0.0 } else { PAD };
     let mut geo = Geometry { nodes: vec![Rect::ZERO; spec.nodes.len()], groups: vec![Rect::ZERO; spec.groups.len()], notes: Vec::new() };
     let mut marks: Vec<Vec<Mark>> = vec![Vec::new(); spec.nodes.len()];
@@ -67,7 +67,7 @@ pub fn arrange(spec: &Spec, m: &Measured) -> Drawn {
             let labelled = row.iter().any(|u| u.group.is_some_and(|g| spec.groups[g].label.is_some()));
             let (head, pad) = if labelled { (PAD_LABEL, PAD) } else if row.iter().any(|u| u.group.is_some()) { (PAD, PAD) } else { (0.0, 0.0) };
             let tall = row.iter().flat_map(|u| &u.nodes).map(|i| m.nodes[*i].h).fold(0.0, f64::max);
-            let (when_y, axis_y) = (y + head + LINE / 2.0, y + head + LINE + 12.0);
+            let (when_y, axis_y) = (y + head + line / 2.0, y + head + line + 12.0);
             let box_y = axis_y + DOT_TO_BOX;
             let bottom = box_y + tall + pad;
             let mut x = 0.0;
@@ -142,7 +142,7 @@ pub fn arrange(spec: &Spec, m: &Measured) -> Drawn {
     for mark in marks.iter().flatten() {
         if let Mark::When { at, anchor, width, .. } = mark {
             let x0 = if *anchor == "end" { at.x - width } else { at.x - width / 2.0 };
-            b = b.union(Rect::new(x0, at.y - LINE / 2.0, x0 + width, at.y + LINE / 2.0));
+            b = b.union(Rect::new(x0, at.y - line / 2.0, x0 + width, at.y + line / 2.0));
         }
     }
     let (left, top) = ((b.x0 / 8.0).floor() * 8.0, (b.y0 / 8.0).floor() * 8.0);

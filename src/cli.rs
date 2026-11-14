@@ -74,6 +74,7 @@ pub enum SchemaName {
     Findings,
     Scene,
     Ops,
+    Theme,
 }
 
 #[derive(Subcommand, Debug)]
@@ -87,8 +88,8 @@ pub enum Command {
         /// Where to write the SVG; - writes it to stdout in place of the report
         #[arg(short = 'o', value_name = "OUT")]
         output: String,
-        /// Theme: docs-light, docs-dark or docs-auto [default: the spec's, else docs-light]
-        #[arg(long, value_name = "NAME")]
+        /// Theme: docs, blueprint, paper or bold (add -dark or -auto), or a theme folder [default: the spec's, else svgdog.toml's, else docs-light]
+        #[arg(long, value_name = "NAME|DIR")]
         theme: Option<String>,
         /// css: an SVG that highlights on hover; html: a page with step controls [default: none]
         #[arg(long, value_enum, default_value = "none", value_name = "none|css|html", hide_possible_values = true, hide_default_value = true)]
@@ -232,7 +233,7 @@ pub enum Command {
     /// Print a JSON Schema
     #[command(after_help = "Example:\n  svgdog schema findings")]
     Schema {
-        #[arg(value_enum, value_name = "spec|config|findings|scene|ops")]
+        #[arg(value_enum, value_name = "spec|config|findings|scene|ops|theme")]
         name: SchemaName,
     },
     /// List or explain rules
@@ -254,8 +255,8 @@ pub enum Command {
         /// Folder for the pictures, next to each page
         #[arg(long, default_value = "diagrams", value_name = "DIR")]
         assets: String,
-        /// Theme for every diagram: docs-light, docs-dark or docs-auto [default: each spec's]
-        #[arg(long, value_name = "NAME")]
+        /// Theme for every diagram: a built-in name or a theme folder [default: each spec's]
+        #[arg(long, value_name = "NAME|DIR")]
         theme: Option<String>,
         /// Lay a diagram out afresh when its boxes cannot stay where the picture on disk has them
         #[arg(long, conflicts_with = "check")]
@@ -281,6 +282,38 @@ pub enum Command {
         #[arg(value_name = "NAME")]
         name: Option<String>,
     },
+    /// List the built-in themes, start a theme of your own, or check one
+    #[command(after_help = "Example:\n  svgdog theme init themes/acme --from paper")]
+    Theme {
+        #[command(subcommand)]
+        action: ThemeAction,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ThemeAction {
+    /// List the built-in themes
+    List,
+    /// Write a theme.toml to start from into a folder
+    #[command(after_help = "Example:\n  svgdog theme init themes/acme --from paper")]
+    Init {
+        /// Folder for the theme; it is created when missing
+        #[arg(value_name = "DIR")]
+        dir: String,
+        /// Built-in theme to copy: docs, blueprint, paper or bold
+        #[arg(long, default_value = "docs", value_name = "NAME")]
+        from: String,
+        /// Replace a theme.toml that is already there
+        #[arg(long)]
+        force: bool,
+    },
+    /// Check a theme folder: the file, the contrast of its colours, and the bundled examples drawn with it
+    #[command(after_help = "Example:\n  svgdog theme check themes/acme")]
+    Check {
+        /// Folder that holds the theme.toml
+        #[arg(value_name = "DIR")]
+        dir: String,
+    },
 }
 
 impl Command {
@@ -298,10 +331,11 @@ impl Command {
             Command::Examples { .. } => "examples",
             Command::Describe { .. } => "describe",
             Command::Docs { .. } => "docs",
+            Command::Theme { .. } => "theme",
         }
     }
 }
 
-pub const COMMANDS: &[&str] = &["render", "validate", "inspect", "preview", "edit", "fix", "mcp", "schema", "rules", "examples", "describe", "docs"];
+pub const COMMANDS: &[&str] = &["render", "validate", "inspect", "preview", "edit", "fix", "mcp", "schema", "rules", "examples", "describe", "docs", "theme"];
 /// Specified commands that are not built yet.
 pub const PLANNED: &[&str] = &[];

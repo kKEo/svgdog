@@ -135,19 +135,21 @@ pub fn run(file: &str, inline: Option<&str>, output: &str, theme: Option<&str>, 
     let cfg = loader.for_input(path)?;
     let settings = cfg.settings(path, profile, &RuleSel::default());
 
+    // A theme folder named in the spec is found from where the spec is.
+    let spec_dir = path.and_then(|p| p.parent()).unwrap_or(Path::new(""));
+    let look = render::theme::choose(&render::theme::Choice { flag: theme, spec: jobs[0].1.theme.as_deref(), spec_dir, config: cfg.theme(), ceiling: loader.ceiling() })?.with_fonts(cfg.fonts());
+
     let page = |svg: String, job: &spec::Spec| -> String {
         if live != Live::Html {
             return svg;
         }
-        let name = theme.or(job.theme.as_deref()).unwrap_or("docs-light");
-        let (light, dark) = if name == render::theme::AUTO { (&render::theme::THEMES[0], Some(&render::theme::THEMES[1])) } else { (render::theme::find(name).unwrap_or(&render::theme::THEMES[0]), None) };
-        render::interactive::page(&svg, job, light, dark)
+        render::interactive::page(&svg, job, &look.theme, look.dark.as_ref())
     };
     if check {
         // Compare with what is on disk; a file that is missing or different is stale.
         let mut stale: Vec<Value> = Vec::new();
         for (out, job) in &jobs {
-            let opt = render::Options { theme, fonts: cfg.fonts(), text_as_paths, embed: embed.then_some(&doc), interactive: live != Live::None };
+            let opt = render::Options { theme: &look, text_as_paths, embed: embed.then_some(&doc), interactive: live != Live::None };
             match std::fs::read(out.as_str()) {
                 Ok(bytes) if current(&bytes, Path::new(previous.unwrap_or(out)), job, &opt, &|svg| page(svg, job))? => {}
                 Ok(_) => stale.push(json!({ "path": out, "reason": "differs" })),
@@ -172,7 +174,7 @@ pub fn run(file: &str, inline: Option<&str>, output: &str, theme: Option<&str>, 
     let mut drawn = Vec::new();
     let mut layout: Option<(Value, String)> = None;
     for (out, job) in &jobs {
-        let opt = render::Options { theme, fonts: cfg.fonts(), text_as_paths, embed: embed.then_some(&doc), interactive: live != Live::None };
+        let opt = render::Options { theme: &look, text_as_paths, embed: embed.then_some(&doc), interactive: live != Live::None };
         let laid = lay(job, &opt, earlier.as_ref().zip(previous), force)?;
         if layout.is_none() || laid.relaid {
             layout = layout_json(previous.unwrap_or(""), &laid).map(|j| (j, layout_text(&laid)));

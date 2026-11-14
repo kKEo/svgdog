@@ -6,17 +6,18 @@ This page explains what the golden files in `tests/golden/` are, how to regenera
 
 A golden file is a saved expected output. The test `r8_output_matches_the_golden_files` in `tests/cli.rs` runs SVGDog, compares the bytes it produces with the saved files, and fails on any difference. Because SVGDog promises identical output for identical input (requirement R8), a one-byte change is a finding.
 
-The test produces and compares these nine files:
+The test produces and compares these files, among others:
 
 | Golden file | Produced by |
 |---|---|
 | `orders.svg`, `checkout.svg`, `tiers.svg`, `rack.svg`, `login.svg` | `svgdog render tests/fixtures/<name>.yaml -o <name>.svg --no-config` |
 | `orders-dark-paths.svg` | `render` of `orders.yaml` with `--theme docs-dark --text-as-paths` |
+| `orders-blueprint-dark.svg`, `walkthrough-paper.svg`, `login-bold-auto.svg` | `render` of the fixture in the name with `--theme blueprint-dark`, `paper` and `bold-auto`: one drawing per built-in theme beyond the default |
 | `broken.findings.json` | `svgdog validate tests/fixtures/broken.svg --no-config --max-findings 500` (the file path is replaced by `broken.svg`) |
 | `orders.scene.json` | `svgdog inspect orders.svg --fields id,tag,bbox,text,fill,stroke,refs` |
 | `orders.png` | `svgdog preview orders.svg -o orders.png --width 800 --annotate --no-config` |
 
-Together they exercise the layout and routing code, both themes, the text-to-path emitter, the finding format, the scene format, and the PNG rasterizer with the bundled fonts.
+Together they exercise the layout and routing code, every built-in theme, the text-to-path emitter, the finding format, the scene format, and the PNG rasterizer with the bundled fonts.
 
 ![Preview image of the orders diagram, 800 pixels wide: a Storefront client box on the left sends POST /orders to an Order API service inside a Backend group, which inserts into an Orders DB cylinder and publishes through a dashed arrow to a Fulfilment queue with an At-least-once delivery note](../images/orders.png)
 

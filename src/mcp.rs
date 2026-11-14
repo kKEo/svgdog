@@ -80,7 +80,7 @@ const TOOLS: &[Tool] = &[
             arg("file", Kind::Path, None, false, "Diagram spec file, in place of 'spec'"),
             arg("output", Kind::Path, Some("-o"), false, "Where to write the SVG; omit to get it back in the result"),
             arg("preview", Kind::Bool, None, false, "Also return a PNG image of the result, to look at"),
-            arg("theme", Kind::Str, Some("--theme"), false, "docs-light, docs-dark, or docs-auto (follows the reader's light or dark mode)"),
+            arg("theme", Kind::Str, Some("--theme"), false, "Built-in theme: docs, blueprint, paper or bold; add -dark, or -auto to follow the reader's light or dark mode. Or a theme folder inside the root, such as ./themes/acme (add #dark or #auto). svgdog_theme_list describes them. Default: the spec's, else svgdog.toml's, else docs-light"),
             arg("interactive", Kind::Str, Some("--interactive"), false, "css: one SVG that highlights related things on hover and focus. html: a self-contained page with step controls and details. Default none"),
             arg("embed_spec", Kind::Bool, Some("--embed-spec"), false, "Store the spec inside the SVG, so svgdog_describe can read the drawing back"),
             arg("check", Kind::Bool, Some("--check"), false, "Write nothing; report whether 'output' is what the spec renders now"),
@@ -191,7 +191,7 @@ const TOOLS: &[Tool] = &[
             arg("paths", Kind::PathList, None, true, "Markdown files, or folders to search for them"),
             arg("check", Kind::Bool, Some("--check"), false, "Write nothing; report what is out of date"),
             arg("assets", Kind::Str, Some("--assets"), false, "Folder for the pictures, next to each page; default diagrams"),
-            arg("theme", Kind::Str, Some("--theme"), false, "docs-light, docs-dark or docs-auto, for every diagram"),
+            arg("theme", Kind::Str, Some("--theme"), false, "A built-in theme (docs, blueprint, paper, bold; add -dark or -auto) or a theme folder, for every diagram"),
             arg("force", Kind::Bool, Some("--force"), false, "A picture that exists keeps its boxes in place when its diagram changes; with force, a diagram whose boxes cannot stay is laid out afresh in place of failing"),
             arg("interactive", Kind::Str, Some("--interactive"), false, "css or html; default none"),
         ],
@@ -203,6 +203,30 @@ const TOOLS: &[Tool] = &[
         read_only: true,
         config: false,
         args: &[arg("file", Kind::Path, None, true, "Diagram spec, or an SVG rendered with embed_spec"), arg("short", Kind::Bool, Some("--short"), false, "One or two sentences, as for alt text")],
+    },
+    Tool {
+        name: "svgdog_theme_list",
+        command: "theme list",
+        about: "List the built-in themes with their colours, fonts, sizes and line styles. Use a name as 'theme' in svgdog_render or in a spec.",
+        read_only: true,
+        config: false,
+        args: &[],
+    },
+    Tool {
+        name: "svgdog_theme_init",
+        command: "theme init",
+        about: "Start a theme of your own: write a theme.toml, copied from a built-in theme, into a folder. Change the file, check it with svgdog_theme_check, and use the folder as 'theme' (for example ./themes/acme).",
+        read_only: false,
+        config: false,
+        args: &[arg("dir", Kind::Path, None, true, "Folder for the theme; created when missing"), arg("from", Kind::Str, Some("--from"), false, "Built-in theme to copy: docs, blueprint, paper or bold; default docs"), arg("force", Kind::Bool, Some("--force"), false, "Replace a theme.toml that is already there")],
+    },
+    Tool {
+        name: "svgdog_theme_check",
+        command: "theme check",
+        about: "Check a theme folder: that its theme.toml is valid, that colours which sit on each other have enough contrast, and that the bundled examples drawn with it have no findings.",
+        read_only: true,
+        config: true,
+        args: &[arg("dir", Kind::Path, None, true, "Folder that holds the theme.toml")],
     },
     Tool {
         name: "svgdog_examples",
@@ -292,7 +316,9 @@ fn call(root: &Path, tool: &Tool, args: &Map<String, Value>) -> Result<crate::en
             return Err(AppError::usage("unknown-field", format!("Unknown argument '{k}' for {}.", tool.name)).path(k.clone()).suggest(did_you_mean(k, all_args(tool).map(|a| a.name))));
         }
     }
-    let mut argv: Vec<String> = vec!["svgdog".into(), "--format".into(), "json".into(), "--quiet".into(), tool.command.into()];
+    let mut argv: Vec<String> = vec!["svgdog".into(), "--format".into(), "json".into(), "--quiet".into()];
+    // A tool for a subcommand names both words.
+    argv.extend(tool.command.split(' ').map(String::from));
     let mut inline_ops = None;
     let mut inline_spec = None;
     let render = tool.command == "render";
@@ -519,11 +545,12 @@ mod tests {
     #[test]
     fn every_command_has_a_tool_and_every_tool_argument_is_a_real_flag() {
         let names: Vec<&str> = TOOLS.iter().map(|t| t.command).collect();
-        assert_eq!(names, vec!["render", "validate", "inspect", "preview", "edit", "fix", "schema", "rules", "docs", "describe", "examples"]);
+        assert_eq!(names, vec!["render", "validate", "inspect", "preview", "edit", "fix", "schema", "rules", "docs", "describe", "theme list", "theme init", "theme check", "examples"]);
         use clap::CommandFactory;
         let cmd = Cli::command();
         for t in TOOLS {
-            let sub = cmd.find_subcommand(t.command).unwrap();
+            // A tool for a subcommand names both words.
+            let sub = t.command.split(' ').fold(&cmd, |c, word| c.find_subcommand(word).unwrap());
             for a in all_args(t) {
                 if let Some(flag) = a.flag {
                     let known = sub.get_arguments().chain(cmd.get_arguments()).any(|x| x.get_long().map(|l| format!("--{l}")) == Some(flag.to_string()) || x.get_short().map(|s| format!("-{s}")) == Some(flag.to_string()));

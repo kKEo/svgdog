@@ -3,7 +3,7 @@
 
 use kurbo::{Point, Rect};
 
-use super::theme::{FONT, SMALL};
+use super::theme::Theme;
 use crate::spec::{Diagram, Direction, Kind, Ref, Side, Spec};
 use crate::svg::text::{self, Class};
 
@@ -36,18 +36,18 @@ pub fn snap(v: f64) -> f64 {
     (v / 8.0).round() * 8.0
 }
 
-pub fn text_width(s: &str, size: f64) -> f64 {
-    text::measure(s, Class::Sans, false).width * size
+pub fn text_width(s: &str, size: f64, class: Class) -> f64 {
+    text::measure(s, class, false).width * size
 }
 
 /// Greedy word wrap; explicit newlines always break.
-pub fn wrap(label: &str, size: f64, max: f64) -> Vec<String> {
+pub fn wrap(label: &str, size: f64, max: f64, class: Class) -> Vec<String> {
     let mut lines = Vec::new();
     for para in label.split('\n') {
         let mut cur = String::new();
         for word in para.split_whitespace() {
             let trial = if cur.is_empty() { word.to_string() } else { format!("{cur} {word}") };
-            if !cur.is_empty() && text_width(&trial, size) * (1.0 + RESERVE) > max {
+            if !cur.is_empty() && text_width(&trial, size, class) * (1.0 + RESERVE) > max {
                 lines.push(std::mem::take(&mut cur));
                 cur = word.to_string();
             } else {
@@ -68,9 +68,9 @@ pub struct TextBlock {
     pub width: f64,
 }
 
-fn block(label: &str, size: f64, max: f64) -> TextBlock {
-    let lines = wrap(label, size, max);
-    let width = lines.iter().map(|l| text_width(l, size)).fold(0.0, f64::max) * (1.0 + RESERVE);
+fn block(label: &str, size: f64, max: f64, class: Class) -> TextBlock {
+    let lines = wrap(label, size, max, class);
+    let width = lines.iter().map(|l| text_width(l, size, class)).fold(0.0, f64::max) * (1.0 + RESERVE);
     TextBlock { lines, width }
 }
 
@@ -96,23 +96,24 @@ pub struct Measured {
     pub edge_label: Vec<Option<(f64, f64)>>,
 }
 
-pub fn measure(spec: &Spec, t: &Tuning) -> Measured {
+pub fn measure(spec: &Spec, t: &Tuning, theme: &Theme) -> Measured {
+    let (class, lead, small_lead) = (theme.class, theme.lead(), theme.small_lead());
     let nodes = spec
         .nodes
         .iter()
         .map(|n| {
             let fixed = n.width.map(|w| up(w, 16.0));
-            let text = block(&n.label, FONT, fixed.map(|w| (w - 32.0).max(24.0)).unwrap_or(t.wrap));
+            let text = block(&n.label, theme.size, fixed.map(|w| (w - 32.0).max(24.0)).unwrap_or(t.wrap), class);
             let lines = text.lines.len() as f64;
             let (w, h, text_dy) = match n.kind {
                 Kind::Start | Kind::End => (24.0, 24.0, 0.0),
-                Kind::Decision => (up(text.width * 1.5 + 48.0, 16.0).max(128.0), up(lines * 20.0 + 44.0, 16.0).max(64.0), 0.0),
-                Kind::Datastore => (up(text.width + 32.0, 16.0).max(96.0), up(lines * 20.0 + 44.0, 16.0).max(64.0), 6.0),
-                Kind::Client => (up(text.width + 32.0, 16.0).max(96.0), up(lines * 20.0 + 44.0, 16.0).max(64.0), 8.0),
-                Kind::Queue => (up(text.width + 56.0, 16.0).max(112.0), up(lines * 20.0 + 28.0, 16.0).max(48.0), 0.0),
-                Kind::Actor => (up(text.width + 48.0, 16.0).max(96.0), up(lines * 20.0 + 28.0, 16.0).max(48.0), 0.0),
-                Kind::Document => (up(text.width + 32.0, 16.0).max(96.0), up(lines * 20.0 + 40.0, 16.0).max(64.0), -4.0),
-                _ => (up(text.width + 32.0, 16.0).max(96.0), up(lines * 20.0 + 28.0, 16.0).max(48.0), 0.0),
+                Kind::Decision => (up(text.width * 1.5 + 48.0, 16.0).max(128.0), up(lines * lead + 44.0, 16.0).max(64.0), 0.0),
+                Kind::Datastore => (up(text.width + 32.0, 16.0).max(96.0), up(lines * lead + 44.0, 16.0).max(64.0), 6.0),
+                Kind::Client => (up(text.width + 32.0, 16.0).max(96.0), up(lines * lead + 44.0, 16.0).max(64.0), 8.0),
+                Kind::Queue => (up(text.width + 56.0, 16.0).max(112.0), up(lines * lead + 28.0, 16.0).max(48.0), 0.0),
+                Kind::Actor => (up(text.width + 48.0, 16.0).max(96.0), up(lines * lead + 28.0, 16.0).max(48.0), 0.0),
+                Kind::Document => (up(text.width + 32.0, 16.0).max(96.0), up(lines * lead + 40.0, 16.0).max(64.0), -4.0),
+                _ => (up(text.width + 32.0, 16.0).max(96.0), up(lines * lead + 28.0, 16.0).max(48.0), 0.0),
             };
             NodeBox { w: fixed.map(|f| f.max(w.min(f))).unwrap_or(w), h, text, text_dy }
         })
@@ -121,12 +122,12 @@ pub fn measure(spec: &Spec, t: &Tuning) -> Measured {
         .notes
         .iter()
         .map(|n| {
-            let text = block(&n.text, SMALL, t.note_wrap);
-            NoteBox { w: up(text.width + 20.0, 16.0).max(64.0), h: up(text.lines.len() as f64 * 16.0 + 14.0, 16.0).max(32.0), text }
+            let text = block(&n.text, theme.small, t.note_wrap, class);
+            NoteBox { w: up(text.width + 20.0, 16.0).max(64.0), h: up(text.lines.len() as f64 * small_lead + 14.0, 16.0).max(32.0), text }
         })
         .collect();
-    let group_label = spec.groups.iter().map(|g| g.label.as_deref().map(|l| text_width(l, SMALL) * (1.0 + RESERVE)).unwrap_or(0.0)).collect();
-    let (asc, desc) = text::vmetrics(Class::Sans, false);
+    let group_label = spec.groups.iter().map(|g| g.label.as_deref().map(|l| text_width(l, theme.small, class) * (1.0 + RESERVE)).unwrap_or(0.0)).collect();
+    let (asc, desc) = text::vmetrics(class, false);
     // An edge named by a step carries its number beside the label, or alone.
     let edge_label = spec
         .edges
@@ -134,8 +135,8 @@ pub fn measure(spec: &Spec, t: &Tuning) -> Measured {
         .enumerate()
         .map(|(i, e)| {
             let badges = spec.steps_of(crate::spec::Ref::Edge(i)).len();
-            let text = e.label.as_deref().map(|l| text_width(l, SMALL) * (1.0 + RESERVE));
-            (text.is_some() || badges > 0).then(|| (text.unwrap_or(0.0) + super::explain::badge_room(badges, text.is_some()), if badges > 0 { super::explain::BADGE } else { (asc + desc) * SMALL }))
+            let text = e.label.as_deref().map(|l| text_width(l, theme.small, class) * (1.0 + RESERVE));
+            (text.is_some() || badges > 0).then(|| (text.unwrap_or(0.0) + super::explain::badge_room(badges, text.is_some()), if badges > 0 { super::explain::BADGE } else { (asc + desc) * theme.small }))
         })
         .collect();
     Measured { nodes, notes, group_label, edge_label }

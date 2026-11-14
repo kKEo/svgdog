@@ -1,0 +1,37 @@
+# The default look: quiet colours for documentation pages.
+version = 1
+name = "docs"
+description = "The default: quiet blue and grey for documentation pages"
+
+[font]
+family = ["Inter", "sans-serif"]
+size = 14          # labels in boxes
+small = 12         # arrow labels, notes, legend, steps and caption
+
+[line]
+width = 1.5        # boxes and arrows
+thin = 1           # frames, notes and guide lines
+corner = 8         # rounded kinds (service, client, state) and frames; notes use half
+box_corner = 0     # the plain box
+
+[light]
+background = "#ffffff"
+text = "#1f2937"
+muted = "#6b7280"
+node_fill = "#dbeafe"
+node_stroke = "#1f2937"
+accent_fill = "#2563eb"
+accent_text = "#ffffff"
+note_fill = "#ffffff"
+edge = "#1f2937"
+
+[dark]
+background = "#0d1117"
+text = "#e5e7eb"
+muted = "#94a3b8"
+node_fill = "#1e293b"
+node_stroke = "#94a3b8"
+accent_fill = "#60a5fa"
+accent_text = "#0d1117"
+note_fill = "#0d1117"
+edge = "#e5e7eb"

@@ -12,6 +12,7 @@
 - [Checking and fixing SVGs](checking-and-fixing.md)
 - [Looking at your diagram](looking-at-your-diagram.md)
 - [Themes and settings](themes-and-settings.md)
+- [Making your own theme](making-a-theme.md)
 - [Using SVGDog with an AI agent](using-with-an-ai-agent.md)
 - [Use cases](use-cases.md)
 - [Trust and privacy](trust-and-privacy.md)

@@ -16,6 +16,7 @@ include = [
     "/fonts/**",
     "/schemas/**",
     "/examples/**",
+    "/themes/**",
     "/README.md",
     "/LICENSE-MIT",
     "/LICENSE-APACHE",

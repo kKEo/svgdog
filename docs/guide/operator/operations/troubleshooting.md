@@ -19,7 +19,8 @@ Start with the exit code: `1` means "findings" and is dealt with in the second h
 | `unknown-reference` | `edges[0].to names 'bb', which is not defined.` Did you mean 'a'? | An edge, group or note points at an id that does not exist |
 | `at-outside-free` | `Node 'a' sets 'at', which is allowed only in a free diagram.` | Remove `at`, or set `diagram: free` |
 | `group-cycle`, `group-overlap` | | Groups may nest but not loop, and may not share members unless one contains the other |
-| `unknown-theme` | `Unknown theme 'docs-lite'.` Did you mean 'docs-light'? | Use `docs-light` or `docs-dark` |
+| `unknown-theme` | `Unknown theme 'docs-lite'.` Did you mean 'docs-light'? | Use a name from `svgdog theme list`, with `-dark` or `-auto` if wanted; a theme folder must start with `./` or contain `/` |
+| `theme-not-found`, `invalid-theme` | `./themes/acme/theme.toml: unknown key 'node_fil'.` Did you mean 'node_fill'? | Check the folder path and what it is relative to; run `svgdog theme check DIR` for the file |
 | `too-wide` | `The drawing is 576 px wide even at the tightest spacing; max_width allows 300.` | See below |
 | `file-not-found` | `File not found: nothere.yaml.` | Check the path and working directory |
 

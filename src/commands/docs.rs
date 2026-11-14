@@ -144,7 +144,8 @@ pub fn run(paths: &[String], check: bool, assets: &str, theme: Option<&str>, for
             let target = folder.join(&rel);
             // The picture in the page is an SVG either way; the html version is a second file beside it.
             // The picture already there says where the boxes were; they stay when they can.
-            let opt = |interactive: bool| render::Options { theme, fonts: cfg.fonts(), text_as_paths: false, embed: None, interactive };
+            let look = render::theme::choose(&render::theme::Choice { flag: theme, spec: parsed.theme.as_deref(), spec_dir: folder, config: cfg.theme(), ceiling: loader.ceiling() }).map_err(at)?.with_fonts(cfg.fonts());
+            let opt = |interactive: bool| render::Options { theme: &look, text_as_paths: false, embed: None, interactive };
             let shown_target = shown(&target);
             let earlier = super::render::previous_in(&target);
             let keep = match &earlier {
@@ -179,9 +180,7 @@ pub fn run(paths: &[String], check: bool, assets: &str, theme: Option<&str>, for
             let mut files = vec![(target.clone(), svg)];
             if live == Live::Html {
                 let inner = draw(true).map_err(at)?;
-                let name = theme.or(parsed.theme.as_deref()).unwrap_or("docs-light");
-                let (light, dark) = if name == render::theme::AUTO { (&render::theme::THEMES[0], Some(&render::theme::THEMES[1])) } else { (render::theme::find(name).unwrap_or(&render::theme::THEMES[0]), None) };
-                files.push((target.with_extension("html"), render::interactive::page(&inner, &parsed, light, dark)));
+                files.push((target.with_extension("html"), render::interactive::page(&inner, &parsed, &look.theme, look.dark.as_ref())));
             }
             for (path, content) in &files {
                 let current = std::fs::read(path).ok();

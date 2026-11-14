@@ -73,8 +73,7 @@ fn scope(svg: &str) -> String {
 }
 
 /// Add the scope class to the root and the style block after the description.
-pub fn style(svg: &str, spec: &Spec, theme: &Theme, accent: &str) -> String {
-    let _ = theme;
+pub fn style(svg: &str, spec: &Spec, accent: &str) -> String {
     let name = scope(svg);
     let s = format!(".{name}");
     let mut css = String::new();

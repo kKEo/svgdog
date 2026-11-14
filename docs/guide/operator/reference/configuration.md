@@ -28,7 +28,8 @@ $ svgdog validate orders.svg --config bad.toml --format json
 | `profile` | string | `docs` | `minimal`, `docs` or `strict`; `--profile` overrides it |
 | `[target] render_width` | number | 720 | Pixel width the drawing is shown at; must be positive. The viewBox is scaled to it before size rules (`font-too-small`, `stroke-too-thin`, contrast of large text) measure |
 | `[target] backgrounds` | list of strings | `["light", "dark"]` | Page backgrounds the drawing must be legible on: `light`, `dark` or a colour such as `#f5f5f5`; at least one. The first is the page for `low-contrast`; `background-missing` runs when a dark page is listed |
-| `[style] fonts` | list of strings | none | Font-family list `render` writes into the SVG |
+| `[style] theme` | string | none (`docs-light`) | Theme for diagrams whose spec names none: a built-in name or a theme folder relative to this file. `--theme` and the spec's `theme` override it. See [Themes](themes.md) |
+| `[style] fonts` | list of strings | none (the theme's) | Font-family list `render` writes into the SVG, in place of the theme's `font.family` |
 | `[style] palette` | list of colours | none (unchecked) | Allowed fill and stroke colours for the `palette` rule |
 | `[style] stroke_widths` | list of numbers | none (unchecked) | Allowed stroke widths for `stroke-width-style` |
 | `[style] grid` | number | none (unchecked) | Grid size in viewBox units for `off-grid`; must be positive |

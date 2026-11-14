@@ -66,7 +66,7 @@ And this is the picture SVGDog draws from it:
 | `title` | yes | The name of the diagram, 1 to 120 characters. It becomes the picture's accessible name |
 | `description` | no | One or two sentences saying what the diagram shows, up to 500 characters |
 | `direction` | no | `right` (default) or `down`: which way the flow runs |
-| `theme` | no | `docs-light` or `docs-dark` (see [Themes and settings](themes-and-settings.md)) |
+| `theme` | no | A built-in theme such as `docs-light`, `paper` or `blueprint-dark`, or the folder of a theme of your own (see [Themes and settings](themes-and-settings.md)) |
 | `max_width` | no | The widest the picture may be, 200 to 2000 px. The default is 960 |
 | `nodes` | no | The boxes. You can leave the list out when the arrows name them (see [The short way](#the-short-way)) |
 | `edges` | no | The arrows |

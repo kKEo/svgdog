@@ -1,6 +1,6 @@
 # Commands
 
-SVGDog has nine subcommands. This page lists each one with every flag, its default and an example. Global flags come first because they apply to all of them.
+SVGDog has thirteen subcommands. This page lists each one with every flag, its default and an example. Global flags come first because they apply to all of them.
 
 ## Global flags
 
@@ -32,7 +32,7 @@ svgdog render fig/orders.yaml -o fig/orders.svg
 |---|---|---|
 | `SPEC` | Diagram spec, YAML or JSON; `-` reads stdin | required |
 | `-o OUT` | Output SVG; `-` writes the SVG to stdout in place of the report | required |
-| `--theme NAME` | `docs-light`, `docs-dark` or `docs-auto` (follows the reader's light or dark mode) | the spec's `theme`, else `docs-light` |
+| `--theme NAME\|DIR` | A built-in theme (`docs`, `blueprint`, `paper`, `bold`; add `-dark`, or `-auto` to follow the reader's light or dark mode) or a theme folder (add `#dark` or `#auto`); see [theme](#theme) | the spec's `theme`, else `[style] theme` in `svgdog.toml`, else `docs-light` |
 | `--interactive none\|css\|html` | `css`: the same SVG with classes and one `<style>` block, so related things light up on hover and keyboard focus; no script. `html`: a self-contained page holding that SVG and a small script with step controls and a detail line. See [Interactive versions](#interactive-versions) | `none` |
 | `--frames` | Write one picture per entry of the spec's `steps`, named `OUT` with the step number before the extension (`orders.1.svg`, `orders.2.svg`, ...); `OUT` itself is not written | off |
 | `--embed-spec` | Store the spec in the SVG as `<metadata id="svgdog-spec">` (compact JSON), so `describe` can read the drawing back. The `editor-metadata` rule and its fix leave this element alone | off |
@@ -221,7 +221,7 @@ svgdog docs docs/ README.md --check
 | `PATH...` | Markdown files, or folders searched for `.md` files (hidden folders, `target` and `node_modules` are skipped) | required |
 | `--check` | Write nothing; exit 1 if any picture or image line is out of date | off |
 | `--assets DIR` | Folder for the pictures, relative to each page; no `..` | `diagrams` |
-| `--theme NAME` | Theme for every diagram | each spec's `theme`, else `docs-light` |
+| `--theme NAME\|DIR` | Theme for every diagram: a built-in name or a theme folder | each spec's `theme`, else `[style] theme`, else `docs-light` |
 | `--force` | Lay a diagram out afresh when its boxes cannot stay where the picture on disk has them. Cannot be combined with `--check` | off (such a diagram gives exit 4) |
 | `--interactive none\|css\|html` | `css`: the pictures are the `css` version. `html`: the pictures stay static, a page `DIR/<page>-<name>.html` is written beside each, and the image line ends with a link to it, labelled "Interactive version" | `none` |
 
@@ -277,6 +277,28 @@ svgdog examples minimal --format text > first.yaml
 ```
 
 Without a name, each example is listed with its diagram type and one line about what it shows. With a name, the JSON envelope carries the spec text in `examples[0].spec`, and `--format text` prints the spec alone. An unknown name is exit 2 (`unknown-example`) with a hint. The tests render every example in both themes under the `strict` profile and require zero findings, so each one is a safe starting point.
+
+## theme
+
+Lists the built-in themes, starts a theme folder, and checks one. A theme sets colours, font, text sizes, line widths and corner radii; the file format is in [Themes](themes.md).
+
+```bash
+svgdog theme list
+svgdog theme init themes/acme --from paper
+svgdog theme check themes/acme
+```
+
+| Subcommand | Argument or flag | Meaning | Default |
+|---|---|---|---|
+| `list` | | The built-in themes: `docs`, `blueprint`, `paper`, `bold`. The envelope carries each one's `description`, `variants`, `font`, `line`, `light` and `dark` in `themes` | |
+| `init DIR` | `DIR` | Folder to write `theme.toml` into; created when missing | required |
+| | `--from NAME` | Built-in theme to copy | `docs` |
+| | `--force` | Replace a `theme.toml` that is already there | off (exit 4, `output-exists`) |
+| `check DIR` | `DIR` | Folder that holds the `theme.toml` | required |
+
+`init` names the theme after the folder (lower-case letters, digits and hyphens; `custom` when nothing usable is left) and keeps the comments of the theme it copies.
+
+`check` reads the file, compares the colour pairs that sit on each other (`text` on `background`, `node_fill` and `note_fill`; `accent_text` on `accent_fill`; `muted` on `background`, all at 4.5:1; `edge` and `node_stroke` on `background` at 3:1), then renders the nine bundled examples with each variant and runs the rules on them, with the profile and config that apply to the working directory. The envelope is the one `validate` returns, plus `theme` (the theme as data), `contrast` (the pairs below their minimum, with `variant`, `foreground`, `background`, `ratio`, `minimum`) and `skipped` (examples that could not be drawn with the theme, usually `too-wide`, which do not fail the check). Exit 1 when a pair is too close or an error-level finding remains; exit 3 when the file is invalid (`invalid-theme`) or missing (`theme-not-found`).
 
 ## Exit codes
 

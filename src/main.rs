@@ -121,7 +121,7 @@ pub fn execute(cli: &Cli, env: &Env) -> Result<Output, AppError> {
     };
     let paint = commands::validate::Paint { color: env.color };
     let mut loader = match &cli.command {
-        Command::Validate { .. } | Command::Edit { .. } | Command::Fix { .. } | Command::Render { .. } | Command::Preview { .. } | Command::Docs { .. } => Some(config::Loader::new(cli.global.config.as_deref(), cli.global.no_config, env.ceiling.clone())?),
+        Command::Validate { .. } | Command::Edit { .. } | Command::Fix { .. } | Command::Render { .. } | Command::Preview { .. } | Command::Docs { .. } | Command::Theme { .. } => Some(config::Loader::new(cli.global.config.as_deref(), cli.global.no_config, env.ceiling.clone())?),
         _ => None,
     };
     let out = match &cli.command {
@@ -136,6 +136,11 @@ pub fn execute(cli: &Cli, env: &Env) -> Result<Output, AppError> {
         Command::Examples { name } => commands::examples::run(name.as_deref()),
         Command::Describe { file, short } => commands::describe::run(file, *short),
         Command::Docs { paths, check, assets, theme, force, interactive } => commands::docs::run(paths, *check, assets, theme.as_deref(), *force, *interactive, loader.as_mut().unwrap(), profile, &paint),
+        Command::Theme { action } => match action {
+            cli::ThemeAction::List => commands::theme::list(),
+            cli::ThemeAction::Init { dir, from, force } => commands::theme::init(dir, from, *force),
+            cli::ThemeAction::Check { dir } => commands::theme::check(dir, loader.as_mut().unwrap(), profile, &paint),
+        },
         Command::Mcp { .. } => Err(AppError::usage("invalid-argument", "The mcp server cannot be started from inside a tool call.")),
     }?;
     if let Some(loader) = &loader {

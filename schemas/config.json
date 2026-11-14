@@ -50,6 +50,10 @@
             "type": "string"
           }
         },
+        "theme": {
+          "type": "string",
+          "description": "Theme for diagrams that do not name one: a built-in name such as paper or docs-auto, or a theme folder relative to this file"
+        },
         "palette": {
           "type": "array",
           "items": {

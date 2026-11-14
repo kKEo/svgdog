@@ -421,7 +421,7 @@ pub fn parse(doc: &Value) -> Result<Spec, AppError> {
         Some("down") => Direction::Down,
         _ => Direction::Right,
     };
-    let theme = string(root, "", "theme", false, 1, 60)?;
+    let theme = string(root, "", "theme", false, 1, 200)?;
     let max_width = match root.get("max_width") {
         None | Some(Value::Null) => 960.0,
         Some(v) => match v.as_i64() {

@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://svgdog.example/schema/theme-1.json",
+  "title": "theme.toml",
+  "description": "A theme for SVGDog: one folder holds one theme.toml. Use it with --theme DIR, 'theme: DIR' in a spec, or [style] theme in svgdog.toml.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "light"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "maxLength": 40,
+      "description": "Lower-case letters, digits and hyphens; must not end in -light, -dark or -auto"
+    },
+    "description": {
+      "type": "string"
+    },
+    "font": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "Inter",
+            "sans-serif"
+          ],
+          "description": "Font names written to the drawing, first choice first. Text is measured with the bundled Inter, or with JetBrains Mono when the first name is a monospace font"
+        },
+        "size": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 24,
+          "default": 14,
+          "description": "px, labels in boxes"
+        },
+        "small": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 20,
+          "default": 12,
+          "description": "px, arrow labels, notes, legend, steps and caption; not larger than size"
+        }
+      }
+    },
+    "line": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "width": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 4,
+          "default": 1.5,
+          "description": "px, boxes and arrows"
+        },
+        "thin": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 4,
+          "default": 1,
+          "description": "px, frames, notes and guide lines"
+        },
+        "corner": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 16,
+          "default": 8,
+          "description": "px, corner radius of the rounded kinds (service, client) and of frames; states use 1.5 times it, notes and external boxes half"
+        },
+        "box_corner": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 16,
+          "default": 0,
+          "description": "px, corner radius of the plain box"
+        }
+      }
+    },
+    "light": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "background",
+        "text",
+        "muted",
+        "node_fill",
+        "node_stroke",
+        "accent_fill",
+        "accent_text",
+        "note_fill",
+        "edge"
+      ],
+      "properties": {
+        "background": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "The page the drawing sits on"
+        },
+        "text": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Labels and other text"
+        },
+        "muted": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Frames, notes' outlines, captions, and whatever is out of focus"
+        },
+        "node_fill": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Inside of a box"
+        },
+        "node_stroke": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Outline of a box"
+        },
+        "accent_fill": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Inside of a highlighted box, and step badges"
+        },
+        "accent_text": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Text on accent_fill"
+        },
+        "note_fill": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Inside of a note"
+        },
+        "edge": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Arrows and the timeline axis"
+        }
+      },
+      "description": "Colours of the light variant"
+    },
+    "dark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "background",
+        "text",
+        "muted",
+        "node_fill",
+        "node_stroke",
+        "accent_fill",
+        "accent_text",
+        "note_fill",
+        "edge"
+      ],
+      "properties": {
+        "background": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "The page the drawing sits on"
+        },
+        "text": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Labels and other text"
+        },
+        "muted": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Frames, notes' outlines, captions, and whatever is out of focus"
+        },
+        "node_fill": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Inside of a box"
+        },
+        "node_stroke": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Outline of a box"
+        },
+        "accent_fill": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Inside of a highlighted box, and step badges"
+        },
+        "accent_text": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Text on accent_fill"
+        },
+        "note_fill": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Inside of a note"
+        },
+        "edge": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Arrows and the timeline axis"
+        }
+      },
+      "description": "Colours of the dark variant; without it, -dark and -auto are not available"
+    }
+  }
+}

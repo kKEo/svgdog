@@ -17,6 +17,7 @@
   - [Commands](reference/commands.md)
   - [Spec reference](reference/spec.md)
   - [Configuration](reference/configuration.md)
+  - [Themes](reference/themes.md)
   - [Rules catalogue](reference/rules.md)
   - [Envelope and exit codes](reference/envelope-exit-codes.md)
   - [JSON schemas](reference/schemas.md)

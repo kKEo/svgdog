@@ -117,10 +117,10 @@ pub fn pins(spec: &Spec, prev: &Previous) -> bool {
 /// The spacing level the earlier drawing was set at: the one at which most boxes
 /// and notes have the size they had. Rendering a drawing again over itself then
 /// measures everything as before.
-pub fn level(spec: &Spec, prev: &Previous) -> usize {
+pub fn level(spec: &Spec, prev: &Previous, theme: &super::theme::Theme) -> usize {
     let mut best = (0, 0);
     for (li, t) in layout::LEVELS.iter().enumerate() {
-        let m = layout::measure(spec, t);
+        let m = layout::measure(spec, t, theme);
         let mut score = spec.nodes.iter().enumerate().filter(|(i, n)| prev.nodes.get(&n.id).is_some_and(|r| same_size(*r, m.nodes[*i].w, m.nodes[*i].h))).count();
         if prev.notes.len() == spec.notes.len() {
             score += prev.notes.iter().zip(&m.notes).filter(|(r, n)| same_size(**r, n.w, n.h)).count();

@@ -1160,6 +1160,13 @@ fn r8_output_matches_the_golden_files() {
     let spec = Path::new(env!("CARGO_MANIFEST_DIR")).join(ORDERS);
     run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "orders-dark-paths.svg", "--theme", "docs-dark", "--text-as-paths", "--no-config"], None);
     produced.push(("orders-dark-paths.svg".into(), fs::read(dir.path().join("orders-dark-paths.svg")).unwrap()));
+    // one drawing per built-in theme beyond the default: type, lines and corners all differ
+    for (fixture, theme, out) in [("orders", "blueprint-dark", "orders-blueprint-dark.svg"), ("walkthrough", "paper", "walkthrough-paper.svg"), ("login", "bold-auto", "login-bold-auto.svg")] {
+        let spec = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("tests/fixtures/{fixture}.yaml"));
+        let r = run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", out, "--theme", theme, "--no-config"], None);
+        assert_eq!(r.code, 0, "{out}: {}", r.stdout);
+        produced.push((out.into(), fs::read(dir.path().join(out)).unwrap()));
+    }
     // findings and scene data are output too
     let broken = Path::new(env!("CARGO_MANIFEST_DIR")).join(BROKEN);
     let v = run_in(dir.path(), &["validate", broken.to_str().unwrap(), "--no-config", "--max-findings", "500"], None);
@@ -2114,4 +2121,223 @@ fn every_computed_layout_keeps_its_boxes_when_boxes_are_added() {
         assert_eq!(run_in(dir.path(), &["render", &spec, "-o", &again, "--previous", &new], None).code, 0);
         assert_eq!(fs::read(dir.path().join(&new)).unwrap(), fs::read(dir.path().join(&again)).unwrap(), "{name}");
     }
+}
+
+const THEMES: [&str; 4] = ["docs", "blueprint", "paper", "bold"];
+
+#[test]
+fn every_built_in_theme_draws_the_fixtures_in_each_variant_without_findings() {
+    for theme in THEMES {
+        for variant in ["", "-light", "-dark", "-auto"] {
+            let name = format!("{theme}{variant}");
+            for fixture in ["orders", "tiers", "rack", "login", "walkthrough", "migration", "split"] {
+                let (v, svg) = render_fixture(&format!("tests/fixtures/{fixture}.yaml"), &["--theme", &name]);
+                assert_eq!((v["summary"]["errors"].as_u64(), v["summary"]["warnings"].as_u64()), (Some(0), Some(0)), "{fixture} {name}: {v:#}");
+                assert_eq!(svg.contains("prefers-color-scheme"), variant == "-auto", "{fixture} {name}");
+            }
+        }
+    }
+    // a bare name is the light variant
+    let (_, plain) = render_fixture(ORDERS, &["--theme", "paper"]);
+    let (_, light) = render_fixture(ORDERS, &["--theme", "paper-light"]);
+    assert_eq!(plain, light);
+}
+
+#[test]
+fn a_theme_sets_type_lines_and_corners_as_well_as_colours() {
+    let (_, docs) = render_fixture(ORDERS, &[]);
+    assert!(docs.contains("font-family=\"Inter, sans-serif\"") && docs.contains("font-size=\"14\"") && docs.contains("stroke-width=\"1.5\""));
+    let (_, blue) = render_fixture(ORDERS, &["--theme", "blueprint"]);
+    assert!(blue.contains("font-family=\"JetBrains Mono, monospace\"") && blue.contains("font-size=\"13\""), "{blue}");
+    assert!(!blue.contains(" rx=\"") && !blue.contains("stroke-width=\"1.5\""), "square corners and fine lines: {blue}");
+    let (_, bold) = render_fixture(ORDERS, &["--theme", "bold"]);
+    assert!(bold.contains("font-size=\"16\"") && bold.contains("font-size=\"13\"") && bold.contains("stroke-width=\"2.5\""), "{bold}");
+    // larger type needs larger boxes
+    let width = |svg: &str| svg.split("viewBox=\"0 0 ").nth(1).unwrap().split(' ').next().unwrap().parse::<f64>().unwrap();
+    assert!(width(&bold) > width(&docs), "{} vs {}", width(&bold), width(&docs));
+    // outlined text follows the theme's face too
+    let (v, paths) = render_fixture(ORDERS, &["--theme", "blueprint", "--text-as-paths"]);
+    assert!(!paths.contains("<text") && v["summary"]["errors"] == 0, "{v:#}");
+}
+
+#[test]
+fn a_theme_of_your_own_comes_from_a_folder() {
+    let dir = tempfile::tempdir().unwrap();
+    let at = |p: &str| dir.path().join(p);
+    fs::create_dir_all(at("fig")).unwrap();
+    // the fixture names a theme of its own; here the spec leaves the choice open
+    let plain = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(ORDERS)).unwrap().replace("theme: docs-light\n", "");
+    fs::write(at("fig/orders.yaml"), &plain).unwrap();
+
+    // start one from a built-in theme; a second init does not overwrite it
+    let r = run_in(dir.path(), &["theme", "init", "themes/acme", "--from", "paper"], None);
+    assert_eq!((r.code, r.json()["name"].as_str().map(String::from)), (0, Some("acme".into())), "{}", r.stdout);
+    assert_eq!(run_in(dir.path(), &["theme", "init", "themes/acme"], None).code, 4);
+    let file = at("themes/acme/theme.toml");
+    let text = fs::read_to_string(&file).unwrap();
+    assert!(text.contains("name = \"acme\"") && text.contains("[dark]"), "{text}");
+    let c = run_in(dir.path(), &["theme", "check", "themes/acme", "--no-config"], None);
+    let v = c.json();
+    assert_eq!((c.code, v["ok"].as_bool(), v["contrast"].as_array().unwrap().len()), (0, Some(true), 0), "{v:#}");
+    assert_eq!(v["summary"]["files"], 27, "nine examples in three variants: {v:#}");
+
+    // change it, and the drawing follows
+    fs::write(&file, text.replace("background = \"#fbf7ef\"", "background = \"#f4f1ea\"").replace("corner = 12", "corner = 3")).unwrap();
+    let r = run_in(dir.path(), &["render", "fig/orders.yaml", "-o", "flag.svg", "--theme", "./themes/acme", "--no-config"], None);
+    assert_eq!(r.code, 0, "{}", r.stdout);
+    let svg = fs::read_to_string(at("flag.svg")).unwrap();
+    assert!(svg.contains("fill=\"#f4f1ea\"") && svg.contains(" rx=\"3\""), "{svg}");
+    // the variant goes after '#'
+    for (variant, mark) in [("#dark", "fill=\"#26221e\""), ("#auto", "prefers-color-scheme"), ("#light", "fill=\"#f4f1ea\"")] {
+        let r = run_in(dir.path(), &["render", "fig/orders.yaml", "-o", "v.svg", "--force", "--theme", &format!("./themes/acme{variant}"), "--no-config"], None);
+        assert!(r.code == 0 && fs::read_to_string(at("v.svg")).unwrap().contains(mark), "{variant}: {}", r.stdout);
+    }
+
+    // named in the spec, the folder is found from where the spec is
+    fs::write(at("fig/themed.yaml"), plain.replacen("version: 1", "version: 1\ntheme: ../themes/acme", 1)).unwrap();
+    let r = run_in(dir.path(), &["render", "fig/themed.yaml", "-o", "spec.svg", "--no-config"], None);
+    assert_eq!(r.code, 0, "{}", r.stdout);
+    assert_eq!(fs::read_to_string(at("spec.svg")).unwrap(), svg);
+    // the flag still wins over the spec
+    run_in(dir.path(), &["render", "fig/themed.yaml", "-o", "won.svg", "--theme", "docs-dark", "--no-config"], None);
+    assert!(fs::read_to_string(at("won.svg")).unwrap().contains("fill=\"#0d1117\""));
+
+    // named in svgdog.toml, it is the project default, found from where the config is
+    fs::write(at("svgdog.toml"), "version = 1\n[style]\ntheme = \"themes/acme\"\n").unwrap();
+    let r = run_in(&at("fig"), &["render", "orders.yaml", "-o", "cfg.svg"], None);
+    assert_eq!(r.code, 0, "{}", r.stdout);
+    assert_eq!(fs::read_to_string(at("fig/cfg.svg")).unwrap(), svg);
+    // a picture is out of date once its theme changes
+    assert_eq!(run_in(&at("fig"), &["render", "orders.yaml", "-o", "cfg.svg", "--check"], None).code, 0);
+    fs::write(&file, fs::read_to_string(&file).unwrap().replace("width = 1.5", "width = 2")).unwrap();
+    let k = run_in(&at("fig"), &["render", "orders.yaml", "-o", "cfg.svg", "--check"], None);
+    assert_eq!((k.code, k.json()["stale"][0]["reason"].as_str().map(String::from)), (1, Some("differs".into())), "{}", k.stdout);
+
+    // pages take a theme folder too, relative to the page
+    fs::create_dir_all(at("docs")).unwrap();
+    fs::write(at("docs/page.md"), "# P\n\n```svgdog\nversion: 1\ndiagram: flow\ntitle: T\ntheme: ../themes/acme#dark\nedges: [\"a -> b\"]\n```\n").unwrap();
+    let r = run_in(dir.path(), &["docs", "docs", "--no-config"], None);
+    assert_eq!(r.code, 0, "{}", r.stdout);
+    assert!(fs::read_to_string(at("docs/diagrams/page-1.svg")).unwrap().contains("fill=\"#26221e\""));
+}
+
+#[test]
+fn theme_mistakes_say_what_is_wrong_and_where() {
+    let dir = tempfile::tempdir().unwrap();
+    let spec = Path::new(env!("CARGO_MANIFEST_DIR")).join(ORDERS);
+    let colours = "background = \"#ffffff\"\ntext = \"#111111\"\nmuted = \"#555555\"\nnode_fill = \"#eeeeee\"\nnode_stroke = \"#111111\"\naccent_fill = \"#111111\"\naccent_text = \"#ffffff\"\nnote_fill = \"#ffffff\"\nedge = \"#111111\"\n";
+    let good = format!("name = \"lite\"\n[light]\n{colours}");
+    let draw = |name: &str, text: Option<&str>, theme: &str| {
+        if let Some(t) = text {
+            fs::create_dir_all(dir.path().join(name)).unwrap();
+            fs::write(dir.path().join(name).join("theme.toml"), t).unwrap();
+        }
+        let r = run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "x.svg", "--force", "--theme", theme, "--no-config"], None);
+        (r.code, r.json())
+    };
+    // a theme with light colours only draws, and says so when asked for the dark ones
+    assert_eq!(draw("lite", Some(&good), "./lite").0, 0);
+    for variant in ["#dark", "#auto"] {
+        let (code, v) = draw("lite", None, &format!("./lite{variant}"));
+        assert_eq!((code, v["error"]["code"].as_str()), (3, Some("theme-no-dark")), "{v:#}");
+    }
+    let (code, v) = draw("lite", None, "./lite#night");
+    assert_eq!((code, v["error"]["code"].as_str()), (2, Some("unknown-theme")), "{v:#}");
+
+    let cases: [(&str, String, &str, &str); 7] = [
+        ("typo", good.replace("node_fill", "node_fil"), "node_fil", "Did you mean 'node_fill'?"),
+        ("colour", good.replace("#eeeeee", "light grey"), "light.node_fill", ""),
+        ("clear", good.replace("#eeeeee", "#eeeeee80"), "light.node_fill", ""),
+        ("big", format!("name = \"lite\"\n[font]\nsize = 40\n[light]\n{colours}"), "font.size", ""),
+        ("upside", format!("name = \"lite\"\n[font]\nsize = 12\nsmall = 14\n[light]\n{colours}"), "font.small", ""),
+        ("named", good.replace("\"lite\"", "\"My Theme\""), "name", ""),
+        ("version", format!("version = 2\n{good}"), "version", ""),
+    ];
+    for (name, text, path, hint) in cases {
+        let (code, v) = draw(name, Some(&text), &format!("./{name}"));
+        assert_eq!((code, v["error"]["code"].as_str(), v["error"]["path"].as_str()), (3, Some("invalid-theme"), Some(path)), "{name}: {v:#}");
+        assert!(v["error"]["message"].as_str().unwrap().starts_with(&format!("./{name}/theme.toml: ")), "{v:#}");
+        if !hint.is_empty() {
+            assert_eq!(v["error"]["suggestion"], hint, "{v:#}");
+        }
+    }
+    let (code, v) = draw("missing-colour", Some(&good.replace("edge = \"#111111\"\n", "")), "./missing-colour");
+    assert_eq!((code, v["error"]["code"].as_str(), v["error"]["path"].as_str()), (3, Some("invalid-theme"), Some("edge")), "{v:#}");
+    let (code, v) = draw("nowhere", None, "./nowhere");
+    assert_eq!((code, v["error"]["code"].as_str()), (3, Some("theme-not-found")), "{v:#}");
+    fs::create_dir_all(dir.path().join("empty")).unwrap();
+    let (code, v) = draw("empty", None, "./empty");
+    assert_eq!((code, v["error"]["code"].as_str()), (3, Some("theme-not-found")), "{v:#}");
+
+    // unknown names: a usage error on the flag, an input error in the spec and in the config
+    let (code, v) = draw("x", None, "papr");
+    assert_eq!((code, v["error"]["suggestion"].as_str()), (2, Some("Did you mean 'paper'?")), "{v:#}");
+    fs::write(dir.path().join("svgdog.toml"), "[style]\ntheme = \"neon\"\n").unwrap();
+    fs::write(dir.path().join("plain.yaml"), "version: 1\ndiagram: flow\ntitle: T\nedges: [\"a -> b\"]\n").unwrap();
+    let r = run_in(dir.path(), &["render", "plain.yaml", "-o", "x.svg", "--force"], None);
+    let v = r.json();
+    assert!(r.code == 3 && v["error"]["code"] == "unknown-theme" && v["error"]["message"].as_str().unwrap().contains("svgdog.toml"), "{v:#}");
+
+    // check reports colours that are too close to read, and fails
+    let faint = good.replace("text = \"#111111\"", "text = \"#dddddd\"");
+    fs::write(dir.path().join("lite/theme.toml"), faint).unwrap();
+    let c = run_in(dir.path(), &["theme", "check", "lite", "--no-config"], None);
+    let v = c.json();
+    let low = v["contrast"].as_array().unwrap();
+    assert!(c.code == 1 && v["ok"] == false && low.iter().any(|l| l["foreground"] == "text" && l["background"] == "node_fill" && l["variant"] == "light"), "{v:#}");
+    assert!(v["summary"]["errors"].as_u64().unwrap() > 0, "the drawings show it too: {v:#}");
+    assert_eq!(run_in(dir.path(), &["theme", "init", "t", "--from", "neon"], None).code, 2);
+}
+
+#[test]
+fn theme_list_and_schema_describe_the_built_in_themes() {
+    let r = run(&["theme", "list"]);
+    let v = r.json();
+    let names: Vec<&str> = v["themes"].as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap()).collect();
+    assert_eq!((r.code, names), (0, THEMES.to_vec()), "{v:#}");
+    for t in v["themes"].as_array().unwrap() {
+        assert!(t["variants"] == serde_json::json!(["light", "dark", "auto"]) && !t["description"].as_str().unwrap().is_empty() && t["light"]["background"].is_string(), "{t:#}");
+    }
+    let text = run(&["--format", "text", "theme", "list"]).stdout;
+    assert!(THEMES.iter().all(|n| text.contains(n)) && text.contains("svgdog theme init"), "{text}");
+    // the bundled theme files are valid by the published schema
+    let schema: Value = serde_json::from_str(&run(&["schema", "theme"]).stdout).unwrap();
+    let validator = jsonschema::validator_for(&schema).unwrap();
+    for name in THEMES {
+        let file = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("themes/{name}/theme.toml"));
+        let theme: Value = toml::from_str(&fs::read_to_string(&file).unwrap()).unwrap();
+        let errors: Vec<String> = validator.iter_errors(&theme).map(|e| e.to_string()).collect();
+        assert!(errors.is_empty(), "{name}: {errors:?}");
+        assert_eq!(theme["name"], name);
+    }
+}
+
+#[test]
+fn a_change_of_theme_keeps_the_boxes_where_they_were() {
+    let dir = tempfile::tempdir().unwrap();
+    let spec = Path::new(env!("CARGO_MANIFEST_DIR")).join(ORDERS);
+    assert_eq!(run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "o.svg", "--no-config"], None).code, 0);
+    // colours and corners alone leave every box where it was
+    let r = run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "o.svg", "--previous", "o.svg", "--theme", "paper", "--no-config"], None);
+    let v = r.json();
+    assert!(r.code == 0 && v["layout"]["relaid"] == false && v["layout"]["reasons"].as_array().unwrap().is_empty(), "{v:#}");
+    let centres = |svg: &str| -> Vec<(f64, f64)> {
+        let num = |tag: &str, key: &str| tag.split(&format!(" {key}=\"")).nth(1).unwrap().split('"').next().unwrap().parse::<f64>().unwrap();
+        ["node-web", "node-api"].iter().map(|id| {
+            let tag = svg.split(&format!("<g id=\"{id}\"")).nth(1).unwrap().split("<rect").nth(1).unwrap().split("/>").next().unwrap();
+            (num(tag, "x") + num(tag, "width") / 2.0, num(tag, "y") + num(tag, "height") / 2.0)
+        }).collect()
+    };
+    let before = centres(&fs::read_to_string(dir.path().join("o.svg")).unwrap());
+    // larger type makes larger boxes; each grows where it stands, as a longer label would make it
+    let r = run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "o.svg", "--previous", "o.svg", "--theme", "bold", "--no-config"], None);
+    let v = r.json();
+    assert!(r.code == 0 && v["layout"]["kept"] == 4 && v["layout"]["relaid"] == false && v["summary"]["errors"] == 0, "{v:#}");
+    let after = fs::read_to_string(dir.path().join("o.svg")).unwrap();
+    assert!(after.contains("font-size=\"16\""), "{after}");
+    // the canvas may grow round them; what stays is where the boxes are against each other
+    let apart = |c: &[(f64, f64)]| (c[1].0 - c[0].0, c[1].1 - c[0].1);
+    assert_eq!(apart(&centres(&after)), apart(&before));
+    // and the picture is then current for that theme
+    assert_eq!(run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", "o.svg", "--theme", "bold", "--check", "--no-config"], None).code, 0);
 }

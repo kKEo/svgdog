@@ -4,7 +4,7 @@
 use kurbo::{Point, Rect, Vec2};
 
 use super::layout::{self, up};
-use super::theme::{SMALL, STROKE, Theme};
+use super::theme::Theme;
 use super::{Drawn, Writer, shape};
 use crate::spec::{EdgeStyle, Kind, Ref, Sample, Spec};
 use crate::util::fmt;
@@ -14,7 +14,6 @@ pub const BADGE: f64 = 18.0;
 /// Badges side by side sit this far apart, centre to centre.
 pub const PITCH: f64 = BADGE + 2.0;
 const SIDE: f64 = 24.0;
-const LINE: f64 = 16.0;
 
 /// Room an edge label needs for its badges, and the gap before any text.
 pub fn badge_room(count: usize, has_text: bool) -> f64 {
@@ -80,6 +79,9 @@ pub struct Footer {
     /// Width of the widest thing in it.
     pub width: f64,
     pub height: f64,
+    /// Size and line distance of its text.
+    small: f64,
+    line: f64,
 }
 
 const SAMPLE: f64 = 28.0;
@@ -95,13 +97,14 @@ impl Footer {
 
     /// Lay the footer out for a drawing `drawing` wide; text wraps at that width,
     /// or at a comfortable reading width when the drawing is narrower than that.
-    pub fn plan(spec: &Spec, drawing: f64) -> Footer {
+    pub fn plan(spec: &Spec, drawing: f64, theme: &Theme) -> Footer {
+        let (small, class) = (theme.small, theme.class);
         let cap = (drawing.max(480.0f64.min(spec.max_width)) - 2.0 * SIDE).max(120.0);
         let mut width: f64 = 0.0;
         let mut legend: Vec<Vec<(f64, Sample, String)>> = Vec::new();
         let mut x = 0.0;
         for (sample, text) in &spec.legend {
-            let w = SAMPLE + 8.0 + layout::text_width(text, SMALL) * 1.05;
+            let w = SAMPLE + 8.0 + layout::text_width(text, small, class) * 1.05;
             if legend.is_empty() || (x > 0.0 && x + w > cap) {
                 legend.push(Vec::new());
                 x = 0.0;
@@ -110,14 +113,14 @@ impl Footer {
             width = width.max(x + w);
             x += up(w + 24.0, 8.0);
         }
-        let steps: Vec<(usize, Vec<String>)> = spec.steps.iter().map(|s| (s.number, layout::wrap(&s.text, SMALL, cap - 28.0))).collect();
+        let steps: Vec<(usize, Vec<String>)> = spec.steps.iter().map(|s| (s.number, layout::wrap(&s.text, small, cap - 28.0, class))).collect();
         for (_, lines) in &steps {
-            width = lines.iter().map(|l| 28.0 + layout::text_width(l, SMALL)).fold(width, f64::max);
+            width = lines.iter().map(|l| 28.0 + layout::text_width(l, small, class)).fold(width, f64::max);
         }
-        let caption = spec.caption.as_deref().map(|c| layout::wrap(c, SMALL, cap)).unwrap_or_default();
-        width = caption.iter().map(|l| layout::text_width(l, SMALL)).fold(width, f64::max);
+        let caption = spec.caption.as_deref().map(|c| layout::wrap(c, small, cap, class)).unwrap_or_default();
+        width = caption.iter().map(|l| layout::text_width(l, small, class)).fold(width, f64::max);
 
-        let mut f = Footer { legend, steps, caption, shown: spec.shown, width, height: 0.0 };
+        let mut f = Footer { legend, steps, caption, shown: spec.shown, width, height: 0.0, small, line: theme.small_lead() };
         f.height = if f.is_empty() { 0.0 } else { up(f.walk(0.0, 0.0, None, None), 8.0) };
         f
     }
@@ -148,20 +151,20 @@ impl Footer {
                                     EdgeStyle::Async => " stroke-dasharray=\"6 4\"",
                                     EdgeStyle::Dependency => " stroke-dasharray=\"2 4\"",
                                 };
-                                wr.out.push_str(&format!("    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" stroke-width=\"{}\"{dash}/>\n", fmt(x), fmt(cy), fmt(x + SAMPLE), fmt(cy), t.edge, fmt(STROKE)));
+                                wr.out.push_str(&format!("    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" stroke-width=\"{}\"{dash}/>\n", fmt(x), fmt(cy), fmt(x + SAMPLE), fmt(cy), t.edge, fmt(t.width)));
                             }
                             Sample::Emphasis => {
-                                wr.out.push_str(&format!("    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"12\" rx=\"2\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\"/>\n", fmt(x + 2.0), fmt(cy - 6.0), fmt(SAMPLE - 4.0), t.accent_fill, t.node_stroke, fmt(STROKE)));
+                                wr.out.push_str(&format!("    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"12\" rx=\"2\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\"/>\n", fmt(x + 2.0), fmt(cy - 6.0), fmt(SAMPLE - 4.0), t.accent_fill, t.node_stroke, fmt(t.width)));
                             }
                             Sample::Kind(kind) => {
                                 let r = Rect::new(x, cy - 10.0, x + SAMPLE, cy + 10.0);
                                 // The small shapes keep their outline only; inner detail lines do not scale down.
-                                if let Some(p) = shape(*kind, r).parts.first() {
-                                    wr.part(p, t.node_fill, t.node_stroke);
+                                if let Some(p) = shape(*kind, r, t).parts.first() {
+                                    wr.part(p, &t.node_fill, &t.node_stroke);
                                 }
                             }
                         }
-                        wr.text("    ", std::slice::from_ref(text), x + SAMPLE + 8.0, cy, SMALL, LINE, t.text, "start");
+                        wr.text("    ", std::slice::from_ref(text), x + SAMPLE + 8.0, cy, self.small, self.line, &t.text, "start");
                     }
                 }
                 wr.out.push_str("  </g>\n");
@@ -174,12 +177,12 @@ impl Footer {
                 wr.out.push_str("  <g id=\"steps\">\n");
             }
             for (k, (number, lines)) in self.steps.iter().enumerate() {
-                let h = (lines.len() as f64 * LINE).max(BADGE);
+                let h = (lines.len() as f64 * self.line).max(BADGE);
                 if let (Some(wr), Some(t)) = (wr.as_deref_mut(), theme) {
                     wr.out.push_str(&format!("    <g id=\"step-{number}\">\n"));
                     let quiet = self.shown.is_some_and(|s| s != *number);
                     wr.badge("      ", Point::new(left + BADGE / 2.0, y + BADGE / 2.0), *number, t, quiet);
-                    wr.text("      ", lines, left + 28.0, y + h / 2.0, SMALL, LINE, if quiet { t.muted } else { t.text }, "start");
+                    wr.text("      ", lines, left + 28.0, y + h / 2.0, self.small, self.line, if quiet { &t.muted } else { &t.text }, "start");
                     wr.out.push_str("    </g>\n");
                 }
                 y += h + if k + 1 < self.steps.len() { 8.0 } else { 0.0 };
@@ -190,10 +193,10 @@ impl Footer {
         }
         if !self.caption.is_empty() {
             section(&mut y, &mut first);
-            let h = self.caption.len() as f64 * LINE;
+            let h = self.caption.len() as f64 * self.line;
             if let (Some(wr), Some(t)) = (wr, theme) {
                 wr.out.push_str("  <g id=\"caption\">\n");
-                wr.text("    ", &self.caption, left, y + h / 2.0, SMALL, LINE, t.muted, "start");
+                wr.text("    ", &self.caption, left, y + h / 2.0, self.small, self.line, &t.muted, "start");
                 wr.out.push_str("  </g>\n");
             }
             y += h;

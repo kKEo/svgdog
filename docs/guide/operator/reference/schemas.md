@@ -1,6 +1,6 @@
 # JSON Schemas
 
-SVGDog embeds five JSON Schemas (draft 2020-12) in the binary. They describe the formats it reads and writes, so an editor, a CI job or an agent can check a file or a result without running SVGDog. The binary and the schemas always match: `svgdog schema NAME` prints the copy compiled into the build you are running.
+SVGDog embeds six JSON Schemas (draft 2020-12) in the binary. They describe the formats it reads and writes, so an editor, a CI job or an agent can check a file or a result without running SVGDog. The binary and the schemas always match: `svgdog schema NAME` prints the copy compiled into the build you are running.
 
 ## Getting a schema
 
@@ -13,7 +13,7 @@ With `--format json` (the default when piped) the schema is printed as compact J
 
 The `$id` values (`https://svgdog.example/schema/<name>-1.json`) are identifiers on a placeholder domain, not URLs that resolve. Point your validator at the local file rather than the `$id`.
 
-## The five schemas
+## The six schemas
 
 | Name | Title | Describes | Used by |
 |---|---|---|---|
@@ -21,6 +21,7 @@ The `$id` values (`https://svgdog.example/schema/<name>-1.json`) are identifiers
 | `config` | svgdog.toml | The config file as data (convert the TOML to JSON to validate it): `version`, `profile`, `target`, `style`, `rules`, `overrides`. A rule entry is a severity (`off`, `info`, `warning`, `error`) or an object with an optional `severity` and non-negative numeric thresholds | Editors and CI; see [Configuration](configuration.md) |
 | `findings` | SVGDog result envelope | The envelope of `render`, `validate`, `edit`, `fix` and `preview`, and the error shape. Required `tool`, `version`, `command`, `ok`; optional `summary`, `findings`, `outputs`, `error`, `changed`, `dry_run`, `diff`, `diff_truncated`, `operations`, `fixed`, `validated`, `image`, `formatting`. Definitions for `bbox`, `finding`, `error` | Parsing results; see [Envelope and exit codes](envelope-exit-codes.md) |
 | `scene` | SVGDog scene | The result of `inspect`: `file`, `viewBox`, `summary`, `elements` (each with `target`, `line`, `depth` and the requested fields), or an `error` | Reading drawings as data |
+| `theme` | theme.toml | A theme file as data (convert the TOML to JSON to validate it): `name` and `light` required; `version`, `description`, `font` (`family`, `size`, `small`), `line` (`width`, `thin`, `corner`, `box_corner`), `dark`. The nine colours of `light` and `dark` are `#rrggbb` | Editors and CI; see [Themes](themes.md) |
 | `ops` | SVGDog edit operations | The input of `edit --ops`: an array of operations, or an object with an `ops` array such as a finding's `fix`. Operations: `set`, `remove`, `move`, `rename-id`, `add-node`, `add-edge` (spec only) | Scripting edits |
 
 ## Validating against a schema

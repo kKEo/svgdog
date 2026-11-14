@@ -1,0 +1,37 @@
+# A warm page for handbooks and long reads: soft ink and well-rounded corners.
+version = 1
+name = "paper"
+description = "Warm cream page, soft ink, terracotta accent, rounded corners"
+
+[font]
+family = ["Inter", "sans-serif"]
+size = 14
+small = 12
+
+[line]
+width = 1.5
+thin = 1
+corner = 12
+box_corner = 6
+
+[light]
+background = "#fbf7ef"
+text = "#3b342c"
+muted = "#6f6457"
+node_fill = "#f1e6d3"
+node_stroke = "#6b5d4d"
+accent_fill = "#a84a24"
+accent_text = "#ffffff"
+note_fill = "#fffdf8"
+edge = "#5a4e41"
+
+[dark]             # warm charcoal
+background = "#26221e"
+text = "#efe6d8"
+muted = "#b3a694"
+node_fill = "#3a332c"
+node_stroke = "#b3a694"
+accent_fill = "#e58a5f"
+accent_text = "#26221e"
+note_fill = "#26221e"
+edge = "#d8ccba"

@@ -47,13 +47,13 @@ impl Profile {
 
 #[derive(Deserialize, Clone, Copy)]
 #[serde(untagged)]
-enum Num {
+pub(crate) enum Num {
     I(i64),
     F(f64),
 }
 
 impl Num {
-    fn get(self) -> f64 {
+    pub(crate) fn get(self) -> f64 {
         match self {
             Num::I(i) => i as f64,
             Num::F(f) => f,
@@ -87,6 +87,7 @@ struct RawTarget {
 #[serde(deny_unknown_fields)]
 struct RawStyle {
     fonts: Option<Vec<String>>,
+    theme: Option<String>,
     palette: Option<Vec<String>>,
     stroke_widths: Option<Vec<Num>>,
     grid: Option<Num>,
@@ -123,6 +124,7 @@ pub struct Config {
     render_width: f64,
     backgrounds: Vec<(String, Rgba)>,
     fonts: Vec<String>,
+    theme: Option<String>,
     palette: Vec<Rgba>,
     stroke_widths: Vec<f64>,
     grid: Option<f64>,
@@ -232,6 +234,7 @@ impl Config {
             render_width: 720.0,
             backgrounds: vec![("light".into(), background("light").unwrap()), ("dark".into(), background("dark").unwrap())],
             fonts: vec![],
+            theme: None,
             palette: vec![],
             stroke_widths: vec![],
             grid: None,
@@ -292,6 +295,7 @@ impl Config {
             }
         }
         c.fonts = raw.style.fonts.unwrap_or_default();
+        c.theme = raw.style.theme.filter(|t| !t.trim().is_empty());
         for p in raw.style.palette.unwrap_or_default() {
             c.palette.push(Rgba::parse(&p).ok_or_else(|| bad(path, "style.palette", format!("'{p}' is not a colour.")))?);
         }
@@ -312,6 +316,11 @@ impl Config {
             c.overrides.push(Override { patterns, rules: parse_rules(&o.rules, &format!("{at}.rules"), path)? });
         }
         Ok(c)
+    }
+
+    /// `[style] theme`, the project's theme, with the folder its path starts from.
+    pub fn theme(&self) -> Option<(&str, &Path)> {
+        self.theme.as_deref().map(|t| (t, self.dir.as_path()))
     }
 
     /// `[style] fonts`, the font-family list render writes.
@@ -405,6 +414,11 @@ impl Loader {
             None => None,
         };
         Ok(Loader { explicit, no_config, ceiling, cache: HashMap::new(), loaded })
+    }
+
+    /// The directory nothing is read above, when there is one.
+    pub fn ceiling(&self) -> Option<&Path> {
+        self.ceiling.as_deref()
     }
 
     /// The config for an input file; `None` means stdin, which uses the working directory.

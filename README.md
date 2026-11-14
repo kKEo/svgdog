@@ -62,6 +62,23 @@ fails when a picture is out of date. `--theme docs-auto` gives one file that fol
 the reader's light or dark mode. `svgdog describe` turns a diagram into words, and
 `render --embed-spec` stores the spec in the SVG so it can be read back.
 
+## Themes
+
+A theme sets colours, font, text sizes, line widths and corner radii. Four are built
+in: `docs` (the default), `blueprint`, `paper` and `bold`, each with a light, a dark
+(`-dark`) and an adaptive (`-auto`) variant. Name one with `--theme`, with `theme:` in
+a spec, or with `[style] theme` in `svgdog.toml`.
+
+```sh
+svgdog theme list                               # the built-in themes
+svgdog render fig/orders.yaml -o fig/orders.svg --theme paper-dark
+svgdog theme init themes/acme --from paper      # a theme of your own: one theme.toml
+svgdog theme check themes/acme                  # the file, contrast, and every example drawn with it
+svgdog render fig/orders.yaml -o fig/orders.svg --theme ./themes/acme
+```
+
+Themes are read from disk only; nothing is downloaded.
+
 ## Changing a diagram
 
 A diagram that readers know should not rearrange itself when one box is added.
@@ -91,11 +108,12 @@ Repeat render (or fix) until the exit code is 0.
 | `preview <file.svg> -o <out.png>` | Rasterize to PNG; `--annotate` outlines findings, `--crop` zooms in |
 | `edit <file> --set ... \| --ops ...` | Targeted changes to an SVG or a spec |
 | `fix <file.svg>` | Apply autofixes; `--unsafe` adds those that move or recolour |
-| `schema spec\|config\|findings\|scene\|ops` | Print a JSON Schema |
+| `schema spec\|config\|findings\|scene\|ops\|theme` | Print a JSON Schema |
 | `rules [--explain ID]` | List rules, or explain one with a failing and a passing example |
 | `examples [NAME]` | List the bundled example specs, or print one to start from |
 | `docs <path>... [--check]` | Render the `svgdog` blocks inside Markdown pages |
 | `describe <spec or svg>` | Say in words what a diagram shows |
+| `theme list \| init DIR \| check DIR` | List the built-in themes, start one of your own, check it |
 | `mcp --root-path DIR` | Serve the commands as Model Context Protocol tools over stdio |
 
 Every command has `--help` with one example. With `--format json` (the default
@@ -170,8 +188,8 @@ svgdog mcp --root-path ./docs
 - MCP Registry name: `mcp-name: io.github.kKEo/svgdog`
 
 The server exposes `svgdog_render`, `svgdog_validate`, `svgdog_inspect`,
-`svgdog_preview`, `svgdog_edit`, `svgdog_fix`, `svgdog_schema`, `svgdog_rules` and
-`svgdog_examples`. `svgdog_render` also takes the spec as text and can return the SVG
+`svgdog_preview`, `svgdog_edit`, `svgdog_fix`, `svgdog_schema`, `svgdog_rules`,
+`svgdog_docs`, `svgdog_describe`, `svgdog_examples` and three `svgdog_theme_*` tools. `svgdog_render` also takes the spec as text and can return the SVG
 and a PNG directly, so an agent needs no files to draw.
 Inputs mirror the flags and results are the same JSON envelope. Every path is
 relative to the root and paths outside it are refused. It serves both the

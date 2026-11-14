@@ -59,7 +59,7 @@ Sites such as GitHub show a page in the reader's light or dark mode. Ask for the
 svgdog docs docs/ --theme docs-auto
 ```
 
-See [Themes and settings](themes-and-settings.md#light-and-dark-themes).
+See [Themes and settings](themes-and-settings.md#light-dark-or-following-the-reader).
 
 ## Interactive versions
 

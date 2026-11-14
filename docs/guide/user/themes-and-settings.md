@@ -2,29 +2,69 @@
 
 This page shows how to change how diagrams look and how to set house rules for a whole project. It takes about ten minutes.
 
-## Light and dark themes
+## Themes
 
-SVGDog has three built-in themes:
+A theme sets the whole look of a diagram: its colours, its font and text sizes, how thick the lines are and how round the corners. SVGDog has four built-in themes:
 
-- `docs-light`: dark text on a white page. This is the default.
-- `docs-dark`: light text on a dark page (`#0d1117`).
-- `docs-auto`: one file that follows the reader. It is the light drawing, with a rule inside that switches to the dark colours when the reader's system is in dark mode.
+| Theme | Look | Good for |
+|---|---|---|
+| `docs` | Quiet blue and grey, Inter, 14 px text. This is the default | Documentation pages |
+| `blueprint` | Fine blue lines, square corners, a monospace font | Technical drawings and architecture notes |
+| `paper` | Warm cream page, soft ink, a terracotta accent, well-rounded corners | Handbooks, blog posts and long reads |
+| `bold` | Larger text (16 px), thick lines, strong contrast | Slides and screens seen from a distance |
 
-Choose one in the spec:
-
-```yaml
-theme: docs-dark
-```
-
-or for a single run, on the command line (the command line wins over the spec):
+List them, with their descriptions, at any time:
 
 ```bash
-svgdog --format text render hello.yaml -o hello-dark.svg --theme docs-dark
+svgdog --format text theme list
 ```
 
-Use `docs-auto` when the same page is read in light and dark mode, for example a README. It works wherever a browser shows the SVG, including as a plain image. A viewer that does not understand the rule shows the light version, and so does `svgdog preview`. To see the dark version, render once with `--theme docs-dark`.
+The same diagram in `blueprint-dark`, `paper` and `bold`:
 
-All themes use the same sizes: text at 14 px (12 px for arrow labels), lines 1.5 px thick (1 px for the thinner ones).
+![An order flow in the blueprint theme, dark variant: pale monospace text and fine lines on blue](images/orders-blueprint-dark.svg)
+
+![A password reset walk-through in the paper theme: rounded boxes on a cream page](images/walkthrough-paper.svg)
+
+![A login sequence in the bold theme: larger text and thick lines](images/login-bold-auto.svg)
+
+### Light, dark, or following the reader
+
+Every built-in theme has three variants. Add the ending to the name:
+
+- `paper` or `paper-light`: the light variant.
+- `paper-dark`: the dark variant.
+- `paper-auto`: one file that follows the reader. It is the light drawing, with a rule inside that switches to the dark colours when the reader's system is in dark mode.
+
+The default is `docs-light`.
+
+Use an `-auto` variant when the same page is read in light and dark mode, for example a README. It works wherever a browser shows the SVG, including as a plain image. A viewer that does not understand the rule shows the light version, and so does `svgdog preview`. To see the dark version, render once with the `-dark` variant.
+
+### Choosing a theme
+
+There are three places to name a theme. The first one that is set wins:
+
+1. On the command line, for a single run:
+
+   ```bash
+   svgdog --format text render hello.yaml -o hello.svg --theme paper-dark
+   ```
+
+2. In the spec, for one diagram:
+
+   ```yaml
+   theme: blueprint
+   ```
+
+3. In `svgdog.toml`, for every diagram in the project that does not name one:
+
+   ```toml
+   [style]
+   theme = "paper-auto"
+   ```
+
+A theme with larger or wider text makes larger boxes. If a diagram no longer fits its `max_width`, SVGDog says so; shorten a label, use `direction: down` or raise `max_width`. When you change the theme of a picture that already exists, add `--previous` to keep the boxes where they were (see [Changing a diagram without moving it](changing-a-diagram.md)).
+
+To match your own house style, write a theme of your own: see [Making your own theme](making-a-theme.md).
 
 ## Text as outlines
 
@@ -62,7 +102,7 @@ What the parts mean:
 
 - `profile`: how strict the checks are (see below).
 - `[target]`: how big the diagram will be shown, and on which page colours. Rules about text size and contrast use these numbers.
-- `[style]`: the colours, line widths and grid your project allows. Colours outside the palette are reported.
+- `[style]`: `theme` is the project's theme (see above). `palette`, `stroke_widths` and `grid` are the colours, line widths and grid your project allows; colours outside the palette are reported. When you set a palette, list the colours of your theme in it.
 - `[rules]`: switch a rule `"off"`, or change its severity or limits.
 
 To ignore the file for one run, add `--no-config`. To use a specific file, add `--config path/to/svgdog.toml`. Every setting is described in the [Operator guide](../operator/).

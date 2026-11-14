@@ -96,7 +96,7 @@ fn handshake_lists_one_tool_per_command() {
 
     let tools = s.request("tools/list", json!({}))["result"]["tools"].as_array().unwrap().clone();
     let names: Vec<&str> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
-    assert_eq!(names, ["svgdog_render", "svgdog_validate", "svgdog_inspect", "svgdog_preview", "svgdog_edit", "svgdog_fix", "svgdog_schema", "svgdog_rules", "svgdog_docs", "svgdog_describe", "svgdog_examples"]);
+    assert_eq!(names, ["svgdog_render", "svgdog_validate", "svgdog_inspect", "svgdog_preview", "svgdog_edit", "svgdog_fix", "svgdog_schema", "svgdog_rules", "svgdog_docs", "svgdog_describe", "svgdog_theme_list", "svgdog_theme_init", "svgdog_theme_check", "svgdog_examples"]);
     for t in &tools {
         assert!(!t["description"].as_str().unwrap().is_empty());
         // every input schema is itself a valid JSON Schema
@@ -271,7 +271,7 @@ fn per_request_protocol_version_is_served_without_a_handshake() {
     // no initialize: a request states its own version
     let list = s.request("tools/list", json!({ "_meta": meta("2026-07-28") }));
     assert_eq!(list["result"]["resultType"], "complete");
-    assert_eq!(list["result"]["tools"].as_array().unwrap().len(), 11);
+    assert_eq!(list["result"]["tools"].as_array().unwrap().len(), 14);
     let call = s.request("tools/call", json!({ "name": "svgdog_rules", "arguments": {}, "_meta": meta("2026-07-28") }));
     assert_eq!(call["result"]["resultType"], "complete");
     assert_eq!(call["result"]["structuredContent"]["rules"].as_array().unwrap().len(), 38);
@@ -370,5 +370,42 @@ fn docs_and_describe_work_inside_the_root() {
     assert!(!is_error && d["spec"]["title"] == "Order placement" && d["short"].as_str().unwrap().starts_with("Flow diagram: Storefront to Order API"), "{d:#}");
     let (k, _, _) = s.call("svgdog_render", json!({ "file": "orders.yaml", "output": "o.svg", "embed_spec": true, "check": true }));
     assert_eq!((k["ok"].as_bool(), k["stale"].as_array().unwrap().len()), (Some(true), 0), "{k:#}");
+    assert_eq!(s.finish(), 0);
+}
+
+#[test]
+fn themes_are_listed_made_and_used_inside_the_root_only() {
+    let outer = tempfile::tempdir().unwrap();
+    let root = outer.path().join("root");
+    fs::create_dir_all(&root).unwrap();
+    fs::copy(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/orders.yaml"), root.join("orders.yaml")).unwrap();
+    let mut s = Server::start(&root);
+    let (l, is_error, _) = s.call("svgdog_theme_list", json!({}));
+    let names: Vec<&str> = l["themes"].as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap()).collect();
+    assert!(!is_error && names == ["docs", "blueprint", "paper", "bold"], "{l:#}");
+
+    // a built-in theme by name, then one of our own from a folder
+    let (r, is_error, _) = s.call("svgdog_render", json!({ "file": "orders.yaml", "output": "blue.svg", "theme": "blueprint-dark" }));
+    assert!(!is_error && r["ok"] == true && fs::read_to_string(root.join("blue.svg")).unwrap().contains("JetBrains Mono"), "{r:#}");
+    let (i, is_error, _) = s.call("svgdog_theme_init", json!({ "dir": "themes/acme", "from": "bold" }));
+    assert!(!is_error && i["name"] == "acme" && root.join("themes/acme/theme.toml").exists(), "{i:#}");
+    let (c, is_error, _) = s.call("svgdog_theme_check", json!({ "dir": "themes/acme" }));
+    assert!(!is_error && c["ok"] == true && c["theme"]["name"] == "acme", "{c:#}");
+    let (r, is_error, _) = s.call("svgdog_render", json!({ "file": "orders.yaml", "output": "own.svg", "theme": "./themes/acme#auto" }));
+    assert!(!is_error && r["ok"] == true && fs::read_to_string(root.join("own.svg")).unwrap().contains("prefers-color-scheme"), "{r:#}");
+
+    // a theme folder outside the root is refused, however it is named
+    fs::create_dir_all(outer.path().join("elsewhere")).unwrap();
+    fs::copy(root.join("themes/acme/theme.toml"), outer.path().join("elsewhere/theme.toml")).unwrap();
+    let (e, is_error, _) = s.call("svgdog_render", json!({ "file": "orders.yaml", "output": "x.svg", "theme": "../elsewhere" }));
+    assert!(is_error && e["error"]["code"] == "outside-root", "{e:#}");
+    let spec = fs::read_to_string(root.join("orders.yaml")).unwrap().replace("theme: docs-light", "theme: ../elsewhere");
+    assert!(spec.contains("theme: ../elsewhere"));
+    let (e, is_error, _) = s.call("svgdog_render", json!({ "spec": spec }));
+    assert!(is_error && e["error"]["code"] == "outside-root", "{e:#}");
+    let (e, is_error, _) = s.call("svgdog_theme_check", json!({ "dir": "../elsewhere" }));
+    assert!(is_error && e["error"]["code"] == "outside-root", "{e:#}");
+    let (e, is_error, _) = s.call("svgdog_theme_init", json!({ "dir": "../elsewhere/new" }));
+    assert!(is_error && e["error"]["code"] == "outside-root", "{e:#}");
     assert_eq!(s.finish(), 0);
 }

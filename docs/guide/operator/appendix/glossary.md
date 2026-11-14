@@ -56,6 +56,6 @@ This glossary defines the words the operator guide uses, in alphabetical order. 
 
 **Target.** A selector naming an element, such as `#node-api` or `#a > text`. Used by `inspect --select`, `edit --set` and in **findings**.
 
-**Theme.** A named set of colours for rendering: `docs-light` or `docs-dark`.
+**Theme.** The look of a rendered diagram as data: colours, font family, text sizes, line widths and corner radii, in a light and an optional dark variant. Built in are `docs`, `blueprint`, `paper` and `bold`; a folder with a `theme.toml` is a custom one.
 
 **Tuning level.** One of the three tightness settings **auto-fit** tries; they set where labels wrap and how much room edge labels get.

@@ -18,16 +18,14 @@ use crate::envelope::AppError;
 use crate::spec::{Arrow, Diagram, Direction, EdgeStyle, Kind, Ref, Side, Spec};
 use crate::svg::text::{self, Class};
 use crate::svg::{self, SVG_NS};
-use crate::util::{did_you_mean, fmt};
+use crate::util::fmt;
 use layout::{Geometry, Measured, Tuning};
 use route::{Dir, Grid};
-use theme::{FONT, SMALL, STROKE, THIN};
+use theme::Theme;
 
 pub struct Options<'a> {
-    /// Theme from the command line; wins over the spec's.
-    pub theme: Option<&'a str>,
-    /// `[style] fonts` from the config; empty uses the bundled family.
-    pub fonts: &'a [String],
+    /// The theme to draw with, already chosen among the flag, the spec and the config.
+    pub theme: &'a theme::Resolved,
     pub text_as_paths: bool,
     /// The spec document to store in the drawing, when asked for.
     pub embed: Option<&'a serde_json::Value>,
@@ -66,7 +64,7 @@ fn p2(x: f64, y: f64) -> String {
     format!("{} {}", fmt(x), fmt(y))
 }
 
-fn shape(kind: Kind, r: Rect) -> Shape {
+fn shape(kind: Kind, r: Rect, theme: &Theme) -> Shape {
     let (x0, y0, x1, y1) = (r.x0, r.y0, r.x1, r.y1);
     let (w, h) = (r.width(), r.height());
     let rounded = |rx: f64, dashed: bool, extra: Vec<Part>| {
@@ -82,18 +80,18 @@ fn shape(kind: Kind, r: Rect) -> Shape {
         Shape { outline, parts }
     };
     match kind {
-        Kind::Box => rounded(0.0, false, vec![]),
-        Kind::State => rounded(12.0, false, vec![]),
+        Kind::Box => rounded(theme.box_corner, false, vec![]),
+        Kind::State => rounded(theme.corner * 1.5, false, vec![]),
         Kind::Start | Kind::End => {
             let (c, r) = (r.center(), w.min(h) / 2.0);
             let outline = svg::flatten(&kurbo::Circle::new(c, r).to_path(0.05));
-            let parts = if kind == Kind::Start { vec![Part::Disc { c, r, ink: true }] } else { vec![Part::Disc { c, r: r - STROKE / 2.0, ink: false }, Part::Disc { c, r: r - 5.0, ink: true }] };
+            let parts = if kind == Kind::Start { vec![Part::Disc { c, r, ink: true }] } else { vec![Part::Disc { c, r: r - theme.width / 2.0, ink: false }, Part::Disc { c, r: r - 5.0, ink: true }] };
             Shape { outline, parts }
         }
-        Kind::Service => rounded(8.0, false, vec![]),
-        Kind::External => rounded(4.0, true, vec![]),
+        Kind::Service => rounded(theme.corner, false, vec![]),
+        Kind::External => rounded(theme.corner / 2.0, true, vec![]),
         Kind::Actor => rounded(h / 2.0, false, vec![]),
-        Kind::Client => rounded(8.0, false, vec![Part::Line(Point::new(x0, y0 + 16.0), Point::new(x1, y0 + 16.0))]),
+        Kind::Client => rounded(theme.corner, false, vec![Part::Line(Point::new(x0, y0 + 16.0), Point::new(x1, y0 + 16.0))]),
         Kind::Decision => {
             let pts = vec![Point::new(x0 + w / 2.0, y0), Point::new(x1, y0 + h / 2.0), Point::new(x0 + w / 2.0, y1), Point::new(x0, y0 + h / 2.0)];
             let mut closed = pts.clone();
@@ -192,6 +190,11 @@ fn esc(s: &str) -> String {
 
 fn esc_attr(s: &str) -> String {
     esc(s).replace('"', "&quot;")
+}
+
+/// The corner attribute of a rectangle, left out when the corners are square.
+fn rx(radius: f64) -> String {
+    if radius > 0.0 { format!(" rx=\"{}\"", fmt(radius)) } else { String::new() }
 }
 
 pub(crate) struct Label {
@@ -578,24 +581,29 @@ pub(crate) fn fit(mut geo: Geometry, mut routes: Vec<Vec<Point>>, mut labels: Ve
 struct Writer {
     out: String,
     as_paths: bool,
+    /// The bundled face the text is measured and outlined with.
+    class: Class,
+    /// Line width of shapes, and the size of the small text in badges.
+    width: f64,
+    small: f64,
 }
 
 impl Writer {
     /// Lines of text centred on (cx, cy); `anchor` is start or middle.
     #[allow(clippy::too_many_arguments)]
     fn text(&mut self, indent: &str, lines: &[String], x: f64, cy: f64, size: f64, leading: f64, fill: &str, anchor: &str) {
-        let (asc, desc) = text::vmetrics(Class::Sans, false);
+        let (asc, desc) = text::vmetrics(self.class, false);
         let n = lines.len() as f64;
         let baseline = |i: usize| cy + (i as f64 - (n - 1.0) / 2.0) * leading + (asc - desc) / 2.0 * size;
         if self.as_paths {
             for (i, line) in lines.iter().enumerate() {
-                let w = layout::text_width(line, size);
+                let w = layout::text_width(line, size, self.class);
                 let start = match anchor {
                     "middle" => x - w / 2.0,
                     "end" => x - w,
                     _ => x,
                 };
-                let d = text::outline(line, size, start, baseline(i));
+                let d = text::outline(line, self.class, size, start, baseline(i));
                 if !d.is_empty() {
                     self.out.push_str(&format!("{indent}<path d=\"{d}\" fill=\"{fill}\"/>\n"));
                 }
@@ -620,9 +628,9 @@ impl Writer {
 
     /// A numbered step badge centred on `c`; `quiet` greys it, for a step that is not the current one.
     fn badge(&mut self, indent: &str, c: Point, number: usize, theme: &theme::Theme, quiet: bool) {
-        let (disc, ink) = if quiet { (theme.muted, theme.background) } else { (theme.accent_fill, theme.accent_text) };
+        let (disc, ink) = if quiet { (&theme.muted, &theme.background) } else { (&theme.accent_fill, &theme.accent_text) };
         self.out.push_str(&format!("{indent}<circle cx=\"{}\" cy=\"{}\" r=\"{}\" fill=\"{disc}\" data-badge=\"{number}\"/>\n", fmt(c.x), fmt(c.y), fmt(explain::BADGE / 2.0)));
-        self.text(indent, &[number.to_string()], c.x, c.y, SMALL, 16.0, ink, "middle");
+        self.text(indent, &[number.to_string()], c.x, c.y, self.small, self.small + 4.0, ink, "middle");
     }
 
     /// What every drawn thing opens with: its group, with the steps that name it, a
@@ -646,7 +654,7 @@ impl Writer {
     }
 
     fn part(&mut self, p: &Part, fill: &str, stroke: &str) {
-        let pen = format!("stroke=\"{stroke}\" stroke-width=\"{}\"", fmt(STROKE));
+        let pen = format!("stroke=\"{stroke}\" stroke-width=\"{}\"", fmt(self.width));
         match p {
             Part::Rect { r, rx, dashed } => {
                 let rx = if *rx > 0.0 { format!(" rx=\"{}\"", fmt(*rx)) } else { String::new() };
@@ -685,20 +693,19 @@ pub fn render_keeping(spec: &Spec, opt: &Options, prev: &keep::Previous) -> Resu
 }
 
 fn draw(spec: &Spec, opt: &Options, prev: Option<&keep::Previous>) -> Result<(String, Option<keep::Kept>), AppError> {
-    let name = opt.theme.or(spec.theme.as_deref()).unwrap_or("docs-light");
-    let theme = theme::find(name).ok_or_else(|| {
-        let e = if opt.theme.is_some() { AppError::usage("unknown-theme", format!("Unknown theme '{name}'.")) } else { AppError::input("unknown-theme", format!("Unknown theme '{name}'.")).path("theme") };
-        e.suggest(did_you_mean(name, theme::names()).or(Some(format!("Themes: {}.", theme::names().collect::<Vec<_>>().join(", ")))))
-    })?;
+    // An adaptive drawing is made with a token for each colour; `adapt` fills them in.
+    let placeholder = opt.theme.dark.as_ref().map(|_| opt.theme.theme.placeholder());
+    let theme = placeholder.as_ref().unwrap_or(&opt.theme.theme);
+    let (small, small_lead) = (theme.small, theme.small_lead());
     let kinds: Vec<Kind> = spec.nodes.iter().map(|n| n.kind).collect();
     let mut kept: Option<keep::Kept> = None;
     let mut chosen = None;
     if let Some(prev) = prev.filter(|p| keep::pins(spec, p)) {
         // Boxes stay where the earlier drawing had them, at the spacing it was set at.
-        let t = &layout::LEVELS[keep::level(spec, prev)];
-        let m = layout::measure(spec, t);
+        let t = &layout::LEVELS[keep::level(spec, prev, theme)];
+        let m = layout::measure(spec, t, theme);
         let (geo, mut k) = keep::pinned(spec, &m, t, prev);
-        let d = connect(spec, &m, geo, &|i, r| shape(kinds[i], r));
+        let d = connect(spec, &m, geo, &|i, r| shape(kinds[i], r, theme));
         if d.size.0 > spec.max_width + 1e-6 {
             k.reasons.push(keep::Reason { id: String::new(), why: format!("with the boxes kept in place the drawing would be {} px wide; max_width allows {}", fmt(d.size.0), fmt(spec.max_width)) });
         }
@@ -708,12 +715,12 @@ fn draw(spec: &Spec, opt: &Options, prev: Option<&keep::Previous>) -> Result<(St
         // Set the diagram as roomily as fits: tighter wrapping and gaps are tried only
         // when the drawing would be wider than max_width.
         for t in &layout::LEVELS {
-            let m = layout::measure(spec, t);
+            let m = layout::measure(spec, t, theme);
             let d = match spec.diagram {
-                Diagram::Sequence => sequence::arrange(spec, &m, t, &|i, r| shape(kinds[i], r)),
-                Diagram::Timeline => timeline::arrange(spec, &m),
-                Diagram::Compare => connect(spec, &m, compare::layout(spec, &m), &|i, r| shape(kinds[i], r)),
-                _ => arrange(spec, &m, t, &|i, r| shape(kinds[i], r)),
+                Diagram::Sequence => sequence::arrange(spec, &m, t, &|i, r| shape(kinds[i], r, theme)),
+                Diagram::Timeline => timeline::arrange(spec, &m, theme),
+                Diagram::Compare => connect(spec, &m, compare::layout(spec, &m), &|i, r| shape(kinds[i], r, theme)),
+                _ => arrange(spec, &m, t, &|i, r| shape(kinds[i], r, theme)),
             };
             let fits = d.size.0 <= spec.max_width + 1e-6;
             chosen = Some((m, d));
@@ -735,15 +742,15 @@ fn draw(spec: &Spec, opt: &Options, prev: Option<&keep::Previous>) -> Result<(St
 
     // The legend, the steps and the caption go under the drawing; a drawing narrower
     // than they are is centred above them.
-    let footer = explain::Footer::plan(spec, w);
+    let footer = explain::Footer::plan(spec, w, theme);
     let (drawing_w, drawing_h) = (w, h);
     let w = w.max(footer.canvas());
     let h = h + footer.height;
     d.shift(Vec2::new(((w - drawing_w) / 16.0).floor() * 8.0, 0.0));
     let dim: Vec<bool> = (0..spec.edges.len()).map(|i| !spec.in_focus(Ref::Edge(i))).collect();
 
-    let family = if opt.fonts.is_empty() { "Inter, sans-serif".to_string() } else { opt.fonts.join(", ") };
-    let mut wr = Writer { out: String::new(), as_paths: opt.text_as_paths };
+    let family = theme.family.join(", ");
+    let mut wr = Writer { out: String::new(), as_paths: opt.text_as_paths, class: theme.class, width: theme.width, small };
     let font_attr = if opt.text_as_paths { String::new() } else { format!(" font-family=\"{}\"", esc_attr(&family)) };
     wr.out.push_str(&format!("<svg xmlns=\"{SVG_NS}\" viewBox=\"0 0 {} {}\" data-svgdog=\"1\"{font_attr}>\n", fmt(w), fmt(h)));
     wr.out.push_str(&format!("  <title>{}</title>\n", esc(&spec.title)));
@@ -788,9 +795,9 @@ fn draw(spec: &Spec, opt: &Options, prev: Option<&keep::Previous>) -> Result<(St
         let gr = &spec.groups[g];
         let steps = spec.steps_of(Ref::Group(g));
         wr.open(&format!("group-{}", gr.id), &steps, gr.link.as_deref(), gr.detail.as_deref(), &live(Ref::Group(g), false));
-        wr.out.push_str(&format!("    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"8\" fill=\"none\" stroke=\"{}\" stroke-width=\"{}\"/>\n", fmt(f.x0), fmt(f.y0), fmt(f.width()), fmt(f.height()), theme.muted, fmt(THIN)));
+        wr.out.push_str(&format!("    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\"{} fill=\"none\" stroke=\"{}\" stroke-width=\"{}\"/>\n", fmt(f.x0), fmt(f.y0), fmt(f.width()), fmt(f.height()), rx(theme.corner), theme.muted, fmt(theme.thin)));
         if let Some(label) = &spec.groups[g].label {
-            wr.text("    ", std::slice::from_ref(label), f.x0 + 12.0, f.y0 + 20.0, SMALL, 16.0, theme.muted, "start");
+            wr.text("    ", std::slice::from_ref(label), f.x0 + 12.0, f.y0 + 20.0, small, small_lead, &theme.muted, "start");
         }
         for (c, number) in explain::group_badges(f, steps.len()).into_iter().zip(&steps) {
             if spec.marks(*number) {
@@ -802,7 +809,7 @@ fn draw(spec: &Spec, opt: &Options, prev: Option<&keep::Previous>) -> Result<(St
     if !d.axis.is_empty() {
         wr.out.push_str("  <g id=\"axis\">\n");
         for (a, b) in &d.axis {
-            wr.out.push_str(&format!("    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-linecap=\"round\"/>\n", fmt(a.x), fmt(a.y), fmt(b.x), fmt(b.y), theme.edge, fmt(STROKE)));
+            wr.out.push_str(&format!("    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-linecap=\"round\"/>\n", fmt(a.x), fmt(a.y), fmt(b.x), fmt(b.y), theme.edge, fmt(theme.width)));
         }
         wr.out.push_str("  </g>\n");
     }
@@ -810,27 +817,27 @@ fn draw(spec: &Spec, opt: &Options, prev: Option<&keep::Previous>) -> Result<(St
         let r = d.geo.nodes[i];
         // Out of focus, a node keeps its shape and loses its colour.
         let (fill, ink, pen) = match (spec.in_focus(Ref::Node(i)), n.emphasis || spec.one_sided(i)) {
-            (false, _) => (theme.background, theme.muted, theme.muted),
-            (true, true) => (theme.accent_fill, theme.accent_text, theme.node_stroke),
-            (true, false) => (theme.node_fill, theme.text, theme.node_stroke),
+            (false, _) => (&theme.background, &theme.muted, &theme.muted),
+            (true, true) => (&theme.accent_fill, &theme.accent_text, &theme.node_stroke),
+            (true, false) => (&theme.node_fill, &theme.text, &theme.node_stroke),
         };
         let steps = spec.steps_of(Ref::Node(i));
         wr.open(&format!("node-{}", n.id), &steps, n.link.as_deref(), n.detail.as_deref(), &live(Ref::Node(i), true));
         if let Some((a, b)) = d.lifelines[i] {
-            wr.out.push_str(&format!("    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-dasharray=\"4 4\"/>\n", fmt(a.x), fmt(a.y), fmt(b.x), fmt(b.y), theme.muted, fmt(THIN)));
+            wr.out.push_str(&format!("    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-dasharray=\"4 4\"/>\n", fmt(a.x), fmt(a.y), fmt(b.x), fmt(b.y), theme.muted, fmt(theme.thin)));
         }
         for mark in d.marks.get(i).into_iter().flatten() {
             match mark {
-                Mark::Stem(a, b) => wr.out.push_str(&format!("    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" stroke-width=\"{}\"/>\n", fmt(a.x), fmt(a.y), fmt(b.x), fmt(b.y), theme.muted, fmt(THIN))),
-                Mark::Dot(c) => wr.out.push_str(&format!("    <circle cx=\"{}\" cy=\"{}\" r=\"5\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\"/>\n", fmt(c.x), fmt(c.y), theme.background, pen, fmt(STROKE))),
-                Mark::When { at, text, anchor, .. } => wr.text("    ", std::slice::from_ref(text), at.x, at.y, SMALL, 16.0, if spec.in_focus(Ref::Node(i)) { theme.text } else { theme.muted }, anchor),
+                Mark::Stem(a, b) => wr.out.push_str(&format!("    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" stroke-width=\"{}\"/>\n", fmt(a.x), fmt(a.y), fmt(b.x), fmt(b.y), theme.muted, fmt(theme.thin))),
+                Mark::Dot(c) => wr.out.push_str(&format!("    <circle cx=\"{}\" cy=\"{}\" r=\"5\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\"/>\n", fmt(c.x), fmt(c.y), theme.background, pen, fmt(theme.width))),
+                Mark::When { at, text, anchor, .. } => wr.text("    ", std::slice::from_ref(text), at.x, at.y, small, small_lead, if spec.in_focus(Ref::Node(i)) { &theme.text } else { &theme.muted }, anchor),
             }
         }
-        for p in &shape(n.kind, r).parts {
+        for p in &shape(n.kind, r, theme).parts {
             wr.part(p, fill, pen);
         }
         if !n.label.is_empty() {
-            wr.text("    ", &m.nodes[i].text.lines, r.center().x, r.center().y + m.nodes[i].text_dy, FONT, 20.0, ink, "middle");
+            wr.text("    ", &m.nodes[i].text.lines, r.center().x, r.center().y + m.nodes[i].text_dy, theme.size, theme.lead(), ink, "middle");
         }
         for (c, number) in explain::node_badges(n.kind, r, steps.len()).into_iter().zip(&steps) {
             if spec.marks(*number) {
@@ -857,10 +864,10 @@ fn draw(spec: &Spec, opt: &Options, prev: Option<&keep::Previous>) -> Result<(St
             (Arrow::Both, true) => " marker-start=\"url(#arrow-start-dim)\" marker-end=\"url(#arrow-dim)\"",
             (Arrow::None, _) => "",
         };
-        let (line, ink) = if dim[i] { (theme.muted, theme.muted) } else { (theme.edge, theme.text) };
+        let (line, ink) = if dim[i] { (&theme.muted, &theme.muted) } else { (&theme.edge, &theme.text) };
         let steps = spec.steps_of(Ref::Edge(i));
         wr.open(&format!("edge-{}", e.id), &steps, e.link.as_deref(), e.detail.as_deref(), &live(Ref::Edge(i), false));
-        wr.out.push_str(&format!("    <path d=\"{path}\" fill=\"none\" stroke=\"{line}\" stroke-width=\"{}\"{dash}{markers}/>\n", fmt(STROKE)));
+        wr.out.push_str(&format!("    <path d=\"{path}\" fill=\"none\" stroke=\"{line}\" stroke-width=\"{}\"{dash}{markers}/>\n", fmt(theme.width)));
         if let Some(l) = &d.labels[i] {
             // Badges take the left of the label's box; the words are centred in the rest.
             let room = explain::badge_room(steps.len(), !l.text.is_empty());
@@ -870,7 +877,7 @@ fn draw(spec: &Spec, opt: &Options, prev: Option<&keep::Previous>) -> Result<(St
                 }
             }
             if !l.text.is_empty() {
-                wr.text("    ", std::slice::from_ref(&l.text), (l.rect.x0 + room + l.rect.x1) / 2.0, l.rect.center().y, SMALL, 16.0, ink, "middle");
+                wr.text("    ", std::slice::from_ref(&l.text), (l.rect.x0 + room + l.rect.x1) / 2.0, l.rect.center().y, small, small_lead, ink, "middle");
             }
         }
         wr.close(e.link.as_deref());
@@ -880,19 +887,21 @@ fn draw(spec: &Spec, opt: &Options, prev: Option<&keep::Previous>) -> Result<(St
         let class = if opt.interactive { format!(" class=\"{}\"", interactive::note_classes(spec, &spec.notes[i].attach)) } else { String::new() };
         wr.out.push_str(&format!("  <g id=\"note-{}\"{class}>\n", i + 1));
         if let Some((a, b)) = d.leaders[i] {
-            wr.out.push_str(&format!("    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-dasharray=\"2 3\"/>\n", fmt(a.x), fmt(a.y), fmt(b.x), fmt(b.y), theme.muted, fmt(THIN)));
+            wr.out.push_str(&format!("    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" stroke-width=\"{}\" stroke-dasharray=\"2 3\"/>\n", fmt(a.x), fmt(a.y), fmt(b.x), fmt(b.y), theme.muted, fmt(theme.thin)));
         }
-        wr.out.push_str(&format!("    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"4\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\"/>\n", fmt(r.x0), fmt(r.y0), fmt(r.width()), fmt(r.height()), theme.note_fill, theme.muted, fmt(THIN)));
-        let ink = if spec.lookup(&spec.notes[i].attach).is_none_or(|r| spec.in_focus(r)) { theme.text } else { theme.muted };
-        wr.text("    ", &m.notes[i].text.lines, r.center().x, r.center().y, SMALL, 16.0, ink, "middle");
+        wr.out.push_str(&format!("    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\"{} fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\"/>\n", fmt(r.x0), fmt(r.y0), fmt(r.width()), fmt(r.height()), rx(theme.corner / 2.0), theme.note_fill, theme.muted, fmt(theme.thin)));
+        let ink = if spec.lookup(&spec.notes[i].attach).is_none_or(|r| spec.in_focus(r)) { &theme.text } else { &theme.muted };
+        wr.text("    ", &m.notes[i].text.lines, r.center().x, r.center().y, small, small_lead, ink, "middle");
         wr.out.push_str("  </g>\n");
     }
     footer.write(&mut wr, theme, drawing_h);
     wr.out.push_str("</svg>\n");
-    let mut out = if theme.name == theme::AUTO { theme::adapt(&wr.out) } else { wr.out };
+    let mut out = match &opt.theme.dark {
+        Some(dark) => theme::adapt(&wr.out, &opt.theme.theme, dark),
+        None => wr.out,
+    };
     if opt.interactive {
-        let accent = if theme.name == theme::AUTO { theme::THEMES[0].accent_fill } else { theme.accent_fill };
-        out = interactive::style(&out, spec, theme, accent);
+        out = interactive::style(&out, spec, &opt.theme.theme.accent_fill);
     }
     Ok((out, kept))
 }
@@ -917,7 +926,8 @@ mod tests {
                 let doc = crate::spec::read_document(&std::fs::read_to_string(&path).unwrap(), &name).unwrap();
                 let spec = crate::spec::parse(&doc).unwrap();
                 for text_as_paths in [false, true] {
-                    let opt = Options { theme: None, fonts: &[], text_as_paths, embed: None, interactive: false };
+                    let look = theme::default();
+                    let opt = Options { theme: &look, text_as_paths, embed: None, interactive: false };
                     let svg = render(&spec, &opt).unwrap();
                     let prev = keep::read(&svg, &name).unwrap();
                     // Drawn over itself, nothing may move and the bytes must be the same.

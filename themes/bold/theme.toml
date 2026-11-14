@@ -1,0 +1,37 @@
+# For slides and screens seen from a distance: larger text and thick lines.
+version = 1
+name = "bold"
+description = "For slides: larger text, thick lines, strong contrast"
+
+[font]
+family = ["Inter", "sans-serif"]
+size = 16
+small = 13
+
+[line]
+width = 2.5
+thin = 1.5
+corner = 10
+box_corner = 4
+
+[light]
+background = "#ffffff"
+text = "#0a0a0a"
+muted = "#525252"
+node_fill = "#e0e7ff"
+node_stroke = "#0a0a0a"
+accent_fill = "#be123c"
+accent_text = "#ffffff"
+note_fill = "#fef9c3"
+edge = "#0a0a0a"
+
+[dark]
+background = "#0a0a0a"
+text = "#fafafa"
+muted = "#a3a3a3"
+node_fill = "#1e1b4b"
+node_stroke = "#fafafa"
+accent_fill = "#fb7185"
+accent_text = "#0a0a0a"
+note_fill = "#171717"
+edge = "#fafafa"

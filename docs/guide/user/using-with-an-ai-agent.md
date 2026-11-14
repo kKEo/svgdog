@@ -14,7 +14,7 @@ svgdog mcp --root-path ./docs
 
 `--root-path` is the one folder the assistant may read and write. Every path it uses is relative to that folder, and anything outside is refused. Most assistants that support MCP ask for a command and arguments to start the server; give them `svgdog` and `mcp --root-path ./docs`. Check your assistant's own documentation for where to enter this.
 
-The server offers eight tools, named after the commands you already know:
+The server offers fourteen tools, named after the commands you already know:
 
 | Tool | Same as |
 |---|---|
@@ -29,6 +29,7 @@ The server offers eight tools, named after the commands you already know:
 | `svgdog_examples` | `svgdog examples` |
 | `svgdog_docs` | `svgdog docs` |
 | `svgdog_describe` | `svgdog describe` |
+| `svgdog_theme_list`, `svgdog_theme_init`, `svgdog_theme_check` | `svgdog theme list`, `init` and `check` |
 
 The assistant does not need files to draw. `svgdog_render` accepts the spec as text and, with `preview: true`, answers with the checked drawing and a picture of it in one step. Ask for files only when you want to keep the result.
 
