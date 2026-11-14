@@ -13,6 +13,7 @@ The test produces and compares these files, among others:
 | `orders.svg`, `checkout.svg`, `tiers.svg`, `rack.svg`, `login.svg` | `svgdog render tests/fixtures/<name>.yaml -o <name>.svg --no-config` |
 | `orders-dark-paths.svg` | `render` of `orders.yaml` with `--theme docs-dark --text-as-paths` |
 | `orders-blueprint-dark.svg`, `walkthrough-paper.svg`, `login-bold-auto.svg` | `render` of the fixture in the name with `--theme blueprint-dark`, `paper` and `bold-auto`: one drawing per built-in theme beyond the default |
+| `showcase-<theme>.svg`, `showcase-<theme>-dark.svg` | `render` of `showcase.yaml` with each of the five built-in themes, light and dark, under `--profile strict`: the pictures of the Theme gallery in the user guide |
 | `broken.findings.json` | `svgdog validate tests/fixtures/broken.svg --no-config --max-findings 500` (the file path is replaced by `broken.svg`) |
 | `orders.scene.json` | `svgdog inspect orders.svg --fields id,tag,bbox,text,fill,stroke,refs` |
 | `orders.png` | `svgdog preview orders.svg -o orders.png --width 800 --annotate --no-config` |

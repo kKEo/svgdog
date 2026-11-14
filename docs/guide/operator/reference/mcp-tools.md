@@ -59,7 +59,7 @@ Compile a spec (YAML or JSON) to SVG and validate it. Mirrors [`render`](command
 | `file` | path | one of the two | Diagram spec file |
 | `output` | path | no | Where to write the SVG; without it nothing is written and the SVG comes back in the envelope's `svg` field |
 | `preview` | boolean | no | Also return a PNG of the result as image content, 1200 px wide on a white page; the envelope gains `image` |
-| `theme` | string | no | A built-in theme (`docs`, `blueprint`, `paper`, `bold`; add `-dark` or `-auto`) or a theme folder inside the root (add `#dark` or `#auto`) |
+| `theme` | string | no | A built-in theme (`docs`, `blueprint`, `paper`, `bold`, `cards`; add `-dark` or `-auto`) or a theme folder inside the root (add `#dark` or `#auto`) |
 | `frames` | boolean | no | One picture per step of the spec's `steps`; needs `output` |
 | `interactive` | string | no | `css` or `html`; see [Interactive versions](commands.md#interactive-versions) |
 | `embed_spec` | boolean | no | Store the spec inside the SVG |

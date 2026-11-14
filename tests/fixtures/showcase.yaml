@@ -1,0 +1,34 @@
+# One diagram that uses most of what a theme styles: every common node kind, a frame,
+# a highlighted box, the three edge styles, a note, numbered steps, a legend and a caption.
+version: 1
+diagram: flow
+direction: down
+title: Placing an order
+description: How an order goes from the shopper to the warehouse, with payment and stock checked on the way.
+caption: Payment and stock are checked before the order is saved.
+legend: true
+nodes:
+  - { id: shopper, label: Shopper, kind: actor }
+  - { id: shop, label: Web shop, kind: client }
+  - { id: api, label: Order API, kind: service, emphasis: true }
+  - { id: pay, label: Payment provider, kind: external }
+  - { id: stock, label: In stock?, kind: decision }
+  - { id: orders, label: Orders, kind: datastore }
+  - { id: events, label: Order events, kind: queue }
+  - { id: slip, label: Packing slip, kind: document }
+groups:
+  - { id: backend, label: Backend, members: [api, stock, orders, events] }
+edges:
+  - "shopper -> shop: checks out"
+  - "shop -> api: place order"
+  - "api -> pay: charge"
+  - "api -> stock: reserve"
+  - "stock -> orders: save"
+  - "orders --> events: publish"
+  - "events ..> slip: print"
+notes:
+  - { attach: events, text: Delivered at least once }
+steps:
+  - { text: The shopper checks out in the web shop., show: [shopper, shop, shopper--shop] }
+  - { text: The Order API charges the card and reserves the stock., show: [api, pay, stock, api--pay, api--stock] }
+  - { text: The order is saved and announced to the warehouse., show: [orders, events, slip, stock--orders, orders--events, events--slip] }

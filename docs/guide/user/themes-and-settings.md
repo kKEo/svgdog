@@ -4,7 +4,7 @@ This page shows how to change how diagrams look and how to set house rules for a
 
 ## Themes
 
-A theme sets the whole look of a diagram: its colours, its font and text sizes, how thick the lines are and how round the corners. SVGDog has four built-in themes:
+A theme sets the whole look of a diagram: its colours, its font and text sizes, how thick the lines are and how round the corners. SVGDog has five built-in themes:
 
 | Theme | Look | Good for |
 |---|---|---|
@@ -12,6 +12,7 @@ A theme sets the whole look of a diagram: its colours, its font and text sizes, 
 | `blueprint` | Fine blue lines, square corners, a monospace font | Technical drawings and architecture notes |
 | `paper` | Warm cream page, soft ink, a terracotta accent, well-rounded corners | Handbooks, blog posts and long reads |
 | `bold` | Larger text (16 px), thick lines, strong contrast | Slides and screens seen from a distance |
+| `cards` | Soft grey cards with hairline borders, round corners, a blue accent, the system font | Product pages and landing pages |
 
 List them, with their descriptions, at any time:
 
@@ -19,7 +20,7 @@ List them, with their descriptions, at any time:
 svgdog --format text theme list
 ```
 
-The same diagram in `blueprint-dark`, `paper` and `bold`:
+The [Theme gallery](theme-gallery.md) shows one diagram in every theme, light and dark. Three samples, in `blueprint-dark`, `paper` and `bold`:
 
 ![An order flow in the blueprint theme, dark variant: pale monospace text and fine lines on blue](images/orders-blueprint-dark.svg)
 

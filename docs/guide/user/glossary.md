@@ -36,7 +36,7 @@ These are the words this guide uses, in plain language. The [Operator guide](../
 | **severity** | How serious a finding is: error, warning or info |
 | **spec** | The text file that describes your diagram, in YAML or JSON |
 | **SVG** | A picture format made of text instructions. It scales to any size without going blurry |
-| **theme** | The look of a diagram: its colours, font, text sizes and line style. Built in are `docs`, `blueprint`, `paper` and `bold`; a folder with a `theme.toml` is one of your own |
+| **theme** | The look of a diagram: its colours, font, text sizes and line style. Built in are `docs`, `blueprint`, `paper`, `bold` and `cards`; a folder with a `theme.toml` is one of your own |
 | **validate** | Checking a file against the rules |
 | **viewBox** | The part of the picture's own coordinate system that is shown. It lets an SVG scale to its page |
 | **YAML** | A simple text format for lists and labelled values, used for specs |

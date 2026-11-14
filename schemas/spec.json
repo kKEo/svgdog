@@ -11,7 +11,7 @@
     "title": { "type": "string", "minLength": 1, "maxLength": 120 },
     "description": { "type": "string", "maxLength": 500 },
     "direction": { "enum": ["right", "down"], "default": "right" },
-    "theme": { "type": "string", "default": "docs-light", "description": "A built-in theme (docs, blueprint, paper, bold; add -dark or -auto), or a theme folder relative to this file, such as ./themes/acme (add #dark or #auto)" },
+    "theme": { "type": "string", "default": "docs-light", "description": "A built-in theme (docs, blueprint, paper, bold, cards, cards; add -dark or -auto), or a theme folder relative to this file, such as ./themes/acme (add #dark or #auto)" },
     "max_width": { "type": "integer", "minimum": 200, "maximum": 2000, "default": 960 },
     "nodes": {
       "description": "Optional when edges name the nodes: an id that is only mentioned becomes a box labelled with the id.",

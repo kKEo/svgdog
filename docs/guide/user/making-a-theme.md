@@ -6,7 +6,7 @@ A theme of your own is a folder that holds one file, `theme.toml`. You keep the 
 
 ## 1. Start from a built-in theme
 
-Pick the built-in theme closest to what you want and copy it:
+Pick the built-in theme closest to what you want (the [Theme gallery](theme-gallery.md) shows them all) and copy it:
 
 ```bash
 svgdog --format text theme init themes/acme --from paper
@@ -18,7 +18,7 @@ Change it, then check it with: svgdog theme check themes/acme
 Use it with: --theme themes/acme
 ```
 
-`--from` takes `docs`, `blueprint`, `paper` or `bold`; without it you get a copy of `docs`. The command does not replace a file that is already there unless you add `--force`.
+`--from` takes `docs`, `blueprint`, `paper`, `bold` or `cards`; without it you get a copy of `docs`. The command does not replace a file that is already there unless you add `--force`.
 
 ## 2. Change the file
 

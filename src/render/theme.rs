@@ -20,6 +20,7 @@ pub const BUILTIN: &[(&str, &str)] = &[
     ("blueprint", include_str!("../../themes/blueprint/theme.toml")),
     ("paper", include_str!("../../themes/paper/theme.toml")),
     ("bold", include_str!("../../themes/bold/theme.toml")),
+    ("cards", include_str!("../../themes/cards/theme.toml")),
 ];
 
 /// The colour roles, in the order a theme file lists them, each with the two-letter

@@ -88,7 +88,7 @@ pub enum Command {
         /// Where to write the SVG; - writes it to stdout in place of the report
         #[arg(short = 'o', value_name = "OUT")]
         output: String,
-        /// Theme: docs, blueprint, paper or bold (add -dark or -auto), or a theme folder [default: the spec's, else svgdog.toml's, else docs-light]
+        /// Theme: docs, blueprint, paper, bold or cards (add -dark or -auto), or a theme folder [default: the spec's, else svgdog.toml's, else docs-light]
         #[arg(long, value_name = "NAME|DIR")]
         theme: Option<String>,
         /// css: an SVG that highlights on hover; html: a page with step controls [default: none]
@@ -300,7 +300,7 @@ pub enum ThemeAction {
         /// Folder for the theme; it is created when missing
         #[arg(value_name = "DIR")]
         dir: String,
-        /// Built-in theme to copy: docs, blueprint, paper or bold
+        /// Built-in theme to copy: docs, blueprint, paper, bold or cards
         #[arg(long, default_value = "docs", value_name = "NAME")]
         from: String,
         /// Replace a theme.toml that is already there

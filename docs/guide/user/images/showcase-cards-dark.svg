@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 528 1072" data-svgdog="1" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+  <title>Placing an order</title>
+  <desc>How an order goes from the shopper to the warehouse, with payment and stock checked on the way.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L10 4L0 8Z" fill="#737d90"/></marker>
+  </defs>
+  <rect x="0" y="0" width="528" height="1072" fill="#161a22"/>
+  <g id="group-backend">
+    <rect x="104" y="264" width="400" height="496" rx="10" fill="none" stroke="#a3acbc" stroke-width="1"/>
+    <text x="116" y="288.55" font-size="12.5" fill="#a3acbc">Backend</text>
+  </g>
+  <g id="node-shopper" data-step="1">
+    <rect x="144" y="24" width="128" height="64" rx="32" fill="#1d222c" stroke="#2f3644" stroke-width="1"/>
+    <text x="208" y="61.46" text-anchor="middle" font-size="15" fill="#e7eaf0">Shopper</text>
+    <circle cx="153.6" cy="33.6" r="9" fill="#86a8ff" data-badge="1"/>
+    <text x="153.6" y="38.15" text-anchor="middle" font-size="12.5" fill="#161a22">1</text>
+  </g>
+  <g id="node-shop" data-step="1">
+    <rect x="152" y="136" width="112" height="80" rx="10" fill="#1d222c" stroke="#2f3644" stroke-width="1"/>
+    <line x1="152" y1="152" x2="264" y2="152" stroke="#2f3644" stroke-width="1"/>
+    <text x="208" y="189.46" text-anchor="middle" font-size="15" fill="#e7eaf0">Web shop</text>
+    <circle cx="152" cy="136" r="9" fill="#86a8ff" data-badge="1"/>
+    <text x="152" y="140.55" text-anchor="middle" font-size="12.5" fill="#161a22">1</text>
+  </g>
+  <g id="node-api" data-step="2">
+    <rect x="152" y="304" width="112" height="64" rx="10" fill="#86a8ff" stroke="#2f3644" stroke-width="1"/>
+    <text x="208" y="341.46" text-anchor="middle" font-size="15" fill="#161a22">Order API</text>
+    <circle cx="152" cy="304" r="9" fill="#86a8ff" data-badge="2"/>
+    <text x="152" y="308.55" text-anchor="middle" font-size="12.5" fill="#161a22">2</text>
+  </g>
+  <g id="node-pay" data-step="2">
+    <rect x="24" y="808" width="176" height="64" rx="5" fill="#1d222c" stroke="#2f3644" stroke-width="1" stroke-dasharray="6 4"/>
+    <text x="112" y="845.46" text-anchor="middle" font-size="15" fill="#e7eaf0">Payment provider</text>
+    <circle cx="24" cy="808" r="9" fill="#86a8ff" data-badge="2"/>
+    <text x="24" y="812.55" text-anchor="middle" font-size="12.5" fill="#161a22">2</text>
+  </g>
+  <g id="node-stock" data-step="2">
+    <polygon points="208,416 288,456 208,496 128,456" fill="#1d222c" stroke="#2f3644" stroke-width="1"/>
+    <text x="208" y="461.46" text-anchor="middle" font-size="15" fill="#e7eaf0">In stock?</text>
+    <circle cx="168" cy="436" r="9" fill="#86a8ff" data-badge="2"/>
+    <text x="168" y="440.55" text-anchor="middle" font-size="12.5" fill="#161a22">2</text>
+  </g>
+  <g id="node-orders" data-step="3">
+    <path d="M160 552 A48 8 0 0 1 256 552 L256 616 A48 8 0 0 1 160 616 Z" fill="#1d222c" stroke="#2f3644" stroke-width="1"/>
+    <path d="M160 552 A48 8 0 0 0 256 552" fill="none" stroke="#2f3644" stroke-width="1"/>
+    <text x="208" y="595.46" text-anchor="middle" font-size="15" fill="#e7eaf0">Orders</text>
+    <circle cx="160" cy="544" r="9" fill="#86a8ff" data-badge="3"/>
+    <text x="160" y="548.55" text-anchor="middle" font-size="12.5" fill="#161a22">3</text>
+  </g>
+  <g id="node-events" data-step="3">
+    <path d="M136 672 L280 672 A8 32 0 0 1 280 736 L136 736 A8 32 0 0 1 136 672 Z" fill="#1d222c" stroke="#2f3644" stroke-width="1"/>
+    <path d="M280 672 A8 32 0 0 0 280 736" fill="none" stroke="#2f3644" stroke-width="1"/>
+    <text x="208" y="709.46" text-anchor="middle" font-size="15" fill="#e7eaf0">Order events</text>
+    <circle cx="137.6" cy="681.6" r="9" fill="#86a8ff" data-badge="3"/>
+    <text x="137.6" y="686.15" text-anchor="middle" font-size="12.5" fill="#161a22">3</text>
+  </g>
+  <g id="node-slip" data-step="3">
+    <path d="M240 808 L368 808 L368 864 Q336 852 304 864 Q272 876 240 864 Z" fill="#1d222c" stroke="#2f3644" stroke-width="1"/>
+    <text x="304" y="841.46" text-anchor="middle" font-size="15" fill="#e7eaf0">Packing slip</text>
+    <circle cx="240" cy="808" r="9" fill="#86a8ff" data-badge="3"/>
+    <text x="240" y="812.55" text-anchor="middle" font-size="12.5" fill="#161a22">3</text>
+  </g>
+  <g id="edge-shopper--shop" data-step="1">
+    <path d="M208 88 L208 136" fill="none" stroke="#737d90" stroke-width="1" marker-end="url(#arrow)"/>
+    <circle cx="223" cy="112" r="9" fill="#86a8ff" data-badge="1"/>
+    <text x="223" y="116.55" text-anchor="middle" font-size="12.5" fill="#161a22">1</text>
+    <text x="273.05" y="116.55" text-anchor="middle" font-size="12.5" fill="#e7eaf0">checks out</text>
+  </g>
+  <g id="edge-shop--api">
+    <path d="M208 216 L208 304" fill="none" stroke="#737d90" stroke-width="1" marker-end="url(#arrow)"/>
+    <text x="250.33" y="242.55" text-anchor="middle" font-size="12.5" fill="#e7eaf0">place order</text>
+  </g>
+  <g id="edge-api--pay" data-step="2">
+    <path d="M168 368 L168 408 L112 408 L112 808" fill="none" stroke="#737d90" stroke-width="1" marker-end="url(#arrow)"/>
+    <circle cx="127" cy="508" r="9" fill="#86a8ff" data-badge="2"/>
+    <text x="127" y="512.55" text-anchor="middle" font-size="12.5" fill="#161a22">2</text>
+    <text x="164.14" y="512.55" text-anchor="middle" font-size="12.5" fill="#e7eaf0">charge</text>
+  </g>
+  <g id="edge-api--stock" data-step="2">
+    <path d="M208 368 L208 416" fill="none" stroke="#737d90" stroke-width="1" marker-end="url(#arrow)"/>
+    <circle cx="223" cy="392" r="9" fill="#86a8ff" data-badge="2"/>
+    <text x="223" y="396.55" text-anchor="middle" font-size="12.5" fill="#161a22">2</text>
+    <text x="262.11" y="396.55" text-anchor="middle" font-size="12.5" fill="#e7eaf0">reserve</text>
+  </g>
+  <g id="edge-stock--orders" data-step="3">
+    <path d="M208 496 L208 544" fill="none" stroke="#737d90" stroke-width="1" marker-end="url(#arrow)"/>
+    <circle cx="223" cy="520" r="9" fill="#86a8ff" data-badge="3"/>
+    <text x="223" y="524.55" text-anchor="middle" font-size="12.5" fill="#161a22">3</text>
+    <text x="252.85" y="524.55" text-anchor="middle" font-size="12.5" fill="#e7eaf0">save</text>
+  </g>
+  <g id="edge-orders--events" data-step="3">
+    <path d="M208 624 L208 672" fill="none" stroke="#737d90" stroke-width="1" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <circle cx="223" cy="648" r="9" fill="#86a8ff" data-badge="3"/>
+    <text x="223" y="652.55" text-anchor="middle" font-size="12.5" fill="#161a22">3</text>
+    <text x="261.08" y="652.55" text-anchor="middle" font-size="12.5" fill="#e7eaf0">publish</text>
+  </g>
+  <g id="edge-events--slip" data-step="3">
+    <path d="M208 736 L208 776 L304 776 L304 808" fill="none" stroke="#737d90" stroke-width="1" stroke-dasharray="2 4" marker-end="url(#arrow)"/>
+    <circle cx="238.43" cy="790" r="9" fill="#86a8ff" data-badge="3"/>
+    <text x="238.43" y="794.55" text-anchor="middle" font-size="12.5" fill="#161a22">3</text>
+    <text x="268" y="794.55" text-anchor="middle" font-size="12.5" fill="#e7eaf0">print</text>
+  </g>
+  <g id="note-1">
+    <line x1="312" y1="704" x2="288" y2="704" stroke="#a3acbc" stroke-width="1" stroke-dasharray="2 3"/>
+    <rect x="312" y="688" width="176" height="32" rx="5" fill="#222c45" stroke="#a3acbc" stroke-width="1"/>
+    <text x="400" y="708.55" text-anchor="middle" font-size="12.5" fill="#e7eaf0">Delivered at least once</text>
+  </g>
+  <g id="legend">
+    <line x1="24" y1="914" x2="52" y2="914" stroke="#737d90" stroke-width="1"/>
+    <text x="60" y="918.55" font-size="12.5" fill="#e7eaf0">call</text>
+    <line x1="112" y1="914" x2="140" y2="914" stroke="#737d90" stroke-width="1" stroke-dasharray="6 4"/>
+    <text x="148" y="918.55" font-size="12.5" fill="#e7eaf0">asynchronous message</text>
+    <line x1="320" y1="914" x2="348" y2="914" stroke="#737d90" stroke-width="1" stroke-dasharray="2 4"/>
+    <text x="356" y="918.55" font-size="12.5" fill="#e7eaf0">dependency</text>
+    <rect x="26" y="928" width="24" height="12" rx="2" fill="#86a8ff" stroke="#2f3644" stroke-width="1"/>
+    <text x="60" y="938.55" font-size="12.5" fill="#e7eaf0">highlighted</text>
+  </g>
+  <g id="steps">
+    <g id="step-1">
+      <circle cx="33" cy="965" r="9" fill="#86a8ff" data-badge="1"/>
+      <text x="33" y="969.55" text-anchor="middle" font-size="12.5" fill="#161a22">1</text>
+      <text x="52" y="969.55" font-size="12.5" fill="#e7eaf0">The shopper checks out in the web shop.</text>
+    </g>
+    <g id="step-2">
+      <circle cx="33" cy="991" r="9" fill="#86a8ff" data-badge="2"/>
+      <text x="33" y="995.55" text-anchor="middle" font-size="12.5" fill="#161a22">2</text>
+      <text x="52" y="995.55" font-size="12.5" fill="#e7eaf0">The Order API charges the card and reserves the stock.</text>
+    </g>
+    <g id="step-3">
+      <circle cx="33" cy="1017" r="9" fill="#86a8ff" data-badge="3"/>
+      <text x="33" y="1021.55" text-anchor="middle" font-size="12.5" fill="#161a22">3</text>
+      <text x="52" y="1021.55" font-size="12.5" fill="#e7eaf0">The order is saved and announced to the warehouse.</text>
+    </g>
+  </g>
+  <g id="caption">
+    <text x="24" y="1050.8" font-size="12.5" fill="#a3acbc">Payment and stock are checked before the order is saved.</text>
+  </g>
+</svg>

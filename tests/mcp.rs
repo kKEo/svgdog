@@ -382,7 +382,7 @@ fn themes_are_listed_made_and_used_inside_the_root_only() {
     let mut s = Server::start(&root);
     let (l, is_error, _) = s.call("svgdog_theme_list", json!({}));
     let names: Vec<&str> = l["themes"].as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap()).collect();
-    assert!(!is_error && names == ["docs", "blueprint", "paper", "bold"], "{l:#}");
+    assert!(!is_error && names == ["docs", "blueprint", "paper", "bold", "cards"], "{l:#}");
 
     // a built-in theme by name, then one of our own from a folder
     let (r, is_error, _) = s.call("svgdog_render", json!({ "file": "orders.yaml", "output": "blue.svg", "theme": "blueprint-dark" }));

@@ -32,7 +32,7 @@ svgdog render fig/orders.yaml -o fig/orders.svg
 |---|---|---|
 | `SPEC` | Diagram spec, YAML or JSON; `-` reads stdin | required |
 | `-o OUT` | Output SVG; `-` writes the SVG to stdout in place of the report | required |
-| `--theme NAME\|DIR` | A built-in theme (`docs`, `blueprint`, `paper`, `bold`; add `-dark`, or `-auto` to follow the reader's light or dark mode) or a theme folder (add `#dark` or `#auto`); see [theme](#theme) | the spec's `theme`, else `[style] theme` in `svgdog.toml`, else `docs-light` |
+| `--theme NAME\|DIR` | A built-in theme (`docs`, `blueprint`, `paper`, `bold`, `cards`; add `-dark`, or `-auto` to follow the reader's light or dark mode) or a theme folder (add `#dark` or `#auto`); see [theme](#theme) | the spec's `theme`, else `[style] theme` in `svgdog.toml`, else `docs-light` |
 | `--interactive none\|css\|html` | `css`: the same SVG with classes and one `<style>` block, so related things light up on hover and keyboard focus; no script. `html`: a self-contained page holding that SVG and a small script with step controls and a detail line. See [Interactive versions](#interactive-versions) | `none` |
 | `--frames` | Write one picture per entry of the spec's `steps`, named `OUT` with the step number before the extension (`orders.1.svg`, `orders.2.svg`, ...); `OUT` itself is not written | off |
 | `--embed-spec` | Store the spec in the SVG as `<metadata id="svgdog-spec">` (compact JSON), so `describe` can read the drawing back. The `editor-metadata` rule and its fix leave this element alone | off |
@@ -290,7 +290,7 @@ svgdog theme check themes/acme
 
 | Subcommand | Argument or flag | Meaning | Default |
 |---|---|---|---|
-| `list` | | The built-in themes: `docs`, `blueprint`, `paper`, `bold`. The envelope carries each one's `description`, `variants`, `font`, `line`, `light` and `dark` in `themes` | |
+| `list` | | The built-in themes: `docs`, `blueprint`, `paper`, `bold`, `cards`. The envelope carries each one's `description`, `variants`, `font`, `line`, `light` and `dark` in `themes` | |
 | `init DIR` | `DIR` | Folder to write `theme.toml` into; created when missing | required |
 | | `--from NAME` | Built-in theme to copy | `docs` |
 | | `--force` | Replace a `theme.toml` that is already there | off (exit 4, `output-exists`) |

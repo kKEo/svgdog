@@ -1,0 +1,38 @@
+# Soft cards on a white panel: hairline borders, round corners, a blue accent.
+# Modelled on the plugins overview at https://kkeo.github.io/claude-code-plugins-incubator/
+version = 1
+name = "cards"
+description = "Soft grey cards with hairline borders, round corners and a blue accent"
+
+[font]
+family = ["system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"]
+size = 15          # plugin names on the page
+small = 12.5       # descriptions on the page
+
+[line]
+width = 1          # card borders
+thin = 1
+corner = 10        # cards on the page
+box_corner = 10    # every box is a card
+
+[light]
+background = "#ffffff"     # --bg
+text = "#1b2130"           # --fg
+muted = "#566074"          # --muted
+node_fill = "#f6f7f9"      # --card
+node_stroke = "#dfe3e8"    # --line
+accent_fill = "#2f5bd6"    # --accent
+accent_text = "#ffffff"
+note_fill = "#eaf0ff"      # --soft
+edge = "#8b94a5"           # --faint, the chevrons
+
+[dark]
+background = "#161a22"
+text = "#e7eaf0"
+muted = "#a3acbc"
+node_fill = "#1d222c"
+node_stroke = "#2f3644"
+accent_fill = "#86a8ff"
+accent_text = "#161a22"
+note_fill = "#222c45"
+edge = "#737d90"

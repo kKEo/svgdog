@@ -10,8 +10,11 @@ A theme is the look of a rendered diagram as data: nine colours per variant, a f
 | `blueprint` | JetBrains Mono | 13 / 12 | 1 / 1 | 0 / 0 | `themes/blueprint/theme.toml` |
 | `paper` | Inter | 14 / 12 | 1.5 / 1 | 12 / 6 | `themes/paper/theme.toml` |
 | `bold` | Inter | 16 / 13 | 2.5 / 1.5 | 10 / 4 | `themes/bold/theme.toml` |
+| `cards` | system-ui (measured with Inter) | 15 / 12.5 | 1 / 1 | 10 / 10 | `themes/cards/theme.toml` |
 
-The four files are compiled into the binary (`BUILTIN` in `src/render/theme.rs`) and parsed with the same code as a theme folder. Each has a light and a dark variant. `svgdog theme list` prints them as data.
+The five files are compiled into the binary (`BUILTIN` in `src/render/theme.rs`) and parsed with the same code as a theme folder. Each has a light and a dark variant. `svgdog theme list` prints them as data, and the [Theme gallery](../../user/theme-gallery.md) in the user guide shows one diagram in all of them.
+
+`cards` has hairline box outlines by design: `node_stroke` on `background` is 1.29:1 in the light variant and 1.44:1 in the dark one, below the 3:1 that `theme check` asks of a custom theme. A copy made with `theme init --from cards` therefore fails `theme check` on that pair until the outline is darkened.
 
 ## Naming a theme
 

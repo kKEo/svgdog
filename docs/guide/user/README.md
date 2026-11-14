@@ -15,6 +15,7 @@ This guide is for people who want diagrams in their documentation or pages and d
 | Find and fix problems in an SVG you already have | [Checking and fixing SVGs](checking-and-fixing.md) |
 | See what a diagram looks like as a picture | [Looking at your diagram](looking-at-your-diagram.md) |
 | Choose a look, set house rules for a project | [Themes and settings](themes-and-settings.md) |
+| See every built-in theme on one diagram | [Theme gallery](theme-gallery.md) |
 | Use your own colours, font and line style | [Making your own theme](making-a-theme.md) |
 | Let an AI assistant drive SVGDog | [Using SVGDog with an AI agent](using-with-an-ai-agent.md) |
 | See what people use it for | [Use cases](use-cases.md) |

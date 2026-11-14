@@ -1167,6 +1167,16 @@ fn r8_output_matches_the_golden_files() {
         assert_eq!(r.code, 0, "{out}: {}", r.stdout);
         produced.push((out.into(), fs::read(dir.path().join(out)).unwrap()));
     }
+    // the showcase in every built-in theme, light and dark: the pictures of the theme gallery in the user guide
+    let spec = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/showcase.yaml");
+    for theme in THEMES {
+        for variant in ["", "-dark"] {
+            let out = format!("showcase-{theme}{variant}.svg");
+            let r = run_in(dir.path(), &["render", spec.to_str().unwrap(), "-o", &out, "--theme", &format!("{theme}{variant}"), "--profile", "strict", "--no-config"], None);
+            assert_eq!(r.code, 0, "{out}: {}", r.stdout);
+            produced.push((out.clone(), fs::read(dir.path().join(&out)).unwrap()));
+        }
+    }
     // findings and scene data are output too
     let broken = Path::new(env!("CARGO_MANIFEST_DIR")).join(BROKEN);
     let v = run_in(dir.path(), &["validate", broken.to_str().unwrap(), "--no-config", "--max-findings", "500"], None);
@@ -2123,7 +2133,7 @@ fn every_computed_layout_keeps_its_boxes_when_boxes_are_added() {
     }
 }
 
-const THEMES: [&str; 4] = ["docs", "blueprint", "paper", "bold"];
+const THEMES: [&str; 5] = ["docs", "blueprint", "paper", "bold", "cards"];
 
 #[test]
 fn every_built_in_theme_draws_the_fixtures_in_each_variant_without_findings() {

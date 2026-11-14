@@ -64,8 +64,8 @@ the reader's light or dark mode. `svgdog describe` turns a diagram into words, a
 
 ## Themes
 
-A theme sets colours, font, text sizes, line widths and corner radii. Four are built
-in: `docs` (the default), `blueprint`, `paper` and `bold`, each with a light, a dark
+A theme sets colours, font, text sizes, line widths and corner radii. Five are built
+in: `docs` (the default), `blueprint`, `paper`, `bold` and `cards`, each with a light, a dark
 (`-dark`) and an adaptive (`-auto`) variant. Name one with `--theme`, with `theme:` in
 a spec, or with `[style] theme` in `svgdog.toml`.
 
